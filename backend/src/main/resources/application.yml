@@ -1,0 +1,24 @@
+spring:
+  application:
+    name: green-juice-hub
+
+  datasource:
+    url: jdbc:mysql://localhost:3306/green_juice_hub?useSSL=false&serverTimezone=Asia/Ho_Chi_Minh&allowPublicKeyRetrieval=true
+    username: root
+    password:
+    driver-class-name: com.mysql.cj.jdbc.Driver
+
+  jpa:
+    hibernate:
+      ddl-auto: validate
+    show-sql: true
+    properties:
+      hibernate:
+        format_sql: true
+
+server:
+  port: 8081
+
+jwt:
+  secret: your-secret-key-min-32-characters-here
+  expiration: 86400000
