@@ -5,7 +5,7 @@ spring:
   datasource:
     url: jdbc:mysql://localhost:3306/green_juice_hub?useSSL=false&serverTimezone=Asia/Ho_Chi_Minh&allowPublicKeyRetrieval=true
     username: root
-    password:
+    password: ${DB_PASSWORD:}
     driver-class-name: com.mysql.cj.jdbc.Driver
 
   jpa:
@@ -16,9 +16,19 @@ spring:
       hibernate:
         format_sql: true
 
+  profiles:
+    active: local
+
 server:
   port: 8081
 
 jwt:
-  secret: your-secret-key-min-32-characters-here
-  expiration: 86400000
+  secret: ${JWT_SECRET:}
+  access-token-expiration: 900000
+  refresh-token-expiration: 604800000
+
+otp:
+  expiration-minutes: 5
+  max-send-per-day: 5
+  max-wrong-attempts: 3
+  lock-minutes: 15

@@ -7,14 +7,24 @@ frontend/.vite/
 # Backend
 backend/target/
 backend/.env
+backend/src/main/resources/application-local.yml
 backend/src/main/resources/application-local.properties
 backend/*.jar
+backend/.mvn/
 
 # IDE
 .idea/
 .vscode/
 *.iml
+*.class
 
 # OS
 .DS_Store
 Thumbs.db
+
+# Logs
+*.log
+logs/
+
+# Database
+*.sql.bak

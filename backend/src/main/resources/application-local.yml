@@ -1,0 +1,6 @@
+spring:
+  datasource:
+    password:
+
+jwt:
+  secret: green-juice-hub-secret-key-must-be-at-least-32-characters
