@@ -53,6 +53,7 @@
 | Database | MySQL |
 | Auth | JWT, OTP (SMS), Google OAuth 2.0 |
 | Payment | VNPay, Momo, COD |
+| Middleware | JWT Filter, CORS, Rate Limiting, Global Exception Handler |
 
 ---
 
@@ -92,28 +93,52 @@ mysql -u root -p < database/schema.sql
 
 ```
 green-juice-hub/
-├── frontend/               # React + Tailwind CSS
-│   ├── src/
-│   │   ├── components/     # UI components
-│   │   ├── pages/          # Các trang
-│   │   ├── hooks/          # Custom hooks
-│   │   ├── services/       # API calls
-│   │   ├── store/          # State management
-│   │   └── utils/          # Helper functions
-│   └── public/
 │
-├── backend/                # Spring Boot
-│   └── src/main/java/
-│       └── com/greenjuicehub/
-│           ├── controller/
-│           ├── service/
-│           ├── repository/
-│           ├── entity/
-│           ├── dto/
-│           └── config/
+├── frontend/                   # React + Tailwind CSS
+│   ├── public/
+│   └── src/
+│       ├── assets/             # Hình ảnh, font, icon
+│       ├── components/         # UI components dùng chung
+│       │   ├── common/         # Button, Input, Modal, Badge...
+│       │   ├── layout/         # Header, Footer, Sidebar
+│       │   └── product/        # ProductCard, ProductFilter...
+│       ├── pages/              # Các trang
+│       │   ├── Home/
+│       │   ├── Product/
+│       │   ├── Cart/
+│       │   ├── Checkout/
+│       │   ├── Order/
+│       │   ├── Auth/
+│       │   ├── Profile/
+│       │   ├── Contact/
+│       │   └── Admin/
+│       ├── hooks/              # Custom hooks
+│       ├── services/           # Gọi API (axios)
+│       ├── store/              # State management (Redux/Zustand)
+│       ├── routes/             # React Router config
+│       ├── utils/              # Helper functions
+│       └── constants/          # Hằng số, enum
+│
+├── backend/                    # Spring Boot
+│   └── src/
+│       ├── main/
+│       │   ├── java/com/greenjuicehub/
+│       │   │   ├── controller/         # REST API endpoints
+│       │   │   ├── service/            # Business logic
+│       │   │   ├── repository/         # JPA Repositories
+│       │   │   ├── entity/             # JPA Entities (22 bảng)
+│       │   │   ├── dto/                # Request / Response DTOs
+│       │   │   ├── middleware/         # JWT Filter, Rate Limit
+│       │   │   ├── exception/          # Global Exception Handler
+│       │   │   ├── config/             # Security, CORS, Swagger
+│       │   │   └── utils/              # JWT util, OTP util...
+│       │   └── resources/
+│       │       ├── application.yml
+│       │       └── application-local.yml
+│       └── test/
 │
 └── database/
-    └── schema.sql          # MySQL schema (22 bảng)
+    └── schema.sql              # MySQL schema (22 bảng)
 ```
 
 ---
