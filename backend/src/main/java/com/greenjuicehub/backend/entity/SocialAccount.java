@@ -38,6 +38,6 @@ public class SocialAccount {
     }
 
     public enum Provider {
-        google
+        GOOGLE
     }
 }

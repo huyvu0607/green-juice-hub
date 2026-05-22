@@ -12,5 +12,7 @@ public class SendOtpRequest {
     @Pattern(regexp = "^(0[3|5|7|8|9])+([0-9]{8})$", message = "Số điện thoại không hợp lệ")
     private String phone;
 
-    private String type; // register | login
+    @NotBlank(message = "Type không được để trống")
+    @Pattern(regexp = "REGISTER|LOGIN|RESET_PASSWORD", message = "Type không hợp lệ")
+    private String type;
 }

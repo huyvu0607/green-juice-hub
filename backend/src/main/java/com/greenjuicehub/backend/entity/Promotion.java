@@ -59,10 +59,10 @@ public class Promotion {
     private Boolean isActive = true;
 
     public enum PromotionType {
-        percent, fixed
+        PERCENT, FIXED
     }
 
     public enum Target {
-        PUBLIC, personal
+        PUBLIC, PERSONAL
     }
 }

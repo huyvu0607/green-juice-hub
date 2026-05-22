@@ -41,11 +41,11 @@ public class Order {
 
     @Enumerated(EnumType.STRING)
     @Column(nullable = false, length = 20)
-    private OrderStatus status = OrderStatus.pending;
+    private OrderStatus status = OrderStatus.PENDING;
 
     @Enumerated(EnumType.STRING)
     @Column(name = "payment_status", nullable = false, length = 20)
-    private PaymentStatus paymentStatus = PaymentStatus.pending;
+    private PaymentStatus paymentStatus = PaymentStatus.PENDING;
 
     @Column(name = "shipping_address", columnDefinition = "JSON", nullable = false)
     private String shippingAddress;
@@ -71,10 +71,10 @@ public class Order {
     }
 
     public enum OrderStatus {
-        pending, confirmed, shipping, delivered, cancelled
+        PENDING, CONFIRMED, SHIPPING, DELIVERED, CANCELLED
     }
 
     public enum PaymentStatus {
-        pending, paid, refunded
+        PENDING, PAID, REFUNDED
     }
 }

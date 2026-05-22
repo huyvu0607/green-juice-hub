@@ -2,16 +2,15 @@ package com.greenjuicehub.backend.dto.auth.request;
 
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.Size;
-import lombok.Getter;
-import lombok.Setter;
+import lombok.Data;
 
-@Getter @Setter
-public class SetPasswordRequest {
+@Data
+public class ResetPasswordRequest {
 
-    @NotBlank
+    @NotBlank(message = "Phiên xác thực không hợp lệ")
     private String tempToken;
 
-    @NotBlank
+    @NotBlank(message = "Vui lòng nhập mật khẩu mới")
     @Size(min = 8, message = "Mật khẩu tối thiểu 8 ký tự")
-    private String password;
+    private String newPassword;
 }

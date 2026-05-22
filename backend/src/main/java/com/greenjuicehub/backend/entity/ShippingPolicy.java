@@ -41,6 +41,6 @@ public class ShippingPolicy {
     }
 
     public enum PolicyType {
-        shipping, return_, warranty, terms
+        SHIPPING, RETURN, WARRANTY, TERMS
     }
 }
