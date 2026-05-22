@@ -1,6 +1,13 @@
 spring:
   datasource:
     password:
-
+  data:
+    redis:
+      host: localhost
+      port: 6379
+      password:
 jwt:
   secret: green-juice-hub-secret-key-must-be-at-least-32-characters
+
+google:
+  client-id: 249529136685-3rfj6v3n0gl1aqjotch0lk1pgi9r7abp.apps.googleusercontent.com

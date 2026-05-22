@@ -18,7 +18,7 @@ public class User {
     @Column(length = 100)
     private String name;
 
-    @Column(length = 15, unique = true, nullable = false)
+    @Column(length = 15, unique = true)
     private String phone;
 
     @Column(name = "phone_verified_at")
@@ -26,6 +26,9 @@ public class User {
 
     @Column(length = 100, unique = true)
     private String email;
+
+    @Column(length = 50, unique = true)
+    private String username;
 
     @Column(name = "password_hash", length = 255)
     private String passwordHash;
@@ -38,7 +41,7 @@ public class User {
 
     @Enumerated(EnumType.STRING)
     @Column(nullable = false, length = 20)
-    private Role role = Role.customer;
+    private Role role = Role.CUSTOMER;
 
     @Column(name = "is_active", nullable = false)
     private Boolean isActive = true;
@@ -61,6 +64,6 @@ public class User {
     }
 
     public enum Role {
-        customer, staff, admin
+        CUSTOMER, STAFF, ADMIN
     }
 }

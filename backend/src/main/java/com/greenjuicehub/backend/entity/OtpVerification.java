@@ -40,6 +40,6 @@ public class OtpVerification {
     }
 
     public enum OtpType {
-        register, login, reset_password
+        REGISTER, LOGIN, RESET_PASSWORD
     }
 }

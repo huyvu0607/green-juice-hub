@@ -26,7 +26,7 @@ public class Payment {
 
     @Enumerated(EnumType.STRING)
     @Column(nullable = false, length = 20)
-    private PaymentStatus status = PaymentStatus.pending;
+    private PaymentStatus status = PaymentStatus.PENDING;
 
     @Column(nullable = false, precision = 12, scale = 2)
     private BigDecimal amount;
@@ -49,10 +49,10 @@ public class Payment {
     }
 
     public enum PaymentMethod {
-        cod, vnpay, momo, bank_transfer
+        COD, VNPAY, MOMO, BANK_TRANSFER
     }
 
     public enum PaymentStatus {
-        pending, success, failed, refunded
+        PENDING, SUCCESS, FAILED, REFUNDED
     }
 }

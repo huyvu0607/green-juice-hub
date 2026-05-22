@@ -32,7 +32,7 @@ public class Contact {
 
     @Enumerated(EnumType.STRING)
     @Column(nullable = false, length = 20)
-    private ContactStatus status = ContactStatus.new_;
+    private ContactStatus status = ContactStatus.NEW;
 
     @Column(name = "created_at", updatable = false)
     private LocalDateTime createdAt;
@@ -43,6 +43,6 @@ public class Contact {
     }
 
     public enum ContactStatus {
-        new_, in_progress, resolved
+        NEW, IN_PROGRESS, RESOLVED
     }
 }

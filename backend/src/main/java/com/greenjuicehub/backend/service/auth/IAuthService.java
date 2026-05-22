@@ -10,4 +10,7 @@ public interface IAuthService {
     AuthResponse setPassword(SetPasswordRequest request);
     AuthResponse loginWithGoogle(GoogleLoginRequest request);
     AuthResponse refreshToken(String refreshToken);
+    AuthResponse loginWithTempToken(String tempToken);
+    void changePassword(ChangePasswordRequest request, Long currentUserId);
+    AuthResponse resetPassword(ResetPasswordRequest request);
 }
