@@ -11,3 +11,4 @@ jwt:
 
 google:
   client-id: 249529136685-3rfj6v3n0gl1aqjotch0lk1pgi9r7abp.apps.googleusercontent.com
+  recaptcha-secret: 6LdksfosAAAAABlPQM4G-qdSiBOBsXwNcWf0HxmG
