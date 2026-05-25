@@ -39,3 +39,5 @@ otp:
 
 google:
   client-id: ${GOOGLE_CLIENT_ID}
+  recaptcha-secret: ${RECAPTCHA_SECRET}
+

@@ -34,7 +34,15 @@ public class SecurityConfig {
                 .authorizeHttpRequests(auth -> auth
                         // Public endpoints
                         .requestMatchers(
-                                "/api/auth/**"
+                                "/api/auth/send-otp",
+                                "/api/auth/verify-otp",
+                                "/api/auth/login-with-otp",
+                                "/api/auth/login",
+                                "/api/auth/set-password",
+                                "/api/auth/reset-password",
+                                "/api/auth/google",
+                                "/api/auth/refresh",
+                                "/api/auth/logout"
                         ).permitAll()
                         // Tất cả còn lại phải authenticated
                         .anyRequest().authenticated()

@@ -8,10 +8,7 @@ import com.greenjuicehub.backend.dto.auth.response.*;
 import com.greenjuicehub.backend.entity.*;
 import com.greenjuicehub.backend.exception.AppException;
 import com.greenjuicehub.backend.repository.*;
-import com.greenjuicehub.backend.service.auth.IAuthService;
-import com.greenjuicehub.backend.service.auth.ITempTokenService;
-import com.greenjuicehub.backend.service.auth.OtpLockService;
-import com.greenjuicehub.backend.service.auth.PasswordAttemptService;
+import com.greenjuicehub.backend.service.auth.*;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.security.crypto.password.PasswordEncoder;
@@ -35,6 +32,7 @@ public class AuthServiceImpl implements IAuthService {
     private final ITempTokenService tempTokenService;
     private final GoogleTokenVerifier googleTokenVerifier;
     private final PasswordAttemptService passwordAttemptService;
+    private final CaptchaVerifier captchaVerifier;
 
 
     // ==================== GỬI OTP ====================
@@ -170,10 +168,9 @@ public class AuthServiceImpl implements IAuthService {
                     "Tài khoản tạm khóa do nhập sai quá nhiều lần, thử lại sau 15 phút");
         }
 
-        // Kiểm tra captcha nếu đã sai >= 5 lần
-        if (passwordAttemptService.requiresCaptcha(request.getIdentifier())
-                && (request.getCaptchaToken() == null || request.getCaptchaToken().isBlank())) {
-            throw new AppException(HttpStatus.BAD_REQUEST, "Vui lòng xác minh captcha");
+        // Verify captcha nếu đã sai >= 5 lần
+        if (passwordAttemptService.requiresCaptcha(request.getIdentifier())) {
+            captchaVerifier.verify(request.getCaptchaToken());
         }
 
         if (!user.getHasPassword()) {
