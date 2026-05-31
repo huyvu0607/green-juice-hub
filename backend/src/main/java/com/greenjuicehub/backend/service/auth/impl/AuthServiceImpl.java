@@ -35,6 +35,23 @@ public class AuthServiceImpl implements IAuthService {
     private final CaptchaVerifier captchaVerifier;
 
 
+    // ==================== KIỂM TRA TÀI KHOẢN ====================
+    @Override
+    public AccountCheckResponse checkAccount(CheckAccountRequest request) {
+        String phone = request.getPhone();
+        return userRepository.findByPhone(phone)
+                .map(user -> AccountCheckResponse.builder()
+                        .exists(true)
+                        .isNewUser(false)
+                        .hasPassword(Boolean.TRUE.equals(user.getHasPassword()))
+                        .build())
+                .orElseGet(() -> AccountCheckResponse.builder()
+                        .exists(false)
+                        .isNewUser(true)
+                        .hasPassword(false)
+                        .build());
+    }
+
     // ==================== GỬI OTP ====================
     @Override
     @Transactional
@@ -100,7 +117,8 @@ public class AuthServiceImpl implements IAuthService {
         // Kiểm tra đang bị khóa
         if (otpLockService.isLocked(phone)) {
             throw new AppException(HttpStatus.TOO_MANY_REQUESTS,
-                    "Nhập sai OTP quá 3 lần, vui lòng thử lại sau 15 phút");
+                    "Nhập sai OTP quá " + otpProperties.getMaxWrongAttempts() +
+                            " lần, vui lòng thử lại sau " + otpProperties.getLockMinutes() + " phút");
         }
 
         OtpVerification otp = otpRepository
@@ -188,8 +206,14 @@ public class AuthServiceImpl implements IAuthService {
                 throw new AppException(HttpStatus.FORBIDDEN,
                         "Mật khẩu không đúng, vui lòng xác minh captcha để tiếp tục");
             }
-            throw new AppException(HttpStatus.UNAUTHORIZED,
-                    "Mật khẩu không đúng, còn " + (10 - result.count()) + " lần thử");
+            int remaining = 5 - result.count();
+            if (remaining > 0) {
+                throw new AppException(HttpStatus.UNAUTHORIZED,
+                        "Mật khẩu không đúng, còn " + remaining + " lần thử trước khi yêu cầu captcha");
+            } else {
+                throw new AppException(HttpStatus.FORBIDDEN,
+                        "Mật khẩu không đúng, vui lòng xác minh captcha để tiếp tục");
+            }
         }
 
         if (!user.getIsActive()) {

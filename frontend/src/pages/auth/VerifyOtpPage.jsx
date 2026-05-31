@@ -2,11 +2,12 @@ import { useState, useEffect, useRef } from 'react'
 import { useNavigate, useLocation } from 'react-router-dom'
 import authApi from '../../api/authApi'
 import useAuthStore from '../../store/authStore'
+import AuthShell from './AuthShell'
 
 export default function VerifyOtpPage() {
   const navigate = useNavigate()
   const location = useLocation()
-const { phone, type } = location.state || {}
+  const { phone, type } = location.state || {}
 
   const [otp, setOtp] = useState(['', '', '', '', '', ''])
   const [loading, setLoading] = useState(false)
@@ -17,7 +18,7 @@ const { phone, type } = location.state || {}
 
   useEffect(() => {
     if (!phone) navigate('/login')
-  }, [phone])
+  }, [phone, navigate])
 
   useEffect(() => {
     const timer = setInterval(() => {
@@ -47,23 +48,30 @@ const { phone, type } = location.state || {}
   setError('')
   try {
     const res = await authApi.verifyOtp(phone, otpCode, type)
-    const { tempToken, isNewUser, hasPassword } = res.data
+    const { tempToken, isNewUser, newUser } = res.data
+    const isNew = isNewUser ?? newUser
 
     if (type === 'RESET_PASSWORD') {
       navigate('/reset-password', { state: { tempToken } })
-    } else if (isNewUser || !hasPassword) {
-      navigate('/set-password', { state: { tempToken, isNewUser } })
-    } else {
-      const loginRes = await authApi.loginWithOtp(tempToken)
-      setAuth(loginRes.data.accessToken, loginRes.data.refreshToken)
-      navigate('/')
+      return
     }
+
+    if (isNew) {
+      navigate('/set-password', { state: { tempToken, isNewUser: true } })
+      return
+    }
+
+    // Có tài khoản, không có mật khẩu → login luôn
+    const loginRes = await authApi.loginWithOtp(tempToken)
+    setAuth(loginRes.data.accessToken, loginRes.data.refreshToken)
+    navigate('/')
   } catch (err) {
     setError(err.response?.data?.message || 'OTP không đúng')
   } finally {
     setLoading(false)
   }
 }
+
   const handleResend = async () => {
     if (countdown > 0) return
     try {
@@ -71,20 +79,30 @@ const { phone, type } = location.state || {}
       setCountdown(60)
       setOtp(['', '', '', '', '', ''])
       setError('')
+      inputRefs.current[0]?.focus()
     } catch (err) {
       setError(err.response?.data?.message || 'Có lỗi xảy ra')
     }
   }
 
   return (
-    <div className="min-h-screen bg-green-50 flex items-center justify-center">
-      <div className="bg-white rounded-2xl shadow-md p-8 w-full max-w-md">
-        <h1 className="text-2xl font-bold text-green-600 mb-2">Xác nhận OTP</h1>
-        <p className="text-gray-500 mb-6">
-          Nhập mã 6 số đã gửi đến <span className="font-medium text-gray-700">{phone}</span>
-        </p>
-
-        <div className="flex gap-2 justify-center mb-4">
+    <AuthShell
+      title="Xác nhận OTP"
+      subtitle={
+        <>
+          Nhập mã 6 số đã gửi đến{' '}
+          <span className="font-semibold text-slate-700">{phone}</span>.
+        </>
+      }
+      heroQuote="Mã OTP giúp xác nhận đúng chủ tài khoản chỉ trong vài giây."
+      heroItems={[
+        'Mỗi mã xác thực chỉ dùng một lần',
+        'Không chia sẻ OTP với bất kỳ ai',
+        'Có thể gửi lại mã nếu bạn chưa nhận được'
+      ]}
+    >
+      <div className="space-y-6">
+        <div className="grid grid-cols-6 gap-2 sm:gap-3">
           {otp.map((digit, index) => (
             <input
               key={index}
@@ -95,43 +113,61 @@ const { phone, type } = location.state || {}
               value={digit}
               onChange={(e) => handleChange(index, e.target.value)}
               onKeyDown={(e) => handleKeyDown(index, e)}
-              className="w-12 h-12 text-center text-xl font-bold border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-400"
+              className="aspect-square min-w-0 rounded-[14px] border border-slate-200 bg-white text-center text-xl font-bold text-slate-950 shadow-[0_18px_45px_rgba(15,23,42,.04)] outline-none transition duration-300 focus:border-emerald-400 focus:shadow-[0_20px_60px_rgba(16,185,129,.16)]"
             />
           ))}
         </div>
 
-        {error && <p className="text-red-500 text-sm text-center mb-3">{error}</p>}
+        {error && (
+          <p className="rounded-xl bg-red-50 px-4 py-3 text-center text-sm font-medium text-red-600">
+            {error}
+          </p>
+        )}
 
         <button
           onClick={handleVerify}
           disabled={loading}
-          className="w-full bg-green-500 hover:bg-green-600 text-white font-semibold py-2.5 rounded-lg transition disabled:opacity-50"
+          className="group relative flex h-[58px] w-full items-center justify-center overflow-hidden rounded-[14px] bg-[#73c892] px-5 text-[15px] font-bold text-white shadow-[0_18px_42px_rgba(73,178,112,.26)] transition duration-300 hover:-translate-y-0.5 hover:bg-[#55b979] focus:outline-none focus:ring-4 focus:ring-emerald-200 disabled:translate-y-0 disabled:cursor-not-allowed disabled:opacity-60"
         >
-          {loading ? 'Đang xác nhận...' : 'Xác nhận'}
-        </button>
-
-        <div className="mt-4 text-center text-sm text-gray-500">
-          {countdown > 0 ? (
-            <span>Gửi lại sau <span className="text-green-600 font-medium">{countdown}s</span></span>
-          ) : (
-            <span
-              onClick={handleResend}
-              className="text-green-600 font-medium cursor-pointer hover:underline"
-            >
-              Gửi lại OTP
-            </span>
-          )}
-        </div>
-
-        <div className="mt-3 text-center">
-          <span
-            onClick={() => navigate('/login')}
-            className="text-sm text-gray-400 cursor-pointer hover:underline"
+          <span>{loading ? 'Đang xác nhận...' : 'Xác nhận'}</span>
+          <svg
+            aria-hidden="true"
+            className="ml-3 h-5 w-5 transition duration-300 group-hover:translate-x-1"
+            fill="none"
+            viewBox="0 0 24 24"
+            stroke="currentColor"
+            strokeWidth="2"
           >
-            ← Quay lại
-          </span>
-        </div>
+            <path strokeLinecap="round" strokeLinejoin="round" d="M13.5 4.5 21 12m0 0-7.5 7.5M21 12H3" />
+          </svg>
+        </button>
       </div>
-    </div>
+
+      <div className="mt-8 text-center text-[15px] text-slate-500">
+        {countdown > 0 ? (
+          <span>
+            Gửi lại sau <span className="font-semibold text-emerald-600">{countdown}s</span>
+          </span>
+        ) : (
+          <button
+            type="button"
+            onClick={handleResend}
+            className="font-semibold text-emerald-600 transition hover:text-emerald-700 hover:underline"
+          >
+            Gửi lại OTP
+          </button>
+        )}
+      </div>
+
+      <div className="mt-4 text-center text-sm text-slate-400">
+        <button
+          type="button"
+          onClick={() => navigate('/login')}
+          className="transition hover:text-slate-600 hover:underline"
+        >
+          Quay lại đăng nhập
+        </button>
+      </div>
+    </AuthShell>
   )
 }

@@ -1,43 +1,43 @@
-spring:
-  application:
-    name: green-juice-hub
+  spring:
+    application:
+      name: green-juice-hub
 
-  datasource:
-    url: jdbc:mysql://localhost:3306/green_juice_hub?useSSL=false&serverTimezone=Asia/Ho_Chi_Minh&allowPublicKeyRetrieval=true
-    username: root
-    password: ${DB_PASSWORD:}
-    driver-class-name: com.mysql.cj.jdbc.Driver
+    datasource:
+      url: jdbc:mysql://localhost:3306/green_juice_hub?useSSL=false&serverTimezone=Asia/Ho_Chi_Minh&allowPublicKeyRetrieval=true
+      username: root
+      password: ${DB_PASSWORD:}
+      driver-class-name: com.mysql.cj.jdbc.Driver
 
-  jpa:
-    hibernate:
-      ddl-auto: validate
-    show-sql: true
-    properties:
+    jpa:
       hibernate:
-        format_sql: true
+        ddl-auto: validate
+      show-sql: true
+      properties:
+        hibernate:
+          format_sql: true
 
-  profiles:
-    active: local
+    profiles:
+      active: local
 
-  data:
-    redis:
-      host: ${REDIS_HOST:localhost}
-      port: ${REDIS_PORT:6379}
-server:
-  port: 8081
+    data:
+      redis:
+        host: ${REDIS_HOST:localhost}
+        port: ${REDIS_PORT:6379}
+  server:
+    port: 8081
 
-jwt:
-  secret: ${JWT_SECRET:}
-  access-token-expiration: 900000
-  refresh-token-expiration: 604800000
+  jwt:
+    secret: ${JWT_SECRET:}
+    access-token-expiration: 900000
+    refresh-token-expiration: 604800000
 
-otp:
-  expiration-minutes: 5
-  max-send-per-day: 5
-  max-wrong-attempts: 3
-  lock-minutes: 15
+  otp:
+    expiration-minutes: 5
+    max-send-per-day: 5
+    max-wrong-attempts: 3
+    lock-minutes: 15
 
-google:
-  client-id: ${GOOGLE_CLIENT_ID}
-  recaptcha-secret: ${RECAPTCHA_SECRET}
+  google:
+    client-id: ${GOOGLE_CLIENT_ID}
+    recaptcha-secret: ${RECAPTCHA_SECRET}
 

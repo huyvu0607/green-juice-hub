@@ -4,6 +4,7 @@ import com.greenjuicehub.backend.dto.auth.request.*;
 import com.greenjuicehub.backend.dto.auth.response.*;
 
 public interface IAuthService {
+    AccountCheckResponse checkAccount(CheckAccountRequest request);
     OtpResponse sendOtp(SendOtpRequest request);
     OtpResponse verifyOtp(VerifyOtpRequest request);
     AuthResponse loginWithPassword(LoginPasswordRequest request);
