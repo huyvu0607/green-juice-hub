@@ -2,6 +2,7 @@ import { useState } from 'react'
 import { useNavigate, useLocation } from 'react-router-dom'
 import authApi from '../../api/authApi'
 import useAuthStore from '../../store/authStore'
+import AuthShell from './AuthShell'
 
 export default function ResetPasswordPage() {
   const navigate = useNavigate()
@@ -31,46 +32,89 @@ export default function ResetPasswordPage() {
   }
 
   return (
-    <div className="min-h-screen bg-green-50 flex items-center justify-center">
-      <div className="bg-white rounded-2xl shadow-md p-8 w-full max-w-md">
-        <h1 className="text-2xl font-bold text-green-600 mb-2">Đặt lại mật khẩu</h1>
-        <p className="text-gray-500 mb-6">Nhập mật khẩu mới tối thiểu 8 ký tự</p>
+    <AuthShell
+      title="Đặt lại mật khẩu"
+      subtitle="Tạo mật khẩu mới tối thiểu 8 ký tự để bảo vệ tài khoản."
+      heroQuote="Một mật khẩu mạnh giúp tài khoản Green Juice Hub luôn an toàn."
+      heroItems={[
+        'Bảo vệ lịch sử đơn hàng và ưu đãi cá nhân',
+        'Đăng nhập nhanh hơn trong những lần tiếp theo',
+        'Tiếp tục đặt nước ép chỉ với vài thao tác'
+      ]}
+    >
+      <div className="space-y-5">
+        <PasswordField
+          label="Mật khẩu mới"
+          value={password}
+          onChange={setPassword}
+          placeholder="Nhập mật khẩu mới"
+        />
+        <PasswordField
+          label="Xác nhận mật khẩu"
+          value={confirm}
+          onChange={setConfirm}
+          onEnter={handleSubmit}
+          placeholder="Nhập lại mật khẩu"
+        />
 
-        <div className="mb-4">
-          <label className="block text-sm font-medium text-gray-700 mb-1">
-            Mật khẩu mới
-          </label>
-          <input
-            type="password"
-            value={password}
-            onChange={(e) => setPassword(e.target.value)}
-            placeholder="Nhập mật khẩu mới"
-            className="w-full border border-gray-300 rounded-lg px-4 py-2.5 focus:outline-none focus:ring-2 focus:ring-green-400"
-          />
-        </div>
-
-        <div className="mb-4">
-          <label className="block text-sm font-medium text-gray-700 mb-1">
-            Xác nhận mật khẩu
-          </label>
-          <input
-            type="password"
-            value={confirm}
-            onChange={(e) => setConfirm(e.target.value)}
-            onKeyDown={(e) => e.key === 'Enter' && handleSubmit()}
-            placeholder="Nhập lại mật khẩu"
-            className="w-full border border-gray-300 rounded-lg px-4 py-2.5 focus:outline-none focus:ring-2 focus:ring-green-400"
-          />
-          {error && <p className="text-red-500 text-sm mt-1">{error}</p>}
-        </div>
+        {error && (
+          <p className="rounded-xl bg-red-50 px-4 py-3 text-sm font-medium text-red-600">
+            {error}
+          </p>
+        )}
 
         <button
           onClick={handleSubmit}
           disabled={loading}
-          className="w-full bg-green-500 hover:bg-green-600 text-white font-semibold py-2.5 rounded-lg transition disabled:opacity-50"
+          className="group relative flex h-[58px] w-full items-center justify-center overflow-hidden rounded-[14px] bg-[#73c892] px-5 text-[15px] font-bold text-white shadow-[0_18px_42px_rgba(73,178,112,.26)] transition duration-300 hover:-translate-y-0.5 hover:bg-[#55b979] focus:outline-none focus:ring-4 focus:ring-emerald-200 disabled:translate-y-0 disabled:cursor-not-allowed disabled:opacity-60"
         >
-          {loading ? 'Đang lưu...' : 'Xác nhận'}
+          <span>{loading ? 'Đang lưu...' : 'Xác nhận'}</span>
+          <svg
+            aria-hidden="true"
+            className="ml-3 h-5 w-5 transition duration-300 group-hover:translate-x-1"
+            fill="none"
+            viewBox="0 0 24 24"
+            stroke="currentColor"
+            strokeWidth="2"
+          >
+            <path strokeLinecap="round" strokeLinejoin="round" d="M13.5 4.5 21 12m0 0-7.5 7.5M21 12H3" />
+          </svg>
         </button>
+      </div>
+    </AuthShell>
+  )
+}
+
+function PasswordField({ label, value, onChange, onEnter, placeholder }) {
+  return (
+    <div>
+      <label className="mb-3 block text-[15px] font-semibold text-slate-900">
+        {label}
+      </label>
+      <div className="group flex h-[60px] items-center gap-3 rounded-[14px] border border-slate-200 bg-white px-5 shadow-[0_18px_45px_rgba(15,23,42,.04)] transition duration-300 focus-within:border-emerald-400 focus-within:shadow-[0_20px_60px_rgba(16,185,129,.16)]">
+        <svg
+          aria-hidden="true"
+          className="h-5 w-5 shrink-0 text-slate-500 transition group-focus-within:text-emerald-600"
+          fill="none"
+          viewBox="0 0 24 24"
+          stroke="currentColor"
+          strokeWidth="2"
+        >
+          <path
+            strokeLinecap="round"
+            strokeLinejoin="round"
+            d="M16.5 10.5V6.75a4.5 4.5 0 0 0-9 0v3.75m-.75 11.25h10.5A2.25 2.25 0 0 0 19.5 19.5v-6.75a2.25 2.25 0 0 0-2.25-2.25H6.75a2.25 2.25 0 0 0-2.25 2.25v6.75a2.25 2.25 0 0 0 2.25 2.25Z"
+          />
+        </svg>
+        <input
+          type="password"
+          value={value}
+          onChange={(e) => onChange(e.target.value)}
+          onKeyDown={(e) => e.key === 'Enter' && onEnter?.()}
+          placeholder={placeholder}
+          className="h-full min-w-0 flex-1 bg-transparent text-[15px] text-slate-900 outline-none placeholder:text-slate-400"
+          autoComplete="new-password"
+        />
       </div>
     </div>
   )

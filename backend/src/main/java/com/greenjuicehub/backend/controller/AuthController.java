@@ -19,6 +19,11 @@ public class AuthController {
 
     private final IAuthService authService;
 
+    @PostMapping("/check-account")
+    public ResponseEntity<AccountCheckResponse> checkAccount(@Valid @RequestBody CheckAccountRequest request) {
+        return ResponseEntity.ok(authService.checkAccount(request));
+    }
+
     @PostMapping("/send-otp")
     public ResponseEntity<OtpResponse> sendOtp(@Valid @RequestBody SendOtpRequest request) {
         return ResponseEntity.ok(authService.sendOtp(request));

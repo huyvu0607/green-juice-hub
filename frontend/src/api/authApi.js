@@ -27,6 +27,9 @@ const authApi = {
 
   refresh: () =>
     api.post('/auth/refresh'),
+  
+  checkAccount: (phone) =>
+  api.post('/auth/check-account', { phone }),
 
   logout: () =>
     api.post('/auth/logout'),

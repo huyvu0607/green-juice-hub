@@ -34,6 +34,7 @@ public class SecurityConfig {
                 .authorizeHttpRequests(auth -> auth
                         // Public endpoints
                         .requestMatchers(
+                                "/api/auth/check-account",
                                 "/api/auth/send-otp",
                                 "/api/auth/verify-otp",
                                 "/api/auth/login-with-otp",

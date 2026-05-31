@@ -21,8 +21,15 @@ api.interceptors.response.use(
   (response) => response,
   async (error) => {
     const original = error.config
+    const requestUrl = original?.url || ''
+    const isAuthRequest =
+      requestUrl.startsWith('/auth/') || requestUrl.includes('/api/auth/')
 
-    if (error.response?.status === 401 && !original._retry) {
+    if (isAuthRequest) {
+      return Promise.reject(error)
+    }
+
+    if (error.response?.status === 401 && original && !original._retry) {
       original._retry = true
 
       const refreshToken = localStorage.getItem('refreshToken')
