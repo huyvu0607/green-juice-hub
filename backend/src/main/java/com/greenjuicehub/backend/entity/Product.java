@@ -3,6 +3,7 @@ package com.greenjuicehub.backend.entity;
 import jakarta.persistence.*;
 import lombok.*;
 import java.time.LocalDateTime;
+import java.util.List;
 
 @Entity
 @Table(name = "products")
@@ -36,6 +37,9 @@ public class Product {
 
     @Column(name = "is_active", nullable = false)
     private Boolean isActive = true;
+
+    @OneToMany(mappedBy = "product", fetch = FetchType.LAZY, cascade = CascadeType.ALL)
+    private List<ProductTag> tags;
 
     @Column(name = "created_at", updatable = false)
     private LocalDateTime createdAt;

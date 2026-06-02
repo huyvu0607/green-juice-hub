@@ -1,23 +1,32 @@
 import { create } from 'zustand'
+import authApi from '../api/authApi'
 
 const useAuthStore = create((set) => ({
-  user: null,
+  user: localStorage.getItem('role') ? { role: localStorage.getItem('role') } : null,
   accessToken: localStorage.getItem('accessToken') || null,
   refreshToken: localStorage.getItem('refreshToken') || null,
   isLoggedIn: !!localStorage.getItem('accessToken'),
 
-  setAuth: (accessToken, refreshToken, user) => {
+  setAuth: (accessToken, refreshToken, role) => {
     localStorage.setItem('accessToken', accessToken)
     localStorage.setItem('refreshToken', refreshToken)
-    set({ accessToken, refreshToken, user, isLoggedIn: true })
+    localStorage.setItem('role', role)
+    set({ accessToken, refreshToken, user: { role }, isLoggedIn: true })
   },
 
   setUser: (user) => set({ user }),
 
-  logout: () => {
-    localStorage.removeItem('accessToken')
-    localStorage.removeItem('refreshToken')
-    set({ accessToken: null, refreshToken: null, user: null, isLoggedIn: false })
+  logout: async () => {
+    try {
+      await authApi.logout()
+    } catch {
+      // BE lỗi vẫn logout FE bình thường
+    } finally {
+      localStorage.removeItem('accessToken')
+      localStorage.removeItem('refreshToken')
+      localStorage.removeItem('role')
+      set({ accessToken: null, refreshToken: null, user: null, isLoggedIn: false })
+    }
   },
 }))
 

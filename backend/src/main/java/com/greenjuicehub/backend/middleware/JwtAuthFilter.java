@@ -1,6 +1,7 @@
 package com.greenjuicehub.backend.middleware;
 
 import com.greenjuicehub.backend.config.JwtUtil;
+import com.greenjuicehub.backend.service.auth.TokenBlacklistService;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
@@ -20,6 +21,7 @@ import java.util.List;
 public class JwtAuthFilter extends OncePerRequestFilter {
 
     private final JwtUtil jwtUtil;
+    private final TokenBlacklistService tokenBlacklistService;
 
     @Override
     protected void doFilterInternal(HttpServletRequest request,
@@ -37,6 +39,10 @@ public class JwtAuthFilter extends OncePerRequestFilter {
         String token = header.substring(7);
 
         if (!jwtUtil.isTokenValid(token)) {
+            filterChain.doFilter(request, response);
+            return;
+        }
+        if (tokenBlacklistService.isBlacklisted(token)) {
             filterChain.doFilter(request, response);
             return;
         }

@@ -63,8 +63,9 @@ export default function VerifyOtpPage() {
 
     // Có tài khoản, không có mật khẩu → login luôn
     const loginRes = await authApi.loginWithOtp(tempToken)
-    setAuth(loginRes.data.accessToken, loginRes.data.refreshToken)
-    navigate('/')
+    const { accessToken, refreshToken, role } = loginRes.data
+    setAuth(accessToken, refreshToken, role)
+    navigate(role === 'CUSTOMER' ? '/' : '/admin')
   } catch (err) {
     setError(err.response?.data?.message || 'OTP không đúng')
   } finally {

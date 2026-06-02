@@ -33,6 +33,8 @@ public class AuthServiceImpl implements IAuthService {
     private final GoogleTokenVerifier googleTokenVerifier;
     private final PasswordAttemptService passwordAttemptService;
     private final CaptchaVerifier captchaVerifier;
+    private final TokenBlacklistService tokenBlacklistService;
+
 
 
     // ==================== KIỂM TRA TÀI KHOẢN ====================
@@ -380,5 +382,13 @@ public class AuthServiceImpl implements IAuthService {
 
         tempTokenService.invalidate(request.getTempToken());
         return buildAuthResponse(user);
+    }
+    @Override
+    public void logout(String accessToken) {
+        if (!jwtUtil.isTokenValid(accessToken)) {
+            throw new AppException(HttpStatus.UNAUTHORIZED, "Token không hợp lệ");
+        }
+        long ttl = jwtUtil.getRemainingSeconds(accessToken);
+        tokenBlacklistService.blacklist(accessToken, ttl);
     }
 }

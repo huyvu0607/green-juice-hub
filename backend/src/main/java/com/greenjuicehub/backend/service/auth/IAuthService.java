@@ -14,4 +14,6 @@ public interface IAuthService {
     AuthResponse loginWithTempToken(String tempToken);
     void changePassword(ChangePasswordRequest request, Long currentUserId);
     AuthResponse resetPassword(ResetPasswordRequest request);
+    void logout(String accessToken);
+
 }
