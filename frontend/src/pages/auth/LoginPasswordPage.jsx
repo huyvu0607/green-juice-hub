@@ -94,38 +94,40 @@ export default function LoginPasswordPage() {
     return err.response?.status === 403 || message.toLowerCase().includes('captcha')
   }
 
-  const handleGoogleLogin = async (credentialResponse) => {
-    try {
-      const res = await authApi.loginWithGoogle(credentialResponse.credential)
-      setAuth(res.data.accessToken, res.data.refreshToken)
-      navigate('/')
-    } catch (err) {
-      setError(err.response?.data?.message || 'Đăng nhập Google thất bại')
-    }
-  }
-
   const handleLogin = async () => {
-    if (!identifier) return setError('Vui lòng nhập số điện thoại hoặc email')
-    if (!password) return setError('Vui lòng nhập mật khẩu')
-    if (requiresCaptcha && !captchaToken) return setError('Vui lòng xác minh captcha')
+  if (!identifier) return setError('Vui lòng nhập số điện thoại hoặc email')
+  if (!password) return setError('Vui lòng nhập mật khẩu')
+  if (requiresCaptcha && !captchaToken) return setError('Vui lòng xác minh captcha')
 
-    setLoading(true)
-    setError('')
-    try {
-      const res = await authApi.login(identifier, password, captchaToken || undefined)
-      setAuth(res.data.accessToken, res.data.refreshToken)
-      navigate('/')
-    } catch (err) {
-      const msg = err.response?.data?.message || 'Có lỗi xảy ra'
-      setError(msg)
-      if (shouldShowCaptcha(err)) {
-        setRequiresCaptcha(true)
-      }
-      resetCaptcha()
-    } finally {
-      setLoading(false)
+  setLoading(true)
+  setError('')
+  try {
+    const res = await authApi.login(identifier, password, captchaToken || undefined)
+    const { accessToken, refreshToken, role } = res.data
+    setAuth(accessToken, refreshToken, role)
+    navigate(role === 'CUSTOMER' ? '/' : '/admin')
+  } catch (err) {
+    const msg = err.response?.data?.message || 'Có lỗi xảy ra'
+    setError(msg)
+    if (shouldShowCaptcha(err)) {
+      setRequiresCaptcha(true)
     }
+    resetCaptcha()
+  } finally {
+    setLoading(false)
   }
+}
+
+const handleGoogleLogin = async (credentialResponse) => {
+  try {
+    const res = await authApi.loginWithGoogle(credentialResponse.credential)
+    const { accessToken, refreshToken, role } = res.data
+    setAuth(accessToken, refreshToken, role)
+    navigate(role === 'CUSTOMER' ? '/' : '/admin')
+  } catch (err) {
+    setError(err.response?.data?.message || 'Đăng nhập Google thất bại')
+  }
+}
 
   return (
     <main className="min-h-screen overflow-hidden bg-[#f6f8f7] text-slate-950">

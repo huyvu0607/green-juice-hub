@@ -40,6 +40,11 @@ public class JwtUtil {
                 .signWith(getSigningKey())
                 .compact();
     }
+    public long getRemainingSeconds(String token) {
+        Date expiration = getClaims(token).getExpiration();
+        long remaining = (expiration.getTime() - System.currentTimeMillis()) / 1000;
+        return Math.max(remaining, 0);
+    }
 
     public Long extractUserId(String token) {
         return Long.parseLong(getClaims(token).getSubject());

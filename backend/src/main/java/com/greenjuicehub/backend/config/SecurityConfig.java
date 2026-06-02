@@ -43,7 +43,8 @@ public class SecurityConfig {
                                 "/api/auth/reset-password",
                                 "/api/auth/google",
                                 "/api/auth/refresh",
-                                "/api/auth/logout"
+                                "/api/auth/logout",
+                                "/api/products/**"
                         ).permitAll()
                         // Tất cả còn lại phải authenticated
                         .anyRequest().authenticated()

@@ -20,30 +20,32 @@ export default function SetPasswordPage() {
   }, [tempToken, navigate])
 
   const handleSubmit = async () => {
-    if (password.length < 8) return setError('Mật khẩu tối thiểu 8 ký tự')
-    if (password !== confirm) return setError('Mật khẩu xác nhận không khớp')
-    setLoading(true)
-    setError('')
-    try {
-      const res = await authApi.setPassword(tempToken, password)
-      setAuth(res.data.accessToken, res.data.refreshToken)
-      navigate('/')
-    } catch (err) {
-      setError(err.response?.data?.message || 'Có lỗi xảy ra')
-    } finally {
-      setLoading(false)
-    }
+  if (password.length < 8) return setError('Mật khẩu tối thiểu 8 ký tự')
+  if (password !== confirm) return setError('Mật khẩu xác nhận không khớp')
+  setLoading(true)
+  setError('')
+  try {
+    const res = await authApi.setPassword(tempToken, password)
+    const { accessToken, refreshToken, role } = res.data
+    setAuth(accessToken, refreshToken, role)
+    navigate(role === 'CUSTOMER' ? '/' : '/admin')
+  } catch (err) {
+    setError(err.response?.data?.message || 'Có lỗi xảy ra')
+  } finally {
+    setLoading(false)
   }
+}
 
-  const handleSkip = async () => {
-    try {
-      const res = await authApi.loginWithOtp(tempToken)
-      setAuth(res.data.accessToken, res.data.refreshToken)
-      navigate('/')
-    } catch (err) {
-      setError(err.response?.data?.message || 'Có lỗi xảy ra')
-    }
+const handleSkip = async () => {
+  try {
+    const res = await authApi.loginWithOtp(tempToken)
+    const { accessToken, refreshToken, role } = res.data
+    setAuth(accessToken, refreshToken, role)
+    navigate(role === 'CUSTOMER' ? '/' : '/admin')
+  } catch (err) {
+    setError(err.response?.data?.message || 'Có lỗi xảy ra')
   }
+}
 
   return (
     <AuthShell

@@ -15,14 +15,15 @@ export default function LoginPage() {
   const { setAuth } = useAuthStore()
 
   const handleGoogleLogin = async (credentialResponse) => {
-    try {
-      const res = await authApi.loginWithGoogle(credentialResponse.credential)
-      setAuth(res.data.accessToken, res.data.refreshToken)
-      navigate('/')
-    } catch (err) {
-      setError(err.response?.data?.message || 'Đăng nhập Google thất bại')
-    }
+  try {
+    const res = await authApi.loginWithGoogle(credentialResponse.credential)
+    const { accessToken, refreshToken, role } = res.data
+    setAuth(accessToken, refreshToken, role)
+    navigate(role === 'CUSTOMER' ? '/' : '/admin')
+  } catch (err) {
+    setError(err.response?.data?.message || 'Đăng nhập Google thất bại')
   }
+}
 
   const handleNext = async () => {
   if (!phone) return setError('Vui lòng nhập số điện thoại')

@@ -1,1 +1,198 @@
 @import "tailwindcss";
+
+/* ============================================================
+   GREEN JUICE HUB — Design Tokens
+   Tailwind v4 @theme block
+   ============================================================ */
+
+@theme {
+  /* --- Brand colors --- */
+  --color-brand-50:  #f0faf4;
+  --color-brand-100: #d6f2e2;
+  --color-brand-200: #aee4c6;
+  --color-brand-300: #76cfa3;
+  --color-brand-400: #3db57c;
+  --color-brand-500: #1a9a5e;
+  --color-brand-600: #1a6b3c; /* primary */
+  --color-brand-700: #155430;
+  --color-brand-800: #103f24;
+  --color-brand-900: #0a2a18;
+
+  /* --- Neutral --- */
+  --color-neutral-0:   #ffffff;
+  --color-neutral-50:  #f8faf8;
+  --color-neutral-100: #f0f4f0;
+  --color-neutral-200: #e2eae2;
+  --color-neutral-300: #c8d8c8;
+  --color-neutral-400: #9ab09a;
+  --color-neutral-500: #6b856b;
+  --color-neutral-600: #4a5e4a;
+  --color-neutral-700: #334433;
+  --color-neutral-800: #1e2e1e;
+  --color-neutral-900: #111811;
+
+  /* --- Semantic (dùng trong code, tự đổi theo theme) --- */
+  --color-bg-base:      var(--color-neutral-0);
+  --color-bg-surface:   var(--color-neutral-50);
+  --color-bg-elevated:  var(--color-neutral-0);
+  --color-bg-muted:     var(--color-neutral-100);
+
+  --color-text-primary:   var(--color-neutral-900);
+  --color-text-secondary: var(--color-neutral-500);
+  --color-text-muted:     var(--color-neutral-400);
+  --color-text-inverse:   var(--color-neutral-0);
+
+  --color-border-subtle:  var(--color-neutral-200);
+  --color-border-default: var(--color-neutral-300);
+  --color-border-strong:  var(--color-neutral-400);
+
+  --color-primary:         var(--color-brand-600);
+  --color-primary-hover:   var(--color-brand-700);
+  --color-primary-subtle:  var(--color-brand-50);
+  --color-primary-muted:   var(--color-brand-100);
+
+  /* --- Typography --- */
+  --font-sans:    'Be Vietnam Pro', sans-serif;
+  --font-display: 'Syne', sans-serif;
+  --font-mono:    'JetBrains Mono', monospace;
+
+  --text-xs:   0.75rem;   /* 12px */
+  --text-sm:   0.8125rem; /* 13px */
+  --text-base: 0.9375rem; /* 15px */
+  --text-md:   1rem;      /* 16px */
+  --text-lg:   1.125rem;  /* 18px */
+  --text-xl:   1.25rem;   /* 20px */
+  --text-2xl:  1.5rem;    /* 24px */
+  --text-3xl:  1.875rem;  /* 30px */
+  --text-4xl:  2.25rem;   /* 36px */
+
+  /* --- Spacing scale (thêm vào Tailwind mặc định) --- */
+  --spacing-18: 4.5rem;
+  --spacing-22: 5.5rem;
+
+  /* --- Border radius --- */
+  --radius-sm:   6px;
+  --radius-md:   10px;
+  --radius-lg:   16px;
+  --radius-xl:   24px;
+  --radius-2xl:  32px;
+  --radius-pill: 9999px;
+
+  /* --- Shadow --- */
+  --shadow-sm:  0 1px 3px rgba(0,0,0,0.06), 0 1px 2px rgba(0,0,0,0.04);
+  --shadow-md:  0 4px 12px rgba(0,0,0,0.08), 0 2px 4px rgba(0,0,0,0.04);
+  --shadow-lg:  0 8px 24px rgba(0,0,0,0.10), 0 4px 8px rgba(0,0,0,0.04);
+  --shadow-glow: 0 0 0 3px var(--color-brand-200);
+
+  /* --- Transition --- */
+  --ease-spring:  cubic-bezier(0.34, 1.56, 0.64, 1);
+  --ease-smooth:  cubic-bezier(0.4, 0, 0.2, 1);
+  --ease-out:     cubic-bezier(0, 0, 0.2, 1);
+  --duration-fast:   150ms;
+  --duration-base:   250ms;
+  --duration-slow:   400ms;
+  --duration-liquid: 550ms;
+
+  /* --- Z-index --- */
+  --z-base:    1;
+  --z-nav:     10;
+  --z-header:  20;
+  --z-overlay: 30;
+  --z-modal:   40;
+  --z-toast:   50;
+}
+
+/* ============================================================
+   DARK THEME — ghi đè semantic tokens
+   ============================================================ */
+.dark {
+  --color-bg-base:      var(--color-neutral-900);
+  --color-bg-surface:   var(--color-neutral-800);
+  --color-bg-elevated:  var(--color-neutral-700);
+  --color-bg-muted:     color-mix(in srgb, var(--color-neutral-800) 80%, var(--color-neutral-900));
+
+  --color-text-primary:   var(--color-neutral-50);
+  --color-text-secondary: var(--color-neutral-400);
+  --color-text-muted:     var(--color-neutral-500);
+  --color-text-inverse:   var(--color-neutral-900);
+
+  --color-border-subtle:  color-mix(in srgb, var(--color-neutral-700) 60%, transparent);
+  --color-border-default: var(--color-neutral-700);
+  --color-border-strong:  var(--color-neutral-600);
+
+  --color-primary:        var(--color-brand-400);
+  --color-primary-hover:  var(--color-brand-300);
+  --color-primary-subtle: color-mix(in srgb, var(--color-brand-900) 60%, transparent);
+  --color-primary-muted:  var(--color-brand-800);
+
+  --shadow-sm:  0 1px 3px rgba(0,0,0,0.3);
+  --shadow-md:  0 4px 12px rgba(0,0,0,0.4);
+  --shadow-lg:  0 8px 24px rgba(0,0,0,0.5);
+  --shadow-glow: 0 0 0 3px var(--color-brand-800);
+}
+
+/* ============================================================
+   BASE STYLES
+   ============================================================ */
+@layer base {
+  html {
+    font-family: var(--font-sans);
+    font-size: 16px;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+  }
+
+  body {
+    background-color: var(--color-bg-surface);
+    color: var(--color-text-primary);
+    transition: background-color var(--duration-base) var(--ease-smooth),
+                color var(--duration-base) var(--ease-smooth);
+  }
+
+  /* Scrollbar */
+  ::-webkit-scrollbar { width: 6px; height: 6px; }
+  ::-webkit-scrollbar-track { background: transparent; }
+  ::-webkit-scrollbar-thumb {
+    background: var(--color-border-default);
+    border-radius: var(--radius-pill);
+  }
+  ::-webkit-scrollbar-thumb:hover { background: var(--color-border-strong); }
+
+  /* Selection */
+  ::selection {
+    background: var(--color-primary-muted);
+    color: var(--color-brand-800);
+  }
+
+  * { border-color: var(--color-border-subtle); }
+}
+
+/* ============================================================
+   UTILITY CLASSES — dùng trong component
+   ============================================================ */
+@layer utilities {
+  .bg-base     { background-color: var(--color-bg-base); }
+  .bg-surface  { background-color: var(--color-bg-surface); }
+  .bg-elevated { background-color: var(--color-bg-elevated); }
+  .bg-muted    { background-color: var(--color-bg-muted); }
+
+  .text-primary   { color: var(--color-text-primary); }
+  .text-secondary { color: var(--color-text-secondary); }
+  .text-muted-fg  { color: var(--color-text-muted); }
+
+  .border-subtle  { border-color: var(--color-border-subtle); }
+  .border-default { border-color: var(--color-border-default); }
+
+  .font-display { font-family: var(--font-display); }
+
+  .transition-theme {
+    transition: background-color var(--duration-base) var(--ease-smooth),
+                color var(--duration-base) var(--ease-smooth),
+                border-color var(--duration-base) var(--ease-smooth);
+  }
+}
+.dark nav[data-glass] {
+  background: rgba(30, 46, 30, 0.55) !important;
+  border-color: rgba(255, 255, 255, 0.08) !important;
+  box-shadow: 0 4px 24px rgba(0,0,0,0.3), inset 0 1px 0 rgba(255,255,255,0.05) !important;
+}
