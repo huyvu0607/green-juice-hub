@@ -1,7 +1,6 @@
 import { Routes, Route } from 'react-router-dom'
 import { ProtectedRoute, GuestRoute } from './components/common/ProtectedRoute'
 import Header from '@/components/layout/Header'
-import Nav from '@/components/layout/Nav'
 import Footer from '@/components/layout/Footer'
 
 // Auth pages
@@ -12,13 +11,13 @@ import SetPasswordPage from './pages/auth/SetPasswordPage'
 import ForgotPasswordPage from './pages/auth/ForgotPasswordPage'
 import ResetPasswordPage from './pages/auth/ResetPasswordPage'
 import LoginOptionPage from './pages/auth/LoginOptionPage'
+import ProductsPage from "@/pages/products/ProductsPage";
 
 // Layout wrapper cho các trang có Header + Nav
 function MainLayout({ children }) {
   return (
     <div className="min-h-screen bg-[var(--color-bg-surface)] transition-theme">
       <Header />
-      <Nav />
       <main>{children}</main>
       <Footer />
     </div>
@@ -39,7 +38,7 @@ function App() {
 
       {/* ── Public (có Header + Nav) ── */}
       <Route path="/" element={<MainLayout><div>Trang chủ</div></MainLayout>} />
-      <Route path="/products" element={<MainLayout><div>Sản phẩm</div></MainLayout>} />
+      <Route path="/products" element={<MainLayout><ProductsPage /></MainLayout>} />
       <Route path="/products/:slug" element={<MainLayout><div>Chi tiết sản phẩm</div></MainLayout>} />
       <Route path="/contact" element={<MainLayout><div>Liên hệ</div></MainLayout>} />
       <Route path="/policies/:type" element={<MainLayout><div>Chính sách</div></MainLayout>} />
