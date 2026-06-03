@@ -5,6 +5,8 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.JpaSpecificationExecutor;
+import org.springframework.data.jpa.repository.Query;
+
 import java.util.Optional;
 
 public interface ProductRepository extends JpaRepository<Product, Long>,
@@ -12,4 +14,45 @@ public interface ProductRepository extends JpaRepository<Product, Long>,
 
     Optional<Product> findBySlugAndIsActiveTrue(String slug);
     Page<Product> findAllByIsActiveTrue(Pageable pageable);
+    @Query(value = """
+    SELECT p.* FROM products p
+    JOIN (
+        SELECT product_id, MIN(sale_price) AS min_price
+        FROM product_variants
+        WHERE is_active = true
+        GROUP BY product_id
+    ) v ON v.product_id = p.id
+    WHERE p.is_active = true
+    ORDER BY v.min_price ASC
+    """,
+            countQuery = """
+    SELECT COUNT(*) FROM products p
+    JOIN (
+        SELECT product_id FROM product_variants WHERE is_active = true GROUP BY product_id
+    ) v ON v.product_id = p.id
+    WHERE p.is_active = true
+    """,
+            nativeQuery = true)
+    Page<Product> findAllOrderByMinPriceAsc(Pageable pageable);
+
+    @Query(value = """
+    SELECT p.* FROM products p
+    JOIN (
+        SELECT product_id, MIN(sale_price) AS min_price
+        FROM product_variants
+        WHERE is_active = true
+        GROUP BY product_id
+    ) v ON v.product_id = p.id
+    WHERE p.is_active = true
+    ORDER BY v.min_price DESC
+    """,
+            countQuery = """
+    SELECT COUNT(*) FROM products p
+    JOIN (
+        SELECT product_id FROM product_variants WHERE is_active = true GROUP BY product_id
+    ) v ON v.product_id = p.id
+    WHERE p.is_active = true
+    """,
+            nativeQuery = true)
+    Page<Product> findAllOrderByMinPriceDesc(Pageable pageable);
 }

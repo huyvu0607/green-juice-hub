@@ -13,8 +13,11 @@ const TAG_CHIPS = [
 
 const SORT_OPTIONS = [
   { value: "newest",     label: "Mới nhất"     },
-  { value: "rating",     label: "Đánh giá cao" },
   { value: "bestseller", label: "Bán chạy"     },
+  { value: "price_asc",  label: "Giá tăng dần" },
+  { value: "price_desc", label: "Giá giảm dần" },
+  { value: "rating",     label: "Đánh giá cao" },
+  { value: "rating_asc", label: "Giảm nhiều nhất" },
 ];
 
 export default function ProductsPage() {
@@ -181,11 +184,19 @@ export default function ProductsPage() {
           ) : (
             <>
               <div className={`grid gap-4 ${sidebarOpen ? "grid-cols-3" : "grid-cols-4"}`}>
-                {products.map(p => <ProductCard key={p.id} product={p} />)}
-                {loadingMore && Array.from({ length: 3 }).map((_, i) => (
-                  <ProductCardSkeleton key={`more-${i}`} />
-                ))}
-              </div>
+  {products.map((p, i) => (
+    <div
+      key={p.id}
+      className="animate-fade-slide-up"
+      style={{ animationDelay: `${i * 50}ms` }}
+    >
+      <ProductCard product={p} />
+    </div>
+  ))}
+  {loadingMore && Array.from({ length: 3 }).map((_, i) => (
+    <ProductCardSkeleton key={`more-${i}`} />
+  ))}
+</div>
 
               {hasMore && <div ref={sentinelRef} className="h-10 mt-4" />}
 

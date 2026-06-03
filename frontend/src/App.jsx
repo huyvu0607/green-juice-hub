@@ -12,6 +12,7 @@ import ForgotPasswordPage from './pages/auth/ForgotPasswordPage'
 import ResetPasswordPage from './pages/auth/ResetPasswordPage'
 import LoginOptionPage from './pages/auth/LoginOptionPage'
 import ProductsPage from "@/pages/products/ProductsPage";
+import ProductDetailPage from "@/pages/products/ProductDetailPage";
 
 // Layout wrapper cho các trang có Header + Nav
 function MainLayout({ children }) {
@@ -39,11 +40,11 @@ function App() {
       {/* ── Public (có Header + Nav) ── */}
       <Route path="/" element={<MainLayout><div>Trang chủ</div></MainLayout>} />
       <Route path="/products" element={<MainLayout><ProductsPage /></MainLayout>} />
-      <Route path="/products/:slug" element={<MainLayout><div>Chi tiết sản phẩm</div></MainLayout>} />
+      <Route path="/products/:slug" element={<MainLayout><ProductDetailPage /></MainLayout>} />
       <Route path="/contact" element={<MainLayout><div>Liên hệ</div></MainLayout>} />
       <Route path="/policies/:type" element={<MainLayout><div>Chính sách</div></MainLayout>} />
 
-      {/* ── Customer only ── */}
+      {/* ── Customer only */}
       <Route path="/cart" element={
         <ProtectedRoute allowedRoles={['CUSTOMER']}>
           <MainLayout><div>Giỏ hàng</div></MainLayout>

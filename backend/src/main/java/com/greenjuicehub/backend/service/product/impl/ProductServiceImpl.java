@@ -32,11 +32,21 @@ public class ProductServiceImpl implements IProductService {
     @Override
     public Page<ProductSummaryResponse> getProducts(ProductFilterRequest request) {
         Specification<Product> spec = buildSpec(request);
-        Sort sort = buildSort(request.getSortBy());
-        Pageable pageable = PageRequest.of(request.getPage(), request.getSize(), sort);
+        String sortBy = request.getSortBy();
 
-        return productRepository.findAll(spec, pageable)
-                .map(this::toSummary);
+        // Sort theo giá — dùng native query riêng
+        if ("price_asc".equals(sortBy) || "price_desc".equals(sortBy)) {
+            Pageable pageable = PageRequest.of(request.getPage(), request.getSize());
+            Page<Product> page = "price_asc".equals(sortBy)
+                    ? productRepository.findAllOrderByMinPriceAsc(pageable)
+                    : productRepository.findAllOrderByMinPriceDesc(pageable);
+            return page.map(this::toSummary);
+        }
+
+        // Sort thường — giữ nguyên logic cũ
+        Sort sort = buildSort(sortBy);
+        Pageable pageable = PageRequest.of(request.getPage(), request.getSize(), sort);
+        return productRepository.findAll(spec, pageable).map(this::toSummary);
     }
 
     @Override
