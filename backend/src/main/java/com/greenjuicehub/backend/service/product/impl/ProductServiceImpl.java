@@ -6,6 +6,7 @@ import com.greenjuicehub.backend.entity.*;
 import com.greenjuicehub.backend.exception.AppException;
 import com.greenjuicehub.backend.repository.*;
 import com.greenjuicehub.backend.service.product.IProductService;
+import jakarta.persistence.criteria.JoinType;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.*;
 import org.springframework.data.jpa.domain.Specification;
@@ -13,6 +14,7 @@ import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 
 import java.math.BigDecimal;
+import java.util.Arrays;
 import java.util.Comparator;
 import java.util.List;
 
@@ -94,12 +96,15 @@ public class ProductServiceImpl implements IProductService {
         return (root, query, cb) -> {
             var predicates = new java.util.ArrayList<jakarta.persistence.criteria.Predicate>();
 
+            // Chỉ lấy sản phẩm active
             predicates.add(cb.isTrue(root.get("isActive")));
 
+            // Category
             if (req.getCategoryId() != null) {
                 predicates.add(cb.equal(root.get("category").get("id"), req.getCategoryId()));
             }
 
+            // Keyword — tìm theo tên hoặc tên category
             if (req.getKeyword() != null && !req.getKeyword().isBlank()) {
                 String kw = "%" + req.getKeyword().toLowerCase() + "%";
                 predicates.add(cb.or(
@@ -108,8 +113,61 @@ public class ProductServiceImpl implements IProductService {
                 ));
             }
 
+            // Rating
             if (req.getMinRating() != null) {
                 predicates.add(cb.greaterThanOrEqualTo(root.get("avgRating"), req.getMinRating()));
+            }
+
+            // Tags — nhận chuỗi "bestseller,organic", join sang bảng product_tags
+            if (req.getTags() != null && !req.getTags().isBlank()) {
+                List<String> tagList = Arrays.asList(req.getTags().split(","));
+                var tagJoin = root.join("tags", JoinType.INNER);
+                predicates.add(tagJoin.get("tag").in(tagList));
+                query.distinct(true);
+            }
+
+            // Flavor, Size, Price, inStock, onSale — dùng chung 1 join variants
+            boolean needVariantJoin = req.getFlavorIds() != null && !req.getFlavorIds().isEmpty()
+                    || req.getSizeIds()   != null && !req.getSizeIds().isEmpty()
+                    || req.getMinPrice()  != null
+                    || req.getMaxPrice()  != null
+                    || Boolean.TRUE.equals(req.getInStock())
+                    || Boolean.TRUE.equals(req.getOnSale());
+
+            if (needVariantJoin) {
+                var v = root.join("variants", JoinType.INNER);
+                predicates.add(cb.isTrue(v.get("isActive")));
+                query.distinct(true);
+
+                // Flavor
+                if (req.getFlavorIds() != null && !req.getFlavorIds().isEmpty()) {
+                    predicates.add(v.get("flavor").get("id").in(req.getFlavorIds()));
+                }
+
+                // Size
+                if (req.getSizeIds() != null && !req.getSizeIds().isEmpty()) {
+                    predicates.add(v.get("size").get("id").in(req.getSizeIds()));
+                }
+
+                // Min price
+                if (req.getMinPrice() != null) {
+                    predicates.add(cb.greaterThanOrEqualTo(v.get("salePrice"), req.getMinPrice()));
+                }
+
+                // Max price
+                if (req.getMaxPrice() != null) {
+                    predicates.add(cb.lessThanOrEqualTo(v.get("salePrice"), req.getMaxPrice()));
+                }
+
+                // inStock — stockQty > 0
+                if (Boolean.TRUE.equals(req.getInStock())) {
+                    predicates.add(cb.greaterThan(v.get("stockQty"), 0));
+                }
+
+                // onSale — discountPercent > 0
+                if (Boolean.TRUE.equals(req.getOnSale())) {
+                    predicates.add(cb.greaterThan(v.get("discountPercent"), BigDecimal.ZERO));
+                }
             }
 
             return cb.and(predicates.toArray(new jakarta.persistence.criteria.Predicate[0]));

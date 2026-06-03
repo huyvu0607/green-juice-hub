@@ -1,5 +1,6 @@
 import { create } from 'zustand'
 import authApi from '../api/authApi'
+import userApi from '../api/userApi'
 
 const useAuthStore = create((set) => ({
   user: localStorage.getItem('role') ? { role: localStorage.getItem('role') } : null,
@@ -14,8 +15,18 @@ const useAuthStore = create((set) => ({
     set({ accessToken, refreshToken, user: { role }, isLoggedIn: true })
   },
 
+  
   setUser: (user) => set({ user }),
 
+  fetchMe: async () => {
+    try {
+      const res = await userApi.getMe()
+      set({ user: res.data })
+    } catch {
+      // token hết hạn hoặc lỗi — bỏ qua
+    }
+  },
+  
   logout: async () => {
     try {
       await authApi.logout()
