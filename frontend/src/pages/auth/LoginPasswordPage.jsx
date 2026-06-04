@@ -227,7 +227,7 @@ const handleGoogleLogin = async (credentialResponse) => {
             <div className="space-y-5">
               <div>
                 <label className="mb-3 block text-[15px] font-semibold text-slate-900">
-                  Số điện thoại / Email
+                  SĐT / Email / Username
                 </label>
                 <div className="group flex h-[60px] items-center gap-3 rounded-[14px] border border-slate-200 bg-white px-5 shadow-[0_18px_45px_rgba(15,23,42,.04)] transition duration-300 focus-within:border-emerald-400 focus-within:shadow-[0_20px_60px_rgba(16,185,129,.16)]">
                   <svg
@@ -248,7 +248,7 @@ const handleGoogleLogin = async (credentialResponse) => {
                     type="text"
                     value={identifier}
                     onChange={(e) => setIdentifier(e.target.value)}
-                    placeholder="0901 234 567 hoặc email@gmail.com"
+                    placeholder="0901 234 567 or email@gmail.com or username"
                     className="h-full min-w-0 flex-1 bg-transparent text-[15px] text-slate-900 outline-none placeholder:text-slate-400"
                     autoComplete="username"
                   />

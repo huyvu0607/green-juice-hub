@@ -50,7 +50,7 @@ const PAYMENTS = ["COD", "VNPay", "Momo", "Bank"];
 
 export default function Footer() {
   return (
-    <footer className="bg-[var(--color-brand-600)] text-white mt-auto">
+    <footer className="bg-[var(--color-brand-600)] text-white mt-5">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 py-12">
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-10">
 

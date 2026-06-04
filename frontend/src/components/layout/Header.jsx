@@ -3,6 +3,7 @@ import { useState, useRef, useEffect, useLayoutEffect, useCallback } from "react
 import ThemeToggle from "@/components/common/ThemeToggle";
 import useAuthStore from "@/store/authStore";
 import useCartStore from "@/store/useCartStore";
+import ProfileModal from '@/components/user/ProfileModal'
 
 const NAV_LINKS = [
   { label: "Trang chủ", to: "/" },
@@ -23,6 +24,7 @@ function useLiquidPill(isOpen) {
   const animRef = useRef(null);
   const [pill, setPill] = useState({ x: 0, width: 0, opacity: 0 });
   const [blob, setBlob] = useState({ x: 0, width: 0 });
+
 
   const getActiveRect = useCallback(() => {
     const active = NAV_LINKS.find((l) =>
@@ -117,7 +119,7 @@ function Avatar({ name, avatarUrl, size = 32 }) {
   );
 }
 
-function UserDropdown({ user, onLogout }) {
+function UserDropdown({ user, onLogout, onOpenProfile }) {
   const [open, setOpen] = useState(false);
   const ref = useRef(null);
   const navigate = useNavigate();
@@ -136,7 +138,7 @@ function UserDropdown({ user, onLogout }) {
     {
       icon: (<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" /><circle cx="12" cy="7" r="4" /></svg>),
       label: "Hồ sơ",
-      onClick: () => { navigate("/profile"); setOpen(false); },
+      onClick: () => { onOpenProfile(); setOpen(false) },
     },
     {
       icon: (<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 1 1.72v.51a2 2 0 0 1-1 1.74l-.15.09a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.39a2 2 0 0 0-.73-2.73l-.15-.08a2 2 0 0 1-1-1.74v-.5a2 2 0 0 1 1-1.74l.15-.09a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z" /><circle cx="12" cy="12" r="3" /></svg>),
@@ -352,6 +354,7 @@ export default function Header() {
   const [navTop, setNavTop] = useState(64);
   const headerRef = useRef(null);
   const timerRef = useRef(null);
+  const [profileOpen, setProfileOpen] = useState(false);
 
 
   const { isLoggedIn, user, logout } = useAuthStore();
@@ -456,7 +459,7 @@ export default function Header() {
                 )}
               </button>
               {isLoggedIn && user ? (
-                <UserDropdown user={user} onLogout={handleLogout} />
+                <UserDropdown user={user} onLogout={handleLogout} onOpenProfile={() => setProfileOpen(true)} />
               ) : (
                 <Link to="/login"
                   className="flex items-center gap-1.5 h-9 px-4 rounded-[var(--radius-pill)] text-[var(--text-sm)] font-medium bg-[var(--color-primary)] text-white hover:bg-[var(--color-primary-hover)] transition-colors duration-[var(--duration-base)]">
@@ -571,6 +574,7 @@ export default function Header() {
           </svg>
         </button>
       </div>
+      <ProfileModal isOpen={profileOpen} onClose={() => setProfileOpen(false)} />
     </>
   );
 }

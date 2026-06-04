@@ -1,9 +1,12 @@
 import { useState, useCallback, useRef, useEffect } from "react";
-import { useParams, Link } from "react-router-dom";
 import { useProductDetail } from "@/hooks/useProductDetail";
 import ProductCard from "@/components/product/ProductCard";
 import { sharedObserver } from "@/utils/sharedObserver";
 import useCartStore from '@/store/useCartStore'
+import RichText from '@/components/common/RichText';
+import { useParams, Link, useNavigate } from "react-router-dom";  // thêm useNavigate
+import useAuthStore from "@/store/authStore";
+
 
 
 /* ─── Helpers ──────────────────────────────────────────────── */
@@ -350,9 +353,7 @@ function TabSection({ product }) {
 
   const content = [
     // Tab 0 — Mô tả
-    <p key="desc" className="text-base text-secondary leading-relaxed">
-      {product.description ?? "Chưa có mô tả."}
-    </p>,
+    <RichText key="desc" content={product.description} />,
 
     // Tab 1 — Đánh giá
     <div key="rev">
@@ -439,6 +440,8 @@ export default function ProductDetailPage() {
   const [wishlist, setWishlist] = useState(false);
   const [addedToCart, setAddedToCart] = useState(false);
   const { addItem, loading: cartLoading } = useCartStore()
+  const { isLoggedIn } = useAuthStore();
+  const navigate = useNavigate();
 
 
   // Chọn variant mặc định khi data load xong
@@ -454,15 +457,19 @@ export default function ProductDetailPage() {
 
   /* Add to cart mock */
   const handleAddToCart = async () => {
-  if (!selectedVariant || !product?.id) return
-  try {
-    await addItem(product.id, selectedVariant.id, qty)
-    setAddedToCart(true)
-    setTimeout(() => setAddedToCart(false), 2000)
-  } catch {
-    // error đã được set trong store
-  }
-}
+    if (!isLoggedIn) {
+      navigate("/login");
+      return;
+    }
+    if (!selectedVariant || !product?.id) return;
+    try {
+      await addItem(product.id, selectedVariant.id, qty);
+      setAddedToCart(true);
+      setTimeout(() => setAddedToCart(false), 2000);
+    } catch {
+      // error đã được set trong store
+    }
+  };
 
   /* ── Loading ── */
   if (loading) return <DetailSkeleton />;
@@ -551,12 +558,12 @@ export default function ProductDetailPage() {
             </div>
           )}
 
-          {/* Short description */}
+          {/* Short description
           {product.description && (
             <p className="text-sm text-secondary leading-relaxed line-clamp-3">
               {product.description}
             </p>
-          )}
+          )} */}
 
           {/* Variant selector */}
           {product.variants?.length > 0 && (

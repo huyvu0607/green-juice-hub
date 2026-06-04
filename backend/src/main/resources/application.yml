@@ -41,7 +41,7 @@ jwt:
 
 otp:
   expiration-minutes: 5
-  max-send-per-day: 5
+  max-send-per-day: 10
   max-wrong-attempts: 3
   lock-minutes: 15
 

@@ -5,6 +5,7 @@ import Footer from '@/components/layout/Footer'
 import CartSidebar from '@/components/cart/CartSidebar'
 import { useEffect } from 'react'
 import useAuthStore from '@/store/authStore'
+import useCartStore from '@/store/useCartStore'
 
 // Auth pages
 import LoginPage from './pages/auth/LoginPage'
@@ -31,9 +32,13 @@ function MainLayout({ children }) {
 
 function App() {
   const { isLoggedIn, fetchMe } = useAuthStore()
+  const { fetchCart } = useCartStore()
 
   useEffect(() => {
-    if (isLoggedIn) fetchMe()
+    if (isLoggedIn) {
+      fetchMe()
+      fetchCart()
+    }
   }, [])
   return (
 

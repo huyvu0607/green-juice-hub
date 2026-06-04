@@ -1,4 +1,4 @@
-import { useEffect, useRef } from 'react'
+import { useEffect, useRef, useState, useMemo } from 'react'
 import { useNavigate } from 'react-router-dom'
 import useCartStore from '../../store/useCartStore'
 import useAuthStore from '../../store/authStore'
@@ -12,23 +12,59 @@ const CartSidebar = () => {
     useCartStore()
   const { isLoggedIn } = useAuthStore()
 
-  // Fetch khi mở lần đầu và đã login
+  // ── Selection state ──────────────────────────────────
+  const [selectedIds, setSelectedIds] = useState(new Set())
+
+  // Khi items thay đổi: loại bỏ id đã bị xoá khỏi selection
   useEffect(() => {
-    if (isOpen && isLoggedIn) {
-      fetchCart()
+    const validIds = new Set(items.map((i) => i.cartItemId))
+    setSelectedIds((prev) => new Set([...prev].filter((id) => validIds.has(id))))
+  }, [items])
+
+  // Các item còn hàng (có thể chọn)
+  const availableItems = useMemo(() => items.filter((i) => i.inStock), [items])
+  const availableIds = useMemo(() => availableItems.map((i) => i.cartItemId), [availableItems])
+
+  const isAllSelected =
+    availableIds.length > 0 && availableIds.every((id) => selectedIds.has(id))
+  const isIndeterminate =
+    !isAllSelected && availableIds.some((id) => selectedIds.has(id))
+
+  const handleToggleItem = (id) => {
+    setSelectedIds((prev) => {
+      const next = new Set(prev)
+      next.has(id) ? next.delete(id) : next.add(id)
+      return next
+    })
+  }
+
+  const handleToggleAll = () => {
+    if (isAllSelected) {
+      setSelectedIds(new Set())
+    } else {
+      setSelectedIds(new Set(availableIds))
     }
+  }
+
+  // Tính tổng tiền theo selection
+  const selectedItems = useMemo(
+    () => items.filter((i) => selectedIds.has(i.cartItemId)),
+    [items, selectedIds]
+  )
+  const selectedCount = selectedItems.reduce((sum, i) => sum + i.quantity, 0)
+  const selectedAmount = selectedItems.reduce((sum, i) => {
+    const price = i.salePrice ?? i.originalPrice
+    return sum + price * i.quantity
+  }, 0)
+  // ────────────────────────────────────────────────────
+
+  useEffect(() => {
+    if (isOpen && isLoggedIn) fetchCart()
   }, [isOpen, isLoggedIn])
 
-  // Khoá scroll body khi sidebar mở
   useEffect(() => {
-    if (isOpen) {
-      document.body.style.overflow = 'hidden'
-    } else {
-      document.body.style.overflow = ''
-    }
-    return () => {
-      document.body.style.overflow = ''
-    }
+    document.body.style.overflow = isOpen ? 'hidden' : ''
+    return () => { document.body.style.overflow = '' }
   }, [isOpen])
 
   const fmt = (n) =>
@@ -36,7 +72,8 @@ const CartSidebar = () => {
 
   const handleCheckout = () => {
     closeCart()
-    navigate('/checkout')
+    // Truyền danh sách cartItemId đã chọn qua navigate state
+    navigate('/checkout', { state: { selectedIds: [...selectedIds] } })
   }
 
   const handleOverlayClick = (e) => {
@@ -87,7 +124,6 @@ const CartSidebar = () => {
           </div>
 
           <div className="flex items-center gap-1">
-            {/* Nút xoá tất cả */}
             {items.length > 0 && (
               <button
                 onClick={clearCart}
@@ -96,8 +132,6 @@ const CartSidebar = () => {
                 Xoá tất cả
               </button>
             )}
-
-            {/* Nút đóng */}
             <button
               onClick={closeCart}
               className="p-1.5 rounded-[var(--radius-sm)] text-[var(--color-text-muted)] hover:text-[var(--color-text-primary)] hover:bg-[var(--color-bg-muted)] transition-colors"
@@ -109,6 +143,50 @@ const CartSidebar = () => {
             </button>
           </div>
         </div>
+
+        {/* ── Select All bar ─────────────────────────────── */}
+        {isLoggedIn && items.length > 0 && (
+          <div className="flex items-center gap-2.5 px-4 py-2.5 border-b border-[var(--color-border-subtle)] bg-[var(--color-bg-muted)]/50">
+            {/* Checkbox chọn tất cả */}
+            <button
+              onClick={handleToggleAll}
+              aria-label={isAllSelected ? 'Bỏ chọn tất cả' : 'Chọn tất cả'}
+              className={`
+                relative w-5 h-5 rounded-[var(--radius-sm)] border-2 flex items-center justify-center
+                transition-all duration-150 shrink-0
+                ${isAllSelected
+                  ? 'bg-[var(--color-primary)] border-[var(--color-primary)]'
+                  : isIndeterminate
+                    ? 'bg-[var(--color-primary)]/20 border-[var(--color-primary)]'
+                    : 'border-[var(--color-border-default)] hover:border-[var(--color-primary)] bg-transparent'
+                }
+              `}
+            >
+              {isAllSelected && (
+                <svg className="w-3 h-3 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" />
+                </svg>
+              )}
+              {isIndeterminate && !isAllSelected && (
+                <span className="w-2.5 h-0.5 rounded-full bg-[var(--color-primary)] block" />
+              )}
+            </button>
+
+            <span className="text-[var(--text-xs)] text-[var(--color-text-secondary)] flex-1">
+              {isAllSelected
+                ? `Đã chọn tất cả (${availableIds.length})`
+                : selectedIds.size > 0
+                  ? `Đã chọn ${selectedIds.size}/${availableIds.length} sản phẩm`
+                  : 'Chọn tất cả'}
+            </span>
+
+            {selectedIds.size > 0 && (
+              <span className="text-[var(--text-xs)] font-medium" style={{ color: 'var(--color-primary)' }}>
+                {fmt(selectedAmount)}
+              </span>
+            )}
+          </div>
+        )}
 
         {/* ── Body ──────────────────────────────────────── */}
         <div className="flex-1 overflow-y-auto px-4 py-3 space-y-2.5">
@@ -178,7 +256,12 @@ const CartSidebar = () => {
 
           {/* Danh sách items */}
           {isLoggedIn && items.length > 0 && items.map((item) => (
-            <CartItemCard key={item.cartItemId} item={item} />
+            <CartItemCard
+              key={item.cartItemId}
+              item={item}
+              selected={selectedIds.has(item.cartItemId)}
+              onToggle={handleToggleItem}
+            />
           ))}
         </div>
 
@@ -188,10 +271,13 @@ const CartSidebar = () => {
             {/* Tổng tiền */}
             <div className="flex items-center justify-between">
               <span className="text-[var(--text-sm)] text-[var(--color-text-secondary)]">
-                Tạm tính ({totalItems} sản phẩm)
+                Tạm tính
+                {selectedCount > 0 && (
+                  <span className="ml-1 text-[var(--text-xs)]">({selectedCount} sản phẩm đã chọn)</span>
+                )}
               </span>
-              <span className="text-[var(--text-lg)] font-bold text-[var(--color-text-primary)] font-display">
-                {fmt(totalAmount)}
+              <span className="text-[var(--text-lg)] font-bold text-red-500 tabular-nums">
+                {fmt(selectedIds.size > 0 ? selectedAmount : totalAmount)}
               </span>
             </div>
 
@@ -202,7 +288,7 @@ const CartSidebar = () => {
             {/* Nút thanh toán */}
             <button
               onClick={handleCheckout}
-              disabled={loading}
+              disabled={loading || selectedIds.size === 0}
               className="
                 w-full py-3 rounded-[var(--radius-md)]
                 bg-[var(--color-primary)] hover:bg-[var(--color-primary-hover)]
@@ -214,9 +300,11 @@ const CartSidebar = () => {
             >
               {loading ? (
                 <div className="w-4 h-4 rounded-full border-2 border-white border-t-transparent animate-spin" />
+              ) : selectedIds.size === 0 ? (
+                'Chọn sản phẩm để thanh toán'
               ) : (
                 <>
-                  Tiến hành thanh toán
+                  Thanh toán ({selectedIds.size} sản phẩm)
                   <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13.5 4.5L21 12m0 0l-7.5 7.5M21 12H3" />
                   </svg>
