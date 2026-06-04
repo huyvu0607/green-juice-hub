@@ -34,7 +34,9 @@ api.interceptors.response.use(
 
       const refreshToken = localStorage.getItem('refreshToken')
       if (!refreshToken) {
-        localStorage.clear()
+        localStorage.removeItem('accessToken')
+        localStorage.removeItem('refreshToken')
+        localStorage.removeItem('role')
         window.location.href = '/login'
         return Promise.reject(error)
       }
@@ -50,7 +52,10 @@ api.interceptors.response.use(
         original.headers.Authorization = `Bearer ${res.data.accessToken}`
         return api(original)
       } catch {
-        localStorage.clear()
+
+        localStorage.removeItem('accessToken')
+        localStorage.removeItem('refreshToken')
+        localStorage.removeItem('role')
         window.location.href = '/login'
         return Promise.reject(error)
       }

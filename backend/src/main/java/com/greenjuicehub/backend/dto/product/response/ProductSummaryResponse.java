@@ -21,4 +21,5 @@ public class ProductSummaryResponse {
     private List<String> tags;
     private Boolean inStock;
     private String categoryName;
+    private Long defaultVariantId;
 }

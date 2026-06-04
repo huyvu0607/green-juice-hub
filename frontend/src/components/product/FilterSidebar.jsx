@@ -1,8 +1,14 @@
-import { useState } from "react";
+import { useState, Children } from "react";
 import { ChevronDown, ChevronUp } from "lucide-react";
 
-function Section({ title, children }) {
+function Section({ title, children, maxVisible = 6 }) {
   const [open, setOpen] = useState(true);
+  const [showAll, setShowAll] = useState(false);
+
+  const childArray = Children.toArray(children);
+  const visible = showAll ? childArray : childArray.slice(0, maxVisible);
+  const hasMore = childArray.length > maxVisible;
+
   return (
     <div className="border-b border-[var(--color-border-subtle)] pb-4 mb-4 last:border-0 last:mb-0 last:pb-0">
       <button
@@ -16,7 +22,19 @@ function Section({ title, children }) {
           : <ChevronDown size={14} className="text-[var(--color-text-muted)]" />
         }
       </button>
-      {open && <div className="space-y-2">{children}</div>}
+      {open && (
+        <div className="space-y-2">
+          {visible}
+          {hasMore && (
+            <button
+              onClick={() => setShowAll(o => !o)}
+              className="text-xs text-[var(--color-primary)] hover:underline mt-1"
+            >
+              {showAll ? "Thu gọn" : `+${childArray.length - maxVisible} xem thêm`}
+            </button>
+          )}
+        </div>
+      )}
     </div>
   );
 }
@@ -58,7 +76,7 @@ function CheckItem({ checked, onChange, label }) {
 
 export default function FilterSidebar({ filter, categories, flavors, sizes, onChange, onReset }) {
   const flavorIds = filter.flavorIds ?? [];
-  const sizeIds   = filter.sizeIds   ?? [];
+  const sizeIds = filter.sizeIds ?? [];
 
   const toggleList = (key, id) => {
     const cur = filter[key] ?? [];
@@ -84,7 +102,7 @@ export default function FilterSidebar({ filter, categories, flavors, sizes, onCh
 
       {/* ── Hương vị ── */}
       {flavors.length > 0 && (
-        <Section title="Hương vị">
+        <Section title="Hương vị" maxVisible={4}>
           {flavors.map(f => (
             <CheckItem
               key={f.id}

@@ -1,6 +1,10 @@
-import { useState, useCallback } from "react";
+import { useState, useCallback, useRef, useEffect } from "react";
 import { useParams, Link } from "react-router-dom";
 import { useProductDetail } from "@/hooks/useProductDetail";
+import ProductCard from "@/components/product/ProductCard";
+import { sharedObserver } from "@/utils/sharedObserver";
+import useCartStore from '@/store/useCartStore'
+
 
 /* ─── Helpers ──────────────────────────────────────────────── */
 const fmt = (n) =>
@@ -8,15 +12,98 @@ const fmt = (n) =>
 
 const TAG_STYLES = {
   Bestseller: "bg-amber-100 text-amber-800 border border-amber-200",
-  Organic:    "bg-brand-100 text-brand-700 border border-brand-200",
-  New:        "bg-sky-100 text-sky-700 border border-sky-200",
-  Sale:       "bg-red-100 text-red-700 border border-red-200",
+  Organic: "bg-brand-100 text-brand-700 border border-brand-200",
+  New: "bg-sky-100 text-sky-700 border border-sky-200",
+  Sale: "bg-red-100 text-red-700 border border-red-200",
 };
 const tagClass = (tag) =>
   TAG_STYLES[tag] ?? "bg-neutral-100 text-neutral-600 border border-neutral-200";
 
-/* ─── Sub-components ────────────────────────────────────────── */
+/**
+ * Map relatedProducts (shape từ backend/ProductDetailPage)
+ * sang shape mà ProductCard cần.
+ *
+ * ProductCard cần:
+ *   slug, name, primaryImage, avgRating, reviewCount,
+ *   minSalePrice, maxDiscountPercent, inStock, tags (string[]), categoryName
+ */
+function mapToProductCardShape(p) {
+  const variants = p.variants ?? [];
 
+  // minSalePrice — lấy giá thấp nhất trong các variant đang active
+  const activePrices = variants
+    .filter((v) => v.isActive !== false)
+    .map((v) => Number(v.salePrice))
+    .filter((n) => !isNaN(n));
+  const minSalePrice = activePrices.length ? Math.min(...activePrices) : 0;
+
+  // maxDiscountPercent
+  const discounts = variants
+    .filter((v) => v.isActive !== false)
+    .map((v) => Number(v.discountPercent))
+    .filter((n) => !isNaN(n));
+  const maxDiscountPercent = discounts.length ? Math.max(...discounts) : 0;
+
+  // inStock — có ít nhất 1 variant còn hàng
+  const inStock = variants.some((v) => v.stockQty > 0);
+
+
+  // tags — backend trả [{name: "Bestseller"}] hoặc ["Bestseller"]
+  // ProductCard cần key lowercase: "bestseller", "organic", "new", "sugar-free"
+  const TAG_KEY_MAP = {
+    Bestseller: "bestseller",
+    Organic: "organic",
+    New: "new",
+    Sale: "sale",
+    "Sugar-free": "sugar-free",
+  };
+  const tags = (p.tags ?? []).map((t) => {
+    const raw = t?.name ?? t;
+    return TAG_KEY_MAP[raw] ?? raw?.toLowerCase() ?? raw;
+  });
+
+  return {
+    slug: p.slug,
+    name: p.name,
+    primaryImage: p.primaryImage ?? null,
+    avgRating: p.avgRating ?? 0,
+    reviewCount: p.reviewCount ?? 0,
+    minSalePrice: p.minSalePrice ?? 0,
+    maxDiscountPercent: p.maxDiscountPercent ? Math.round(Number(p.maxDiscountPercent)) : 0,
+    inStock: p.inStock ?? false,
+    tags: p.tags ?? [],        // backend đã trả lowercase rồi
+    categoryName: p.categoryName ?? "",
+  };
+}
+
+/* ─── Sub-components ────────────────────────────────────────── */
+function AnimatedCard({ children, colIndex = 0 }) {
+  const ref = useRef(null);
+  const [visible, setVisible] = useState(false);
+
+  useEffect(() => {
+    const el = ref.current;
+    if (!el) return;
+    sharedObserver.observe(el, () => setVisible(true));
+    return () => sharedObserver.unobserve(el);
+  }, []);
+
+  return (
+    <div
+      ref={ref}
+      style={{
+        transitionDelay: visible ? `${colIndex * 80}ms` : "0ms",
+        transitionProperty: "opacity, transform",
+        transitionDuration: "600ms",
+        transitionTimingFunction: "cubic-bezier(0.16, 1, 0.3, 1)",
+        opacity: visible ? 1 : 0,
+        transform: visible ? "scale(1)" : "scale(0.88)",
+      }}
+    >
+      {children}
+    </div>
+  );
+}
 /** Breadcrumb */
 function Breadcrumb({ category, name }) {
   return (
@@ -43,7 +130,7 @@ function Breadcrumb({ category, name }) {
 function StarRating({ value = 0, count = 0 }) {
   const stars = Array.from({ length: 5 }, (_, i) => {
     const filled = i + 1 <= Math.floor(value);
-    const half   = !filled && i < value;
+    const half = !filled && i < value;
     return { filled, half };
   });
   return (
@@ -150,7 +237,7 @@ function VariantSelector({ variants = [], selected, onSelect }) {
   };
 
   const isFlavorActive = (id) => selected?.flavor?.id === id;
-  const isSizeActive   = (id) => selected?.size?.id === id;
+  const isSizeActive = (id) => selected?.size?.id === id;
 
   const btnBase =
     "px-3.5 py-1.5 rounded-[var(--radius-md)] text-sm font-medium border transition-all duration-150 cursor-pointer select-none";
@@ -254,16 +341,20 @@ function TrustBadges() {
   );
 }
 
-/** Tab section */
-const TABS = ["Mô tả", "Thành phần", "Dinh dưỡng", "Đánh giá"];
+/* ─── Tab section ───────────────────────────────────────────── */
+// Chỉ còn 2 tab: Mô tả + Đánh giá, căn giữa
+const TABS = ["Mô tả", "Đánh giá"];
 
 function TabSection({ product }) {
   const [tab, setTab] = useState(0);
 
   const content = [
-    <p key="desc" className="text-base text-secondary leading-relaxed">{product.description ?? "Chưa có mô tả."}</p>,
-    <p key="ing" className="text-base text-secondary leading-relaxed">{product.ingredients ?? "Chưa có thông tin thành phần."}</p>,
-    <p key="nut" className="text-base text-secondary leading-relaxed">{product.nutrition ?? "Chưa có thông tin dinh dưỡng."}</p>,
+    // Tab 0 — Mô tả
+    <p key="desc" className="text-base text-secondary leading-relaxed">
+      {product.description ?? "Chưa có mô tả."}
+    </p>,
+
+    // Tab 1 — Đánh giá
     <div key="rev">
       {product.reviews?.length ? (
         <div className="flex flex-col gap-4">
@@ -285,13 +376,14 @@ function TabSection({ product }) {
 
   return (
     <div className="mt-10">
-      <div className="flex border-b border-subtle">
+      {/* Tab headers — căn giữa */}
+      <div className="flex justify-center border-b border-subtle">
         {TABS.map((t, i) => (
           <button
             key={t}
             onClick={() => setTab(i)}
             className={`
-              px-4 pb-3 pt-1 text-sm font-medium border-b-2 transition-all duration-150 -mb-px
+              px-10 pb-3 pt-1 text-sm font-medium border-b-2 transition-all duration-150 -mb-px
               ${tab === i
                 ? "border-[var(--color-primary)] text-[var(--color-primary)]"
                 : "border-transparent text-secondary hover:text-primary"}
@@ -303,51 +395,6 @@ function TabSection({ product }) {
       </div>
       <div className="py-6">{content[tab]}</div>
     </div>
-  );
-}
-
-/** Related product card (mini) */
-function RelatedCard({ product }) {
-  const variant = product.variants?.[0];
-  return (
-    <Link
-      to={`/products/${product.slug}`}
-      className="group flex flex-col rounded-[var(--radius-lg)] bg-base border border-subtle
-        overflow-hidden hover:shadow-[var(--shadow-md)] transition-all duration-200 hover:-translate-y-0.5"
-    >
-      <div className="relative aspect-square bg-muted overflow-hidden">
-        {product.primaryImage ? (
-          <img
-            src={product.primaryImage}
-            alt={product.name}
-            className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
-          />
-        ) : (
-          <div className="w-full h-full bg-gradient-to-br from-brand-100 to-brand-200" />
-        )}
-        {product.tags?.includes("Bestseller") && (
-          <span className="absolute top-2 left-2 text-[10px] font-semibold px-1.5 py-0.5
-            rounded-pill bg-amber-500 text-white">Bestseller</span>
-        )}
-      </div>
-      <div className="p-3 flex flex-col gap-1">
-        <p className="text-sm font-semibold text-primary leading-snug line-clamp-2">{product.name}</p>
-        {product.category && (
-          <p className="text-xs text-muted-fg">{product.category.name}</p>
-        )}
-        <div className="flex items-center gap-1 mt-0.5">
-          <svg className="w-3 h-3 text-amber-400" viewBox="0 0 20 20" fill="#f59e0b">
-            <path d="M10 1l2.39 4.84 5.35.78-3.87 3.77.91 5.33L10 13.27l-4.78 2.51.91-5.33L2.26 6.62l5.35-.78z" />
-          </svg>
-          <span className="text-xs text-secondary">{product.avgRating?.toFixed(1)} ({product.reviewCount})</span>
-        </div>
-        {variant && (
-          <p className="text-sm font-bold text-[var(--color-primary)] mt-1">
-            {fmt(variant.salePrice)}
-          </p>
-        )}
-      </div>
-    </Link>
   );
 }
 
@@ -366,7 +413,7 @@ function DetailSkeleton() {
         <div className="flex flex-col gap-3">
           <Skeleton className="aspect-square rounded-[var(--radius-lg)]" />
           <div className="flex gap-2">
-            {[1,2,3].map(i => <Skeleton key={i} className="w-16 h-16 rounded-[var(--radius-md)]" />)}
+            {[1, 2, 3].map(i => <Skeleton key={i} className="w-16 h-16 rounded-[var(--radius-md)]" />)}
           </div>
         </div>
         <div className="flex flex-col gap-4">
@@ -388,9 +435,11 @@ export default function ProductDetailPage() {
   const { product, loading, error } = useProductDetail(slug);
 
   const [selectedVariant, setSelectedVariant] = useState(null);
-  const [qty, setQty]                         = useState(1);
-  const [wishlist, setWishlist]               = useState(false);
-  const [addedToCart, setAddedToCart]         = useState(false);
+  const [qty, setQty] = useState(1);
+  const [wishlist, setWishlist] = useState(false);
+  const [addedToCart, setAddedToCart] = useState(false);
+  const { addItem, loading: cartLoading } = useCartStore()
+
 
   // Chọn variant mặc định khi data load xong
   const initVariant = useCallback((variants) => {
@@ -404,11 +453,16 @@ export default function ProductDetailPage() {
   }
 
   /* Add to cart mock */
-  const handleAddToCart = () => {
-    if (!selectedVariant) return;
-    setAddedToCart(true);
-    setTimeout(() => setAddedToCart(false), 2000);
-  };
+  const handleAddToCart = async () => {
+  if (!selectedVariant || !product?.id) return
+  try {
+    await addItem(product.id, selectedVariant.id, qty)
+    setAddedToCart(true)
+    setTimeout(() => setAddedToCart(false), 2000)
+  } catch {
+    // error đã được set trong store
+  }
+}
 
   /* ── Loading ── */
   if (loading) return <DetailSkeleton />;
@@ -435,10 +489,13 @@ export default function ProductDetailPage() {
 
   if (!product) return null;
 
-  const variant        = selectedVariant;
-  const discountPct    = variant ? Math.round(Number(variant.discountPercent)) : 0;
-  const inStock        = variant ? variant.stockQty > 0 : false;
-  const stockLow       = variant && variant.stockQty > 0 && variant.stockQty <= 5;
+  const variant = selectedVariant;
+  const discountPct = variant ? Math.round(Number(variant.discountPercent)) : 0;
+  const inStock = variant ? variant.stockQty > 0 : false;
+  const stockLow = variant && variant.stockQty > 0 && variant.stockQty <= 5;
+
+  // Map relatedProducts sang shape ProductCard cần
+  const relatedCards = (product.relatedProducts ?? []).map(mapToProductCardShape);
 
   return (
     <main className="max-w-6xl mx-auto px-4 py-8 animate-fade-slide-up">
@@ -522,9 +579,9 @@ export default function ProductDetailPage() {
           </div>
 
           {/* Qty + CTA */}
-          <div className="flex flex-col gap-3 ">
+          <div className="flex flex-col gap-3">
             <div className="flex items-center gap-3">
-              <span className="text-sm font-medium text-secondary ">Số lượng:</span>
+              <span className="text-sm font-medium text-secondary">Số lượng:</span>
               <QuantityStepper
                 value={qty}
                 min={1}
@@ -536,7 +593,7 @@ export default function ProductDetailPage() {
             <div className="flex gap-3">
               <button
                 onClick={handleAddToCart}
-                disabled={!inStock}
+                disabled={!inStock || cartLoading}
                 className={`
                   flex-1 flex items-center justify-center gap-2 px-5 py-3 rounded-[var(--radius-pill)]
                   text-sm font-semibold border transition-all duration-200
@@ -560,8 +617,8 @@ export default function ProductDetailPage() {
 
               <button
                 className="flex-1 flex items-center justify-center gap-2 px-5 py-3 rounded-[var(--radius-pill)]
-  text-sm font-semibold bg-orange-500 text-white border border-orange-500
-  hover:bg-orange-600 active:scale-[0.98] transition-all duration-200 disabled:opacity-40"
+                  text-sm font-semibold bg-orange-500 text-white border border-orange-500
+                  hover:bg-orange-600 active:scale-[0.98] transition-all duration-200 disabled:opacity-40"
                 disabled={!inStock}
               >
                 <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
@@ -595,18 +652,32 @@ export default function ProductDetailPage() {
         </div>
       </div>
 
-      {/* ── Tab section ── */}
+      {/* ── Tab section (Mô tả + Đánh giá, căn giữa) ── */}
       <TabSection product={product} />
 
-      {/* ── Related products ── */}
-      {product.relatedProducts?.length > 0 && (
+      {/* ── Sản phẩm liên quan ── */}
+      {relatedCards.length > 0 && (
         <section className="mt-14">
-          <h2 className="font-display text-xl font-bold text-primary mb-5">
-            Sản phẩm liên quan
-          </h2>
+          <div className="flex items-center justify-between mb-5">
+            <h2 className="font-display text-xl font-bold text-primary">
+              Sản phẩm liên quan
+            </h2>
+            {/* Link "Xem thêm" filter theo category của sản phẩm hiện tại */}
+            {product.category && (
+              <Link
+                to={`/products?categoryId=${product.category.id}`}
+                className="text-sm font-medium text-[var(--color-primary)] hover:underline transition-colors"
+              >
+                Xem tất cả {product.category.name} →
+              </Link>
+            )}
+          </div>
+
           <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4">
-            {product.relatedProducts.map((p) => (
-              <RelatedCard key={p.id} product={p} />
+            {relatedCards.map((p, idx) => (
+              <AnimatedCard key={p.slug ?? idx} delay={idx * 60}>
+                <ProductCard product={p} />
+              </AnimatedCard>
             ))}
           </div>
         </section>
