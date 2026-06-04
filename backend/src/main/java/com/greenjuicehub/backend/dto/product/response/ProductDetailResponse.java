@@ -17,4 +17,5 @@ public class ProductDetailResponse {
     private List<String> images;
     private List<String> tags;
     private List<ProductVariantResponse> variants;
+    private List<ProductSummaryResponse> relatedProducts;
 }

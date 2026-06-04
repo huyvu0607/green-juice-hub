@@ -1,9 +1,14 @@
+// useProducts.js
 import { useState, useEffect, useCallback, useRef } from "react";
+import { useSearchParams } from "react-router-dom";
 import { getProducts, getCategories, getFlavors, getSizes } from "@/api/productApi";
+
+const PAGE_SIZE = 12;
+const SESSION_KEY = "products_session";
 
 const DEFAULT_FILTER = {
   page: 0,
-  size: 12,
+  size: PAGE_SIZE,
   categoryId: null,
   keyword: "",
   sortBy: "newest",
@@ -17,7 +22,6 @@ const DEFAULT_FILTER = {
   onSale: null,
 };
 
-// ── Helpers ──────────────────────────────────────────────────
 function debounce(fn, delay) {
   let timer;
   const debounced = (...args) => {
@@ -37,15 +41,46 @@ function throttle(fn, limit) {
     return fn(...args);
   };
 }
-// ─────────────────────────────────────────────────────────────
+
+function readSession() {
+  try {
+    const raw = sessionStorage.getItem(SESSION_KEY);
+    return raw ? JSON.parse(raw) : null;
+  } catch {
+    return null;
+  }
+}
+
+function saveSession(page, scroll) {
+  try {
+    const prev = readSession() ?? {};
+    sessionStorage.setItem(SESSION_KEY, JSON.stringify({ ...prev, page, scroll }));
+  } catch { }
+}
+
+function clearSession() {
+  sessionStorage.removeItem(SESSION_KEY);
+}
 
 export function useProducts() {
-  const [filter, setFilter]           = useState(DEFAULT_FILTER);
+  // ── Đọc keyword từ URL (?keyword=...) ───────────────────
+  const [searchParams] = useSearchParams();
+  const urlKeyword = searchParams.get("keyword") ?? "";
+
+  const [filter, setFilter] = useState(() => {
+    const s = readSession();
+    return s?.filter
+      ? { ...DEFAULT_FILTER, ...s.filter, page: s.page ?? 0, keyword: urlKeyword }
+      : { ...DEFAULT_FILTER, keyword: urlKeyword };
+  });
+
   const [products, setProducts]       = useState([]);
   const [totalElements, setTotal]     = useState(0);
   const [hasMore, setHasMore]         = useState(false);
   const [loading, setLoading]         = useState(false);
   const [loadingMore, setLoadingMore] = useState(false);
+
+  const pendingScrollRef = useRef(readSession()?.scroll ?? null);
 
   const [categories, setCategories] = useState([]);
   const [flavors, setFlavors]       = useState([]);
@@ -54,68 +89,130 @@ export function useProducts() {
   const filterRef = useRef(filter);
   filterRef.current = filter;
 
-  // Load filter options một lần
   useEffect(() => {
-    getCategories().then(r => setCategories(r.data)).catch(() => {});
-    getFlavors().then(r => setFlavors(r.data)).catch(() => {});
-    getSizes().then(r => setSizes(r.data)).catch(() => {});
+    getCategories().then(r => setCategories(r.data)).catch(() => { });
+    getFlavors().then(r => setFlavors(r.data)).catch(() => { });
+    getSizes().then(r => setSizes(r.data)).catch(() => { });
   }, []);
 
-  // Fetch products — debounce 300ms để tránh spam khi gõ input
+  // ── Sync keyword từ URL vào filter ──────────────────────
+  // Khi Header navigate với ?keyword=..., effect này bắt và cập nhật filter
+  useEffect(() => {
+    setFilter(prev => {
+      if (prev.keyword === urlKeyword) return prev;
+      clearSession();
+      return { ...prev, keyword: urlKeyword, page: 0 };
+    });
+  }, [urlKeyword]);
+
+  // ── Fetch ────────────────────────────────────────────────
   const fetchProducts = useCallback(
-    debounce((params) => {
+    debounce((params, restoredPage = 0) => {
       setLoading(true);
       setProducts([]);
-      getProducts(params)
+
+      const fetchParams =
+        restoredPage > 0
+          ? { ...params, page: 0, size: (restoredPage + 1) * PAGE_SIZE }
+          : { ...params, page: 0, size: PAGE_SIZE };
+
+      getProducts(fetchParams)
         .then(r => {
           setProducts(r.data.content);
           setTotal(r.data.totalElements);
-          setHasMore(!r.data.last);
-          setFilter(prev => ({ ...prev, page: 0 }));
+          const totalPages = Math.ceil(r.data.totalElements / PAGE_SIZE);
+          setHasMore(restoredPage < totalPages - 1);
+          setFilter(prev => ({ ...prev, page: restoredPage }));
         })
-        .catch(() => {})
+        .catch(() => { })
         .finally(() => setLoading(false));
     }, 300),
     []
   );
 
+  const isFirstMount = useRef(true);
+
   useEffect(() => {
+    const session = isFirstMount.current ? readSession() : null;
+    isFirstMount.current = false;
+
     const params = buildParams({ ...filter, page: 0 });
-    fetchProducts(params);
+
+    if (session?.page > 0) {
+      fetchProducts(params, session.page);
+    } else {
+      fetchProducts(params, 0);
+    }
+
     return () => fetchProducts.cancel();
   }, [
-    filter.categoryId, filter.keyword, filter.sortBy, filter.minRating,
-    filter.minPrice, filter.maxPrice, filter.tags, filter.flavorIds,
-    filter.sizeIds, filter.inStock, filter.onSale,
+    filter.categoryId,
+    filter.keyword,       // ✅ keyword thay đổi → fetch lại
+    filter.sortBy,
+    filter.minRating,
+    filter.minPrice,
+    filter.maxPrice,
+    filter.inStock,
+    filter.onSale,
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    filter.tags?.join(","),
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    filter.flavorIds?.join(","),
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    filter.sizeIds?.join(","),
   ]);
 
-  // Load thêm — throttle 1s để tránh IntersectionObserver bắn liên tục
+  // ── Restore scroll ───────────────────────────────────────
+  useEffect(() => {
+    if (!loading && products.length > 0 && pendingScrollRef.current !== null) {
+      const scrollY = pendingScrollRef.current;
+      pendingScrollRef.current = null;
+      requestAnimationFrame(() => {
+        window.scrollTo({ top: scrollY, behavior: "instant" });
+      });
+    }
+  }, [loading, products.length]);
+
+  // ── Lưu scroll ───────────────────────────────────────────
+  useEffect(() => {
+    const handleScroll = throttle(() => {
+      saveSession(filterRef.current.page, window.scrollY);
+    }, 300);
+    window.addEventListener("scroll", handleScroll, { passive: true });
+    return () => window.removeEventListener("scroll", handleScroll);
+  }, []);
+
+  // ── Load thêm ────────────────────────────────────────────
   const loadMore = useCallback(
     throttle(() => {
       if (loadingMore || !hasMore) return;
-
       const nextPage = filterRef.current.page + 1;
       setLoadingMore(true);
-
       const params = buildParams({ ...filterRef.current, page: nextPage });
       getProducts(params)
         .then(r => {
           setProducts(prev => [...prev, ...r.data.content]);
           setHasMore(!r.data.last);
           setFilter(prev => ({ ...prev, page: nextPage }));
+          saveSession(nextPage, window.scrollY);
         })
-        .catch(() => {})
+        .catch(() => { })
         .finally(() => setLoadingMore(false));
     }, 1000),
     [loadingMore, hasMore]
   );
 
-  // updateFilter thông thường — instant cho checkbox/radio/tag
+  // ── updateFilter ─────────────────────────────────────────
   const updateFilter = useCallback((patch) => {
+    const isDataFilter = Object.keys(patch).some(k => k !== "_sidebarOpen");
+    if (isDataFilter) clearSession();
     setFilter(prev => ({ ...prev, ...patch }));
   }, []);
 
-  const resetFilter = useCallback(() => setFilter(DEFAULT_FILTER), []);
+  const resetFilter = useCallback(() => {
+    clearSession();
+    setFilter({ ...DEFAULT_FILTER, keyword: urlKeyword }); // giữ lại keyword từ URL
+  }, [urlKeyword]);
 
   return {
     filter, products, totalElements, hasMore, loading, loadingMore,

@@ -65,6 +65,17 @@ public class ProductServiceImpl implements IProductService {
                 ? product.getTags().stream().map(ProductTag::getTag).toList()
                 : List.of();
 
+        // ── Related products: cùng category, bỏ sản phẩm hiện tại, lấy 4 cái ──
+        List<ProductSummaryResponse> related = productRepository
+                .findByCategoryIdAndIsActiveTrueAndIdNot(
+                        product.getCategory().getId(),
+                        product.getId(),
+                        PageRequest.of(0, 16)
+                )
+                .stream()
+                .map(this::toSummary)
+                .toList();
+
         return ProductDetailResponse.builder()
                 .id(product.getId())
                 .name(product.getName())
@@ -76,6 +87,7 @@ public class ProductServiceImpl implements IProductService {
                 .images(images)
                 .tags(tags)
                 .variants(variants.stream().map(this::toVariant).toList())
+                .relatedProducts(related)
                 .build();
     }
 
@@ -217,6 +229,12 @@ public class ProductServiceImpl implements IProductService {
 
         boolean inStock = variants.stream().anyMatch(v -> v.getStockQty() > 0);
 
+        Long defaultVariantId = variants.stream()
+                .filter(v -> v.getStockQty() > 0)
+                .map(ProductVariant::getId)
+                .findFirst()
+                .orElse(variants.isEmpty() ? null : variants.get(0).getId());
+
         List<String> tags = product.getTags() != null
                 ? product.getTags().stream().map(ProductTag::getTag).toList()
                 : List.of();
@@ -233,6 +251,7 @@ public class ProductServiceImpl implements IProductService {
                 .tags(tags)
                 .inStock(inStock)
                 .categoryName(product.getCategory().getName())
+                .defaultVariantId(defaultVariantId)
                 .build();
     }
 

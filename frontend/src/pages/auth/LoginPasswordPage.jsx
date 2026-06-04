@@ -90,9 +90,8 @@ export default function LoginPasswordPage() {
   }
 
   const shouldShowCaptcha = (err) => {
-    const message = err.response?.data?.message || ''
-    return err.response?.status === 403 || message.toLowerCase().includes('captcha')
-  }
+  return err.response?.status === 403
+}
 
   const handleLogin = async () => {
   if (!identifier) return setError('Vui lòng nhập số điện thoại hoặc email')

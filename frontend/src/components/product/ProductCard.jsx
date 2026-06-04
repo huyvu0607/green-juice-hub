@@ -1,22 +1,22 @@
 import { Link } from "react-router-dom";
 import { ShoppingCart } from "lucide-react";
 import { useState } from "react";
+import useCartStore from '@/store/useCartStore'
 
 const TAG_STYLE = {
   bestseller: "bg-yellow-400 text-yellow-900",
-  organic:    "bg-green-500 text-white",
-  new:        "bg-blue-500 text-white",
+  organic: "bg-green-500 text-white",
+  new: "bg-blue-500 text-white",
   "sugar-free": "bg-pink-500 text-white",
 };
 
 const TAG_LABEL = {
   bestseller: "Bestseller",
-  organic:    "Organic",
-  new:        "New",
+  organic: "Organic",
+  new: "New",
   "sugar-free": "Sugar-free",
 };
 
-// Skeleton khi ảnh chưa load
 function ImageSkeleton() {
   return (
     <div className="absolute inset-0 bg-[var(--color-bg-muted)] animate-pulse" />
@@ -32,6 +32,7 @@ export default function ProductCard({ product }) {
 
   const [imgLoaded, setImgLoaded] = useState(false);
   const [imgError, setImgError] = useState(false);
+  const { addItem, loading } = useCartStore()
 
   return (
     <Link
@@ -51,14 +52,17 @@ export default function ProductCard({ product }) {
           <img
             src={primaryImage}
             alt={name}
+            loading="lazy"
+            decoding="async"
+            width={400}
+            height={300}
             onLoad={() => setImgLoaded(true)}
             onError={() => setImgError(true)}
             className={`w-full h-full object-cover group-hover:scale-105
-                        transition-transform duration-300
-                        ${imgLoaded ? "opacity-100" : "opacity-0"}`}
+              transition-transform duration-300
+              ${imgLoaded ? "opacity-100" : "opacity-0"}`}
           />
         ) : (
-          /* Fallback gradient khi không có ảnh */
           <div className="w-full h-full bg-gradient-to-br from-green-200 to-emerald-400" />
         )}
 
@@ -96,48 +100,51 @@ export default function ProductCard({ product }) {
         {/* Add to cart — slide up on hover */}
         {inStock && (
           <button
-            onClick={(e) => { e.preventDefault(); /* TODO: addToCart */ }}
-            className="absolute bottom-0 inset-x-0 bg-[var(--color-primary)] text-white
-                       py-2.5 text-sm font-medium flex items-center justify-center gap-2
-                       translate-y-full group-hover:translate-y-0
-                       transition-transform duration-200"
+            onClick={(e) => {
+              e.preventDefault()
+              if (!product.defaultVariantId) return
+              addItem(product.id, product.defaultVariantId, 1)
+            }}
+        className="absolute bottom-0 inset-x-0 bg-[var(--color-primary)] text-white
+        py-2.5 text-sm font-medium flex items-center justify-center gap-2
+        translate-y-full group-hover:translate-y-0
+        transition-transform duration-200"
           >
-            <ShoppingCart size={15} />
-            Thêm vào giỏ
-          </button>
+        <ShoppingCart size={15} />
+        Thêm vào giỏ
+      </button>
         )}
-      </div>
+    </div>
 
-      {/* ── Info area ── */}
-      <div className="p-3 flex flex-col gap-1">
-        <p className="text-[11px] text-[var(--color-text-muted)]">{categoryName}</p>
+      {/* ── Info area ── */ }
+  <div className="p-3 flex flex-col gap-1">
+    <p className="text-[11px] text-[var(--color-text-muted)]">{categoryName}</p>
 
-        <h3 className="text-sm font-semibold text-[var(--color-text-primary)]
+    <h3 className="text-sm font-semibold text-[var(--color-text-primary)]
                        line-clamp-2 leading-snug">
-          {name}
-        </h3>
+      {name}
+    </h3>
 
-        {/* Rating */}
-        <div className="flex items-center gap-1 text-xs text-[var(--color-text-secondary)]">
-          <span className="text-yellow-400">★</span>
-          <span className="font-medium text-[var(--color-text-primary)]">
-            {avgRating?.toFixed(1)}
-          </span>
-          <span>({reviewCount})</span>
-        </div>
+    {/* Rating */}
+    <div className="flex items-center gap-1 text-xs text-[var(--color-text-secondary)]">
+      <span className="text-yellow-400">★</span>
+      <span className="font-medium text-[var(--color-text-primary)]">
+        {avgRating?.toFixed(1)}
+      </span>
+      <span>({reviewCount})</span>
+    </div>
 
-        {/* Price */}
-        <div className="flex items-center gap-2 mt-0.5 flex-wrap">
-          <span className="text-[var(--color-primary)] font-bold text-sm">
-            {Number(minSalePrice)?.toLocaleString("vi-VN")}đ
-          </span>
-        </div>
-      </div>
-    </Link>
+    {/* Price */}
+    <div className="flex items-center gap-2 mt-0.5 flex-wrap">
+      <span className="text-[var(--color-primary)] font-bold text-sm">
+        {Number(minSalePrice)?.toLocaleString("vi-VN")}đ
+      </span>
+    </div>
+  </div>
+    </Link >
   );
 }
 
-// Card skeleton dùng khi load trang
 export function ProductCardSkeleton() {
   return (
     <div className="rounded-2xl overflow-hidden border border-[var(--color-border-subtle)]

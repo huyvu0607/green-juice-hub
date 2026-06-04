@@ -2,6 +2,9 @@ import { Routes, Route } from 'react-router-dom'
 import { ProtectedRoute, GuestRoute } from './components/common/ProtectedRoute'
 import Header from '@/components/layout/Header'
 import Footer from '@/components/layout/Footer'
+import CartSidebar from '@/components/cart/CartSidebar'
+import { useEffect } from 'react'
+import useAuthStore from '@/store/authStore'
 
 // Auth pages
 import LoginPage from './pages/auth/LoginPage'
@@ -11,14 +14,15 @@ import SetPasswordPage from './pages/auth/SetPasswordPage'
 import ForgotPasswordPage from './pages/auth/ForgotPasswordPage'
 import ResetPasswordPage from './pages/auth/ResetPasswordPage'
 import LoginOptionPage from './pages/auth/LoginOptionPage'
-import ProductsPage from "@/pages/products/ProductsPage";
-import ProductDetailPage from "@/pages/products/ProductDetailPage";
+import ProductsPage from '@/pages/products/ProductsPage'
+import ProductDetailPage from '@/pages/products/ProductDetailPage'
 
-// Layout wrapper cho các trang có Header + Nav
+// Layout wrapper cho các trang có Header + Footer
 function MainLayout({ children }) {
   return (
     <div className="min-h-screen bg-[var(--color-bg-surface)] transition-theme">
       <Header />
+      <CartSidebar />
       <main>{children}</main>
       <Footer />
     </div>
@@ -26,7 +30,13 @@ function MainLayout({ children }) {
 }
 
 function App() {
+  const { isLoggedIn, fetchMe } = useAuthStore()
+
+  useEffect(() => {
+    if (isLoggedIn) fetchMe()
+  }, [])
   return (
+
     <Routes>
       {/* ── Guest only (không có Header/Nav) ── */}
       <Route path="/login" element={<GuestRoute><LoginPage /></GuestRoute>} />
@@ -44,7 +54,7 @@ function App() {
       <Route path="/contact" element={<MainLayout><div>Liên hệ</div></MainLayout>} />
       <Route path="/policies/:type" element={<MainLayout><div>Chính sách</div></MainLayout>} />
 
-      {/* ── Customer only */}
+      {/* ── Customer only ── */}
       <Route path="/cart" element={
         <ProtectedRoute allowedRoles={['CUSTOMER']}>
           <MainLayout><div>Giỏ hàng</div></MainLayout>
@@ -66,7 +76,7 @@ function App() {
         </ProtectedRoute>
       } />
 
-      {/* ── Admin + Staff (không có Nav của shop) ── */}
+      {/* ── Admin + Staff ── */}
       <Route path="/admin/*" element={
         <ProtectedRoute allowedRoles={['ADMIN', 'STAFF']}>
           <div>Trang Admin</div>
