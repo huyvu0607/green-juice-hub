@@ -1,5 +1,8 @@
 import axios from 'axios'
 
+let isRefreshing = false
+let queue = []
+
 const api = axios.create({
   baseURL: 'http://localhost:8081/api',
   headers: {
@@ -32,7 +35,18 @@ api.interceptors.response.use(
     if (error.response?.status === 401 && original && !original._retry) {
       original._retry = true
 
+      if (isRefreshing) {
+        return new Promise((resolve, reject) => {
+          queue.push({ resolve, reject })
+        }).then((token) => {
+          original.headers.Authorization = `Bearer ${token}`
+          return api(original)
+        })
+      }
+
+      isRefreshing = true
       const refreshToken = localStorage.getItem('refreshToken')
+
       if (!refreshToken) {
         localStorage.removeItem('accessToken')
         localStorage.removeItem('refreshToken')
@@ -46,18 +60,32 @@ api.interceptors.response.use(
           headers: { Authorization: `Bearer ${refreshToken}` },
         })
 
-        localStorage.setItem('accessToken', res.data.accessToken)
-        localStorage.setItem('refreshToken', res.data.refreshToken)
+        const newAccess = res.data.accessToken
+        const newRefresh = res.data.refreshToken
 
-        original.headers.Authorization = `Bearer ${res.data.accessToken}`
+        localStorage.setItem('accessToken', newAccess)
+        localStorage.setItem('refreshToken', newRefresh)
+
+        // Cập nhật Zustand store
+        const { default: useAuthStore } = await import('../store/authStore')
+        useAuthStore.setState({ accessToken: newAccess, isLoggedIn: true })
+
+        queue.forEach((p) => p.resolve(newAccess))
+        queue = []
+
+        original.headers.Authorization = `Bearer ${newAccess}`
         return api(original)
-      } catch {
-
+      }
+      catch {
+        queue.forEach((p) => p.reject())
+        queue = []
         localStorage.removeItem('accessToken')
         localStorage.removeItem('refreshToken')
         localStorage.removeItem('role')
         window.location.href = '/login'
         return Promise.reject(error)
+      } finally {
+        isRefreshing = false
       }
     }
 

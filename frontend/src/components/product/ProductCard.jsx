@@ -1,7 +1,8 @@
-import { Link } from "react-router-dom";
 import { ShoppingCart } from "lucide-react";
 import { useState } from "react";
 import useCartStore from '@/store/useCartStore'
+import { Link, useNavigate } from "react-router-dom"; 
+import useAuthStore from "@/store/authStore";
 
 const TAG_STYLE = {
   bestseller: "bg-yellow-400 text-yellow-900",
@@ -33,6 +34,8 @@ export default function ProductCard({ product }) {
   const [imgLoaded, setImgLoaded] = useState(false);
   const [imgError, setImgError] = useState(false);
   const { addItem, loading } = useCartStore()
+  const navigate = useNavigate();
+  const { isLoggedIn } = useAuthStore();
 
   return (
     <Link
@@ -101,46 +104,50 @@ export default function ProductCard({ product }) {
         {inStock && (
           <button
             onClick={(e) => {
-              e.preventDefault()
-              if (!product.defaultVariantId) return
-              addItem(product.id, product.defaultVariantId, 1)
+              e.preventDefault();
+              if (!isLoggedIn) {
+                navigate("/login");
+                return;
+              }
+              if (!product.defaultVariantId) return;
+              addItem(product.id, product.defaultVariantId, 1);
             }}
-        className="absolute bottom-0 inset-x-0 bg-[var(--color-primary)] text-white
+            className="absolute bottom-0 inset-x-0 bg-[var(--color-primary)] text-white
         py-2.5 text-sm font-medium flex items-center justify-center gap-2
         translate-y-full group-hover:translate-y-0
         transition-transform duration-200"
           >
-        <ShoppingCart size={15} />
-        Thêm vào giỏ
-      </button>
+            <ShoppingCart size={15} />
+            Thêm vào giỏ
+          </button>
         )}
-    </div>
+      </div>
 
-      {/* ── Info area ── */ }
-  <div className="p-3 flex flex-col gap-1">
-    <p className="text-[11px] text-[var(--color-text-muted)]">{categoryName}</p>
+      {/* ── Info area ── */}
+      <div className="p-3 flex flex-col gap-1">
+        <p className="text-[11px] text-[var(--color-text-muted)]">{categoryName}</p>
 
-    <h3 className="text-sm font-semibold text-[var(--color-text-primary)]
+        <h3 className="text-sm font-semibold text-[var(--color-text-primary)]
                        line-clamp-2 leading-snug">
-      {name}
-    </h3>
+          {name}
+        </h3>
 
-    {/* Rating */}
-    <div className="flex items-center gap-1 text-xs text-[var(--color-text-secondary)]">
-      <span className="text-yellow-400">★</span>
-      <span className="font-medium text-[var(--color-text-primary)]">
-        {avgRating?.toFixed(1)}
-      </span>
-      <span>({reviewCount})</span>
-    </div>
+        {/* Rating */}
+        <div className="flex items-center gap-1 text-xs text-[var(--color-text-secondary)]">
+          <span className="text-yellow-400">★</span>
+          <span className="font-medium text-[var(--color-text-primary)]">
+            {avgRating?.toFixed(1)}
+          </span>
+          <span>({reviewCount})</span>
+        </div>
 
-    {/* Price */}
-    <div className="flex items-center gap-2 mt-0.5 flex-wrap">
-      <span className="text-[var(--color-primary)] font-bold text-sm">
-        {Number(minSalePrice)?.toLocaleString("vi-VN")}đ
-      </span>
-    </div>
-  </div>
+        {/* Price */}
+        <div className="flex items-center gap-2 mt-0.5 flex-wrap">
+          <span className="text-[var(--color-primary)] font-bold text-sm">
+            {Number(minSalePrice)?.toLocaleString("vi-VN")}đ
+          </span>
+        </div>
+      </div>
     </Link >
   );
 }

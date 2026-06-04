@@ -8,17 +8,17 @@ import { sharedObserver } from "@/utils/sharedObserver";
 
 const TAG_CHIPS = [
   { key: "bestseller", label: "Bestseller" },
-  { key: "organic",    label: "Organic"    },
-  { key: "new",        label: "New"        },
+  { key: "organic", label: "Organic" },
+  { key: "new", label: "New" },
   { key: "sugar-free", label: "Sugar-free" },
 ];
 
 const SORT_OPTIONS = [
-  { value: "newest",     label: "Mới nhất"        },
-  { value: "bestseller", label: "Bán chạy"        },
-  { value: "price_asc",  label: "Giá tăng dần"    },
-  { value: "price_desc", label: "Giá giảm dần"    },
-  { value: "rating",     label: "Đánh giá cao"    },
+  { value: "newest", label: "Mới nhất" },
+  { value: "bestseller", label: "Bán chạy" },
+  { value: "price_asc", label: "Giá tăng dần" },
+  { value: "price_desc", label: "Giá giảm dần" },
+  { value: "rating", label: "Đánh giá cao" },
   { value: "rating_asc", label: "Giảm nhiều nhất" },
 ];
 
@@ -51,6 +51,35 @@ function AnimatedCard({ children, colIndex = 0 }) {
   );
 }
 
+// --- ScrollToTopButton ---
+function ScrollToTopButton() {
+  const [visible, setVisible] = useState(false);
+
+  useEffect(() => {
+    const handler = () => setVisible(window.scrollY > 300);
+    window.addEventListener("scroll", handler, { passive: true });
+    return () => window.removeEventListener("scroll", handler);
+  }, []);
+
+  return (
+    <button
+      onClick={() => window.scrollTo({ top: 0, behavior: "smooth" })}
+      className={`fixed bottom-6 right-6 z-30
+                  w-10 h-10 rounded-full
+                  bg-[var(--color-primary)] text-white
+                  shadow-[0_4px_16px_rgba(0,0,0,0.18)]
+                  flex items-center justify-center
+                  transition-all duration-300
+                  hover:bg-[var(--color-primary-hover)] hover:scale-110 active:scale-95
+                  ${visible ? "opacity-100 translate-y-0 pointer-events-auto" : "opacity-0 translate-y-4 pointer-events-none"}`}
+      aria-label="Cuộn lên đầu trang"
+    >
+      <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M5 15l7-7 7 7" />
+      </svg>
+    </button>
+  );
+}
 /* ── ProductsPage ── */
 export default function ProductsPage() {
   const {
@@ -59,6 +88,17 @@ export default function ProductsPage() {
     updateFilter, loadMore, resetFilter,
   } = useProducts();
 
+  const [sortOpen, setSortOpen] = useState(false);
+  const sortRef = useRef(null);
+
+  // useEffect đóng dropdown khi click ra ngoài:
+  useEffect(() => {
+    const handler = (e) => {
+      if (sortRef.current && !sortRef.current.contains(e.target)) setSortOpen(false);
+    };
+    document.addEventListener("mousedown", handler);
+    return () => document.removeEventListener("mousedown", handler);
+  }, []);
   // khai báo sidebarOpen trước khi dùng
   const sidebarOpen = filter._sidebarOpen !== false;
   const setSidebarOpen = (val) => updateFilter({ _sidebarOpen: val });
@@ -101,9 +141,9 @@ export default function ProductsPage() {
           className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm
                       border transition-colors shrink-0
                       ${sidebarOpen
-                        ? "border-[var(--color-primary)] text-[var(--color-primary)] bg-[var(--color-primary-subtle)]"
-                        : "border-[var(--color-border-subtle)] text-[var(--color-text-secondary)] hover:bg-[var(--color-bg-muted)]"
-                      }`}
+              ? "border-[var(--color-primary)] text-[var(--color-primary)] bg-[var(--color-primary-subtle)]"
+              : "border-[var(--color-border-subtle)] text-[var(--color-text-secondary)] hover:bg-[var(--color-bg-muted)]"
+            }`}
         >
           <SlidersHorizontal size={14} />
           Bộ lọc
@@ -150,18 +190,54 @@ export default function ProductsPage() {
         </div>
 
         {/* Sort */}
-        <select
-          value={filter.sortBy}
-          onChange={e => updateFilter({ sortBy: e.target.value })}
-          className="px-3 py-1.5 text-sm rounded-lg shrink-0
-                     border border-[var(--color-border-subtle)] bg-[var(--color-bg-surface)]
-                     text-[var(--color-text-primary)] focus:outline-none
-                     focus:ring-1 focus:ring-[var(--color-primary)]"
-        >
-          {SORT_OPTIONS.map(o => (
-            <option key={o.value} value={o.value}>{o.label}</option>
-          ))}
-        </select>
+        <div ref={sortRef} className="relative shrink-0">
+          <button
+            onClick={() => setSortOpen(!sortOpen)}
+            className={`flex items-center gap-2 px-3 py-1.5 text-sm rounded-lg
+                border transition-colors min-w-[140px] justify-between
+                ${sortOpen
+                ? "border-[var(--color-primary)] text-[var(--color-primary)] bg-[var(--color-primary-subtle)]"
+                : "border-[var(--color-border-subtle)] text-[var(--color-text-secondary)] bg-[var(--color-bg-surface)] hover:bg-[var(--color-bg-muted)]"
+              }`}
+          >
+            <span>{SORT_OPTIONS.find(o => o.value === filter.sortBy)?.label ?? "Sắp xếp"}</span>
+            <svg
+              className={`w-3.5 h-3.5 transition-transform duration-200 ${sortOpen ? "rotate-180" : ""}`}
+              fill="none" viewBox="0 0 24 24" stroke="currentColor"
+            >
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+            </svg>
+          </button>
+
+          {sortOpen && (
+            <div className="absolute right-0 top-[calc(100%+6px)] z-50
+                    w-48 py-1 rounded-xl
+                    bg-[var(--color-bg-surface)]
+                    border border-[var(--color-border-subtle)]
+                    shadow-[0_8px_24px_rgba(0,0,0,0.12)] overflow-hidden
+                    animate-in fade-in slide-in-from-top-2 duration-150">
+              {SORT_OPTIONS.map(o => (
+                <button
+                  key={o.value}
+                  onClick={() => { updateFilter({ sortBy: o.value }); setSortOpen(false); }}
+                  className={`w-full text-left px-3.5 py-2 text-sm transition-colors
+                      flex items-center justify-between gap-2
+                      ${filter.sortBy === o.value
+                      ? "text-[var(--color-primary)] bg-[var(--color-primary-subtle)] font-medium"
+                      : "text-[var(--color-text-primary)] hover:bg-[var(--color-bg-muted)]"
+                    }`}
+                >
+                  {o.label}
+                  {filter.sortBy === o.value && (
+                    <svg className="w-3.5 h-3.5 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M5 13l4 4L19 7" />
+                    </svg>
+                  )}
+                </button>
+              ))}
+            </div>
+          )}
+        </div>
 
         {/* Reset */}
         <button
@@ -214,7 +290,7 @@ export default function ProductsPage() {
               ))}
             </div>
 
-          /* ── Empty ── */
+            /* ── Empty ── */
           ) : products.length === 0 ? (
             <div className="flex flex-col items-center justify-center py-24
                             text-[var(--color-text-muted)]">
@@ -229,7 +305,7 @@ export default function ProductsPage() {
               </button>
             </div>
 
-          /* ── Products grid ── */
+            /* ── Products grid ── */
           ) : (
             <>
               <div className={`grid gap-4 ${sidebarOpen ? "grid-cols-3" : "grid-cols-4"}`}>
@@ -254,6 +330,9 @@ export default function ProductsPage() {
           )}
         </div>
       </div>
+      {/* ── Scroll to top button ── */}
+      <ScrollToTopButton />
     </div>
+
   );
 }

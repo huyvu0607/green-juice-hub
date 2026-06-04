@@ -8,14 +8,22 @@ const useAuthStore = create((set) => ({
   refreshToken: localStorage.getItem('refreshToken') || null,
   isLoggedIn: !!localStorage.getItem('accessToken'),
 
-  setAuth: (accessToken, refreshToken, role) => {
+  setAuth: async (accessToken, refreshToken, role) => {
     localStorage.setItem('accessToken', accessToken)
     localStorage.setItem('refreshToken', refreshToken)
     localStorage.setItem('role', role)
     set({ accessToken, refreshToken, user: { role }, isLoggedIn: true })
+
+    // Fetch thông tin user ngay sau khi login
+    try {
+      const res = await userApi.getMe()
+      set({ user: res.data })
+    } catch {
+      // giữ nguyên { role } nếu lỗi
+    }
   },
 
-  
+
   setUser: (user) => set({ user }),
 
   fetchMe: async () => {
@@ -23,10 +31,13 @@ const useAuthStore = create((set) => ({
       const res = await userApi.getMe()
       set({ user: res.data })
     } catch {
-      // token hết hạn hoặc lỗi — bỏ qua
+      localStorage.removeItem('accessToken')
+      localStorage.removeItem('refreshToken')
+      localStorage.removeItem('role')
+      set({ accessToken: null, refreshToken: null, user: null, isLoggedIn: false })
     }
   },
-  
+
   logout: async () => {
     try {
       await authApi.logout()
