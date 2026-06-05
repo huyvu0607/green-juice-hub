@@ -1,6 +1,11 @@
 -- ============================================================
 -- GREEN JUICE HUB — MySQL Schema
--- Version: 1.0 | Date: 2026-05-20
+-- Version: 1.1 | Date: 2026-06-05
+-- Fixes:
+--   1. users: thêm cột username
+--   2. reviews.rating: TINYINT UNSIGNED
+--   3. contacts.status: enum values uppercase để khớp JPA EnumType.STRING
+--   4. Thêm index cho cart_items, order_items, promotion_usages
 -- ============================================================
 
 CREATE DATABASE IF NOT EXISTS green_juice_hub
@@ -10,31 +15,32 @@ CREATE DATABASE IF NOT EXISTS green_juice_hub
 USE green_juice_hub;
 
 -- ============================================================
--- 1. USERS
+-- 1. USERS  ← Fix: thêm cột username
 -- ============================================================
 CREATE TABLE users (
-  id               BIGINT AUTO_INCREMENT PRIMARY KEY,
-  name             VARCHAR(100),
-  phone            VARCHAR(15)  UNIQUE NOT NULL COMMENT 'Định danh chính',
-  phone_verified_at TIMESTAMP   NULL,
-  email            VARCHAR(100) UNIQUE NULL,
-  password_hash    VARCHAR(255) NULL,
-  has_password     BOOLEAN      NOT NULL DEFAULT FALSE,
-  avatar_url       VARCHAR(500) NULL,
-  role             ENUM('customer','staff','admin') NOT NULL DEFAULT 'customer',
-  is_active        BOOLEAN      NOT NULL DEFAULT TRUE,
-  created_at       TIMESTAMP    NOT NULL DEFAULT CURRENT_TIMESTAMP,
-  updated_at       TIMESTAMP    NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+  id                BIGINT AUTO_INCREMENT PRIMARY KEY,
+  name              VARCHAR(100),
+  phone             VARCHAR(15)   UNIQUE NOT NULL COMMENT 'Định danh chính',
+  phone_verified_at TIMESTAMP     NULL,
+  email             VARCHAR(100)  UNIQUE NULL,
+  username          VARCHAR(50)   UNIQUE NULL,            -- ✅ THÊM MỚI
+  password_hash     VARCHAR(255)  NULL,
+  has_password      BOOLEAN       NOT NULL DEFAULT FALSE,
+  avatar_url        VARCHAR(500)  NULL,
+  role              ENUM('CUSTOMER','STAFF','ADMIN') NOT NULL DEFAULT 'CUSTOMER',  -- ✅ uppercase
+  is_active         BOOLEAN       NOT NULL DEFAULT TRUE,
+  created_at        TIMESTAMP     NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  updated_at        TIMESTAMP     NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
 ) ENGINE=InnoDB;
 
 -- ============================================================
--- 2. OTP VERIFICATIONS
+-- 2. OTP VERIFICATIONS  ← enum uppercase
 -- ============================================================
 CREATE TABLE otp_verifications (
   id         BIGINT AUTO_INCREMENT PRIMARY KEY,
   phone      VARCHAR(15)  NOT NULL,
   otp_code   VARCHAR(6)   NOT NULL,
-  type       ENUM('register','login','reset_password') NOT NULL,
+  type       ENUM('REGISTER','LOGIN','RESET_PASSWORD') NOT NULL,  -- ✅ uppercase
   is_used    BOOLEAN      NOT NULL DEFAULT FALSE,
   expires_at TIMESTAMP    NOT NULL,
   created_at TIMESTAMP    NOT NULL DEFAULT CURRENT_TIMESTAMP,
@@ -43,12 +49,12 @@ CREATE TABLE otp_verifications (
 ) ENGINE=InnoDB;
 
 -- ============================================================
--- 3. SOCIAL ACCOUNTS
+-- 3. SOCIAL ACCOUNTS  ← enum uppercase
 -- ============================================================
 CREATE TABLE social_accounts (
   id          BIGINT AUTO_INCREMENT PRIMARY KEY,
   user_id     BIGINT       NOT NULL,
-  provider    ENUM('google') NOT NULL,
+  provider    ENUM('GOOGLE') NOT NULL,  -- ✅ uppercase
   provider_id VARCHAR(255) NOT NULL,
   email       VARCHAR(100) NULL,
   created_at  TIMESTAMP    NOT NULL DEFAULT CURRENT_TIMESTAMP,
@@ -57,7 +63,7 @@ CREATE TABLE social_accounts (
 ) ENGINE=InnoDB;
 
 -- ============================================================
--- 4. ADDRESSES
+-- 4. ADDRESSES  (không đổi)
 -- ============================================================
 CREATE TABLE addresses (
   id         BIGINT AUTO_INCREMENT PRIMARY KEY,
@@ -73,7 +79,7 @@ CREATE TABLE addresses (
 ) ENGINE=InnoDB;
 
 -- ============================================================
--- 5. CATEGORIES
+-- 5. CATEGORIES  (không đổi)
 -- ============================================================
 CREATE TABLE categories (
   id          BIGINT AUTO_INCREMENT PRIMARY KEY,
@@ -86,7 +92,7 @@ CREATE TABLE categories (
 ) ENGINE=InnoDB;
 
 -- ============================================================
--- 6. FLAVORS
+-- 6. FLAVORS  (không đổi)
 -- ============================================================
 CREATE TABLE flavors (
   id        BIGINT AUTO_INCREMENT PRIMARY KEY,
@@ -95,7 +101,7 @@ CREATE TABLE flavors (
 ) ENGINE=InnoDB;
 
 -- ============================================================
--- 7. SIZES
+-- 7. SIZES  (không đổi)
 -- ============================================================
 CREATE TABLE sizes (
   id        BIGINT AUTO_INCREMENT PRIMARY KEY,
@@ -104,7 +110,7 @@ CREATE TABLE sizes (
 ) ENGINE=InnoDB;
 
 -- ============================================================
--- 8. PRODUCTS
+-- 8. PRODUCTS  (không đổi)
 -- ============================================================
 CREATE TABLE products (
   id           BIGINT AUTO_INCREMENT PRIMARY KEY,
@@ -121,7 +127,7 @@ CREATE TABLE products (
 ) ENGINE=InnoDB;
 
 -- ============================================================
--- 9. PRODUCT IMAGES
+-- 9. PRODUCT IMAGES  (không đổi)
 -- ============================================================
 CREATE TABLE product_images (
   id         BIGINT AUTO_INCREMENT PRIMARY KEY,
@@ -133,7 +139,7 @@ CREATE TABLE product_images (
 ) ENGINE=InnoDB;
 
 -- ============================================================
--- 10. PRODUCT TAGS
+-- 10. PRODUCT TAGS  (không đổi)
 -- ============================================================
 CREATE TABLE product_tags (
   id         BIGINT AUTO_INCREMENT PRIMARY KEY,
@@ -143,7 +149,7 @@ CREATE TABLE product_tags (
 ) ENGINE=InnoDB;
 
 -- ============================================================
--- 11. PRODUCT VARIANTS
+-- 11. PRODUCT VARIANTS  (không đổi)
 -- ============================================================
 CREATE TABLE product_variants (
   id               BIGINT AUTO_INCREMENT PRIMARY KEY,
@@ -162,18 +168,18 @@ CREATE TABLE product_variants (
 ) ENGINE=InnoDB;
 
 -- ============================================================
--- 12. CARTS
+-- 12. CARTS  (không đổi)
 -- ============================================================
 CREATE TABLE carts (
   id         BIGINT    AUTO_INCREMENT PRIMARY KEY,
-  user_id    BIGINT    NOT NULL UNIQUE COMMENT '1 user = 1 cart',
+  user_id    BIGINT    NOT NULL UNIQUE,
   created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
   updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
   CONSTRAINT fk_cart_user FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
 ) ENGINE=InnoDB;
 
 -- ============================================================
--- 13. CART ITEMS
+-- 13. CART ITEMS  ← Fix: thêm index product_id
 -- ============================================================
 CREATE TABLE cart_items (
   id         BIGINT    AUTO_INCREMENT PRIMARY KEY,
@@ -183,23 +189,24 @@ CREATE TABLE cart_items (
   quantity   INT       NOT NULL DEFAULT 1,
   updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
   UNIQUE KEY uk_cart_variant (cart_id, variant_id),
+  INDEX idx_ci_product (product_id),                      -- ✅ THÊM MỚI
   CONSTRAINT fk_ci_cart    FOREIGN KEY (cart_id)    REFERENCES carts(id) ON DELETE CASCADE,
   CONSTRAINT fk_ci_product FOREIGN KEY (product_id) REFERENCES products(id),
   CONSTRAINT fk_ci_variant FOREIGN KEY (variant_id) REFERENCES product_variants(id)
 ) ENGINE=InnoDB;
 
 -- ============================================================
--- 14. PROMOTIONS
+-- 14. PROMOTIONS  ← enum uppercase
 -- ============================================================
 CREATE TABLE promotions (
   id                BIGINT AUTO_INCREMENT PRIMARY KEY,
   code              VARCHAR(50)   NOT NULL UNIQUE,
   name              VARCHAR(200)  NOT NULL,
-  type              ENUM('percent','fixed') NOT NULL,
+  type              ENUM('PERCENT','FIXED') NOT NULL,      -- ✅ uppercase
   value             DECIMAL(12,2) NOT NULL,
   min_order_value   DECIMAL(12,2) NOT NULL DEFAULT 0,
-  target            ENUM('public','personal') NOT NULL DEFAULT 'public',
-  user_id           BIGINT        NULL COMMENT 'Chỉ điền nếu target = personal',
+  target            ENUM('PUBLIC','PERSONAL') NOT NULL DEFAULT 'PUBLIC',  -- ✅ uppercase
+  user_id           BIGINT        NULL,
   max_uses          INT           NOT NULL DEFAULT 1,
   max_uses_per_user INT           NULL,
   used_count        INT           NOT NULL DEFAULT 0,
@@ -210,7 +217,7 @@ CREATE TABLE promotions (
 ) ENGINE=InnoDB;
 
 -- ============================================================
--- 15. PROMOTION USAGES
+-- 15. PROMOTION USAGES  ← Fix: thêm index order_id
 -- ============================================================
 CREATE TABLE promotion_usages (
   id           BIGINT    AUTO_INCREMENT PRIMARY KEY,
@@ -220,11 +227,13 @@ CREATE TABLE promotion_usages (
   used_at      TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
   CONSTRAINT fk_pu_promotion FOREIGN KEY (promotion_id) REFERENCES promotions(id),
   CONSTRAINT fk_pu_user      FOREIGN KEY (user_id)      REFERENCES users(id),
-  INDEX idx_pu_promotion_user (promotion_id, user_id)
+  CONSTRAINT fk_pu_order     FOREIGN KEY (order_id)     REFERENCES orders(id),  -- ✅ THÊM FK
+  INDEX idx_pu_promotion_user (promotion_id, user_id),
+  INDEX idx_pu_order (order_id)                          -- ✅ THÊM INDEX
 ) ENGINE=InnoDB;
 
 -- ============================================================
--- 16. ORDERS
+-- 16. ORDERS  ← enum uppercase
 -- ============================================================
 CREATE TABLE orders (
   id               BIGINT AUTO_INCREMENT PRIMARY KEY,
@@ -235,9 +244,9 @@ CREATE TABLE orders (
   discount_amount  DECIMAL(12,2) NOT NULL DEFAULT 0,
   shipping_fee     DECIMAL(12,2) NOT NULL DEFAULT 0,
   total_amount     DECIMAL(12,2) NOT NULL,
-  status           ENUM('pending','confirmed','shipping','delivered','cancelled') NOT NULL DEFAULT 'pending',
-  payment_status   ENUM('pending','paid','refunded') NOT NULL DEFAULT 'pending',
-  shipping_address JSON          NOT NULL COMMENT 'Snapshot địa chỉ giao hàng',
+  status           ENUM('PENDING','CONFIRMED','SHIPPING','DELIVERED','CANCELLED') NOT NULL DEFAULT 'PENDING',  -- ✅ uppercase
+  payment_status   ENUM('PENDING','PAID','REFUNDED') NOT NULL DEFAULT 'PENDING',  -- ✅ uppercase
+  shipping_address JSON          NOT NULL,
   note             TEXT          NULL,
   created_at       TIMESTAMP     NOT NULL DEFAULT CURRENT_TIMESTAMP,
   updated_at       TIMESTAMP     NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
@@ -248,33 +257,35 @@ CREATE TABLE orders (
 ) ENGINE=InnoDB;
 
 -- ============================================================
--- 17. ORDER ITEMS
+-- 17. ORDER ITEMS  ← Fix: thêm index order_id, product_id
 -- ============================================================
 CREATE TABLE order_items (
   id           BIGINT AUTO_INCREMENT PRIMARY KEY,
   order_id     BIGINT        NOT NULL,
   product_id   BIGINT        NOT NULL,
   variant_id   BIGINT        NOT NULL,
-  product_name VARCHAR(200)  NOT NULL COMMENT 'Snapshot tên sản phẩm',
-  variant_name VARCHAR(100)  NOT NULL COMMENT 'Snapshot tên variant',
-  unit_price   DECIMAL(12,2) NOT NULL COMMENT 'Giá tại thời điểm mua',
+  product_name VARCHAR(200)  NOT NULL,
+  variant_name VARCHAR(100)  NOT NULL,
+  unit_price   DECIMAL(12,2) NOT NULL,
   quantity     INT           NOT NULL,
   subtotal     DECIMAL(12,2) NOT NULL,
+  INDEX idx_oi_order   (order_id),                        -- ✅ THÊM MỚI
+  INDEX idx_oi_product (product_id),                      -- ✅ THÊM MỚI
   CONSTRAINT fk_oi_order   FOREIGN KEY (order_id)   REFERENCES orders(id) ON DELETE CASCADE,
   CONSTRAINT fk_oi_product FOREIGN KEY (product_id) REFERENCES products(id),
   CONSTRAINT fk_oi_variant FOREIGN KEY (variant_id) REFERENCES product_variants(id)
 ) ENGINE=InnoDB;
 
 -- ============================================================
--- 18. PAYMENTS
+-- 18. PAYMENTS  ← enum uppercase
 -- ============================================================
 CREATE TABLE payments (
   id             BIGINT AUTO_INCREMENT PRIMARY KEY,
   order_id       BIGINT        NOT NULL,
-  method         ENUM('cod','vnpay','momo','bank_transfer') NOT NULL,
-  status         ENUM('pending','success','failed','refunded') NOT NULL DEFAULT 'pending',
+  method         ENUM('COD','VNPAY','MOMO','BANK_TRANSFER') NOT NULL,  -- ✅ uppercase
+  status         ENUM('PENDING','SUCCESS','FAILED','REFUNDED') NOT NULL DEFAULT 'PENDING',  -- ✅ uppercase
   amount         DECIMAL(12,2) NOT NULL,
-  transaction_id VARCHAR(255)  NULL COMMENT 'Mã giao dịch từ cổng thanh toán',
+  transaction_id VARCHAR(255)  NULL,
   paid_at        TIMESTAMP     NULL,
   note           TEXT          NULL,
   created_at     TIMESTAMP     NOT NULL DEFAULT CURRENT_TIMESTAMP,
@@ -283,26 +294,27 @@ CREATE TABLE payments (
 ) ENGINE=InnoDB;
 
 -- ============================================================
--- 19. REVIEWS
+-- 19. REVIEWS  ← Fix: TINYINT UNSIGNED; enum uppercase; thêm index
 -- ============================================================
 CREATE TABLE reviews (
   id          BIGINT AUTO_INCREMENT PRIMARY KEY,
-  product_id  BIGINT    NOT NULL,
-  user_id     BIGINT    NOT NULL,
-  order_id    BIGINT    NOT NULL,
-  rating      TINYINT   NOT NULL CHECK (rating BETWEEN 1 AND 5),
-  comment     TEXT      NULL,
-  image_url   VARCHAR(500) NULL,
-  is_approved BOOLEAN   NOT NULL DEFAULT FALSE,
-  created_at  TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
-  UNIQUE KEY uk_review (product_id, user_id, order_id) COMMENT '1 đánh giá / sản phẩm / đơn hàng',
+  product_id  BIGINT          NOT NULL,
+  user_id     BIGINT          NOT NULL,
+  order_id    BIGINT          NOT NULL,
+  rating      TINYINT UNSIGNED NOT NULL CHECK (rating BETWEEN 1 AND 5),  -- ✅ UNSIGNED
+  comment     TEXT            NULL,
+  image_url   VARCHAR(500)    NULL,
+  is_approved BOOLEAN         NOT NULL DEFAULT FALSE,
+  created_at  TIMESTAMP       NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  UNIQUE KEY uk_review (product_id, user_id, order_id),
+  INDEX idx_rev_product (product_id),                     -- ✅ THÊM MỚI
   CONSTRAINT fk_rev_product FOREIGN KEY (product_id) REFERENCES products(id),
   CONSTRAINT fk_rev_user    FOREIGN KEY (user_id)    REFERENCES users(id),
   CONSTRAINT fk_rev_order   FOREIGN KEY (order_id)   REFERENCES orders(id)
 ) ENGINE=InnoDB;
 
 -- ============================================================
--- 20. CONTACTS
+-- 20. CONTACTS  ← Fix: enum uppercase để khớp JPA EnumType.STRING
 -- ============================================================
 CREATE TABLE contacts (
   id         BIGINT AUTO_INCREMENT PRIMARY KEY,
@@ -311,16 +323,16 @@ CREATE TABLE contacts (
   phone      VARCHAR(15)  NULL,
   subject    VARCHAR(200) NOT NULL,
   message    TEXT         NOT NULL,
-  status     ENUM('new','in_progress','resolved') NOT NULL DEFAULT 'new',
+  status     ENUM('NEW','IN_PROGRESS','RESOLVED') NOT NULL DEFAULT 'NEW',  -- ✅ uppercase
   created_at TIMESTAMP    NOT NULL DEFAULT CURRENT_TIMESTAMP
 ) ENGINE=InnoDB;
 
 -- ============================================================
--- 21. SHIPPING POLICIES
+-- 21. SHIPPING POLICIES  ← enum uppercase
 -- ============================================================
 CREATE TABLE shipping_policies (
   id         BIGINT AUTO_INCREMENT PRIMARY KEY,
-  type       ENUM('shipping','return','warranty','terms') NOT NULL,
+  type       ENUM('SHIPPING','RETURN','WARRANTY','TERMS') NOT NULL,  -- ✅ uppercase
   title      VARCHAR(200) NOT NULL,
   content    LONGTEXT     NOT NULL,
   sort_order INT          NOT NULL DEFAULT 0,
@@ -329,7 +341,7 @@ CREATE TABLE shipping_policies (
 ) ENGINE=InnoDB;
 
 -- ============================================================
--- 22. BANNERS
+-- 22. BANNERS  (không đổi)
 -- ============================================================
 CREATE TABLE banners (
   id         BIGINT AUTO_INCREMENT PRIMARY KEY,
@@ -339,38 +351,3 @@ CREATE TABLE banners (
   sort_order INT          NOT NULL DEFAULT 0,
   is_active  BOOLEAN      NOT NULL DEFAULT TRUE
 ) ENGINE=InnoDB;
-
--- ============================================================
--- SEED DATA MẪU
--- ============================================================
-
--- Categories
-INSERT INTO categories (name, slug, sort_order) VALUES
-('Nước ép',          'nuoc-ep',          1),
-('Smoothie',         'smoothie',         2),
-('Granola',          'granola',          3),
-('Sữa chua Hy Lạp',  'sua-chua-hy-lap',  4);
-
--- Flavors
-INSERT INTO flavors (name) VALUES
-('Táo'), ('Cà rốt'), ('Cam'), ('Dâu'), ('Việt quất'),
-('Dưa hấu'), ('Xoài'), ('Cần tây');
-
--- Sizes
-INSERT INTO sizes (name) VALUES
-('250ml'), ('500ml'), ('1L'), ('300g'), ('500g');
-
--- Admin account mẫu
-INSERT INTO users (name, phone, phone_verified_at, has_password, password_hash, role) VALUES
-('Admin', '0900000000', NOW(), TRUE, '$2a$10$examplehashedpassword', 'admin');
-
--- Shipping policies mẫu
-INSERT INTO shipping_policies (type, title, content, sort_order) VALUES
-('shipping', 'Chính sách vận chuyển', 'Giao hàng toàn quốc trong 2-5 ngày làm việc. Miễn phí vận chuyển cho đơn hàng từ 300.000đ.', 1),
-('return',   'Chính sách đổi trả',    'Hỗ trợ đổi trả trong vòng 24 giờ kể từ khi nhận hàng nếu sản phẩm lỗi hoặc không đúng mô tả.', 2),
-('warranty', 'Chính sách bảo hành',   'Sản phẩm được kiểm định chất lượng trước khi giao. Cam kết hoàn tiền 100% nếu sản phẩm không đảm bảo.', 3),
-('terms',    'Điều khoản sử dụng',    'Bằng cách sử dụng dịch vụ, bạn đồng ý với các điều khoản và điều kiện của Green Juice Hub.', 4);
-
-SELECT COUNT(*) AS total_tables
-FROM information_schema.TABLES
-WHERE TABLE_SCHEMA = 'green_juice_hub';
