@@ -4,6 +4,7 @@ import com.greenjuicehub.backend.dto.product.request.ProductFilterRequest;
 import com.greenjuicehub.backend.dto.product.response.*;
 import com.greenjuicehub.backend.entity.*;
 import com.greenjuicehub.backend.exception.AppException;
+import com.greenjuicehub.backend.mapper.ProductMapper;
 import com.greenjuicehub.backend.repository.*;
 import com.greenjuicehub.backend.service.product.IProductService;
 import jakarta.persistence.criteria.JoinType;
@@ -28,13 +29,14 @@ public class ProductServiceImpl implements IProductService {
     private final SizeRepository sizeRepository;
     private final ProductVariantRepository variantRepository;
     private final ProductImageRepository imageRepository;
+    private final ProductMapper productMapper;
 
+    // ==================== GET PRODUCTS ====================
     @Override
     public Page<ProductSummaryResponse> getProducts(ProductFilterRequest request) {
         Specification<Product> spec = buildSpec(request);
         String sortBy = request.getSortBy();
 
-        // Sort theo giá — dùng native query riêng
         if ("price_asc".equals(sortBy) || "price_desc".equals(sortBy)) {
             Pageable pageable = PageRequest.of(request.getPage(), request.getSize());
             Page<Product> page = "price_asc".equals(sortBy)
@@ -43,12 +45,12 @@ public class ProductServiceImpl implements IProductService {
             return page.map(this::toSummary);
         }
 
-        // Sort thường — giữ nguyên logic cũ
         Sort sort = buildSort(sortBy);
         Pageable pageable = PageRequest.of(request.getPage(), request.getSize(), sort);
         return productRepository.findAll(spec, pageable).map(this::toSummary);
     }
 
+    // ==================== GET PRODUCT DETAIL ====================
     @Override
     public ProductDetailResponse getProductBySlug(String slug) {
         Product product = productRepository.findBySlugAndIsActiveTrue(slug)
@@ -57,76 +59,69 @@ public class ProductServiceImpl implements IProductService {
         List<ProductVariant> variants = variantRepository
                 .findAllByProductIdAndIsActiveTrueOrderBySortOrderAsc(product.getId());
 
-        List<String> images = imageRepository
-                .findAllByProductIdOrderBySortOrderAsc(product.getId())
-                .stream().map(ProductImage::getImageUrl).toList();
+        List<ProductImage> images = imageRepository
+                .findAllByProductIdOrderBySortOrderAsc(product.getId());
 
+        List<String> imageUrls = images.stream().map(ProductImage::getImageUrl).toList();
         List<String> tags = product.getTags() != null
                 ? product.getTags().stream().map(ProductTag::getTag).toList()
                 : List.of();
 
-        // ── Related products: cùng category, bỏ sản phẩm hiện tại, lấy 4 cái ──
         List<ProductSummaryResponse> related = productRepository
                 .findByCategoryIdAndIsActiveTrueAndIdNot(
                         product.getCategory().getId(),
                         product.getId(),
-                        PageRequest.of(0, 16)
-                )
+                        PageRequest.of(0, 16))
                 .stream()
                 .map(this::toSummary)
                 .toList();
 
-        return ProductDetailResponse.builder()
-                .id(product.getId())
-                .name(product.getName())
-                .slug(product.getSlug())
-                .description(product.getDescription())
-                .avgRating(product.getAvgRating())
-                .reviewCount(product.getReviewCount())
-                .category(toCategory(product.getCategory()))
-                .images(images)
-                .tags(tags)
-                .variants(variants.stream().map(this::toVariant).toList())
-                .relatedProducts(related)
-                .build();
+        return productMapper.toDetail(product, variants, imageUrls, tags, related);
     }
 
+    // ==================== GET CATEGORIES / FLAVORS / SIZES ====================
     @Override
     public List<CategoryResponse> getAllCategories() {
         return categoryRepository.findAllByIsActiveTrueOrderBySortOrderAsc()
-                .stream().map(this::toCategory).toList();
+                .stream().map(productMapper::toCategory).toList();
     }
 
     @Override
     public List<FlavorResponse> getAllFlavors() {
         return flavorRepository.findAllByIsActiveTrueOrderByNameAsc()
-                .stream().map(f -> FlavorResponse.builder()
-                        .id(f.getId()).name(f.getName()).build())
-                .toList();
+                .stream().map(productMapper::toFlavor).toList();
     }
 
     @Override
     public List<SizeResponse> getAllSizes() {
         return sizeRepository.findAllByIsActiveTrueOrderByNameAsc()
-                .stream().map(s -> SizeResponse.builder()
-                        .id(s.getId()).name(s.getName()).build())
-                .toList();
+                .stream().map(productMapper::toSize).toList();
     }
+
+    // ==================== HELPER: toSummary ====================
+    // Service tự query variants + images, rồi tính toán
+    // Mapper sẽ KHÔNG gọi DB — chỉ nhận data đã sẵn
+    private ProductSummaryResponse toSummary(Product product) {
+        List<ProductVariant> variants = variantRepository
+                .findAllByProductIdAndIsActiveTrueOrderBySortOrderAsc(product.getId());
+        List<ProductImage> images = imageRepository
+                .findAllByProductIdOrderBySortOrderAsc(product.getId());
+
+        return productMapper.toSummary(product, variants, images);
+    }
+
 
     // ==================== SPEC ====================
     private Specification<Product> buildSpec(ProductFilterRequest req) {
         return (root, query, cb) -> {
             var predicates = new java.util.ArrayList<jakarta.persistence.criteria.Predicate>();
 
-            // Chỉ lấy sản phẩm active
             predicates.add(cb.isTrue(root.get("isActive")));
 
-            // Category
             if (req.getCategoryId() != null) {
                 predicates.add(cb.equal(root.get("category").get("id"), req.getCategoryId()));
             }
 
-            // Keyword — tìm theo tên hoặc tên category
             if (req.getKeyword() != null && !req.getKeyword().isBlank()) {
                 String kw = "%" + req.getKeyword().toLowerCase() + "%";
                 predicates.add(cb.or(
@@ -135,12 +130,10 @@ public class ProductServiceImpl implements IProductService {
                 ));
             }
 
-            // Rating
             if (req.getMinRating() != null) {
                 predicates.add(cb.greaterThanOrEqualTo(root.get("avgRating"), req.getMinRating()));
             }
 
-            // Tags — nhận chuỗi "bestseller,organic", join sang bảng product_tags
             if (req.getTags() != null && !req.getTags().isBlank()) {
                 List<String> tagList = Arrays.asList(req.getTags().split(","));
                 var tagJoin = root.join("tags", JoinType.INNER);
@@ -148,7 +141,6 @@ public class ProductServiceImpl implements IProductService {
                 query.distinct(true);
             }
 
-            // Flavor, Size, Price, inStock, onSale — dùng chung 1 join variants
             boolean needVariantJoin = req.getFlavorIds() != null && !req.getFlavorIds().isEmpty()
                     || req.getSizeIds()   != null && !req.getSizeIds().isEmpty()
                     || req.getMinPrice()  != null
@@ -161,32 +153,21 @@ public class ProductServiceImpl implements IProductService {
                 predicates.add(cb.isTrue(v.get("isActive")));
                 query.distinct(true);
 
-                // Flavor
                 if (req.getFlavorIds() != null && !req.getFlavorIds().isEmpty()) {
                     predicates.add(v.get("flavor").get("id").in(req.getFlavorIds()));
                 }
-
-                // Size
                 if (req.getSizeIds() != null && !req.getSizeIds().isEmpty()) {
                     predicates.add(v.get("size").get("id").in(req.getSizeIds()));
                 }
-
-                // Min price
                 if (req.getMinPrice() != null) {
                     predicates.add(cb.greaterThanOrEqualTo(v.get("salePrice"), req.getMinPrice()));
                 }
-
-                // Max price
                 if (req.getMaxPrice() != null) {
                     predicates.add(cb.lessThanOrEqualTo(v.get("salePrice"), req.getMaxPrice()));
                 }
-
-                // inStock — stockQty > 0
                 if (Boolean.TRUE.equals(req.getInStock())) {
                     predicates.add(cb.greaterThan(v.get("stockQty"), 0));
                 }
-
-                // onSale — discountPercent > 0
                 if (Boolean.TRUE.equals(req.getOnSale())) {
                     predicates.add(cb.greaterThan(v.get("discountPercent"), BigDecimal.ZERO));
                 }
@@ -205,83 +186,5 @@ public class ProductServiceImpl implements IProductService {
             case "bestseller" -> Sort.by(Sort.Direction.DESC, "reviewCount");
             default           -> Sort.by(Sort.Direction.DESC, "createdAt");
         };
-    }
-
-    // ==================== MAPPER ====================
-    private ProductSummaryResponse toSummary(Product product) {
-        List<ProductVariant> variants = variantRepository
-                .findAllByProductIdAndIsActiveTrueOrderBySortOrderAsc(product.getId());
-
-        String primaryImage = imageRepository
-                .findAllByProductIdOrderBySortOrderAsc(product.getId())
-                .stream().filter(ProductImage::getIsPrimary)
-                .map(ProductImage::getImageUrl)
-                .findFirst()
-                .orElse(null);
-
-        BigDecimal minSalePrice = variants.stream()
-                .map(ProductVariant::getSalePrice)
-                .min(Comparator.naturalOrder()).orElse(BigDecimal.ZERO);
-
-        BigDecimal maxDiscountPercent = variants.stream()
-                .map(ProductVariant::getDiscountPercent)
-                .max(Comparator.naturalOrder()).orElse(BigDecimal.ZERO);
-
-        boolean inStock = variants.stream().anyMatch(v -> v.getStockQty() > 0);
-
-        Long defaultVariantId = variants.stream()
-                .filter(v -> v.getStockQty() > 0)
-                .map(ProductVariant::getId)
-                .findFirst()
-                .orElse(variants.isEmpty() ? null : variants.get(0).getId());
-
-        List<String> tags = product.getTags() != null
-                ? product.getTags().stream().map(ProductTag::getTag).toList()
-                : List.of();
-
-        return ProductSummaryResponse.builder()
-                .id(product.getId())
-                .name(product.getName())
-                .slug(product.getSlug())
-                .primaryImage(primaryImage)
-                .avgRating(product.getAvgRating())
-                .reviewCount(product.getReviewCount())
-                .minSalePrice(minSalePrice)
-                .maxDiscountPercent(maxDiscountPercent)
-                .tags(tags)
-                .inStock(inStock)
-                .categoryName(product.getCategory().getName())
-                .defaultVariantId(defaultVariantId)
-                .build();
-    }
-
-    private CategoryResponse toCategory(Category c) {
-        return CategoryResponse.builder()
-                .id(c.getId())
-                .name(c.getName())
-                .slug(c.getSlug())
-                .description(c.getDescription())
-                .imageUrl(c.getImageUrl())
-                .sortOrder(c.getSortOrder())
-                .build();
-    }
-
-    private ProductVariantResponse toVariant(ProductVariant v) {
-        return ProductVariantResponse.builder()
-                .id(v.getId())
-                .flavor(v.getFlavor() != null ? FlavorResponse.builder()
-                        .id(v.getFlavor().getId())
-                        .name(v.getFlavor().getName())
-                        .build() : null)
-                .size(v.getSize() != null ? SizeResponse.builder()
-                        .id(v.getSize().getId())
-                        .name(v.getSize().getName())
-                        .build() : null)
-                .originalPrice(v.getOriginalPrice())
-                .salePrice(v.getSalePrice())
-                .discountPercent(v.getDiscountPercent())
-                .stockQty(v.getStockQty())
-                .sortOrder(v.getSortOrder())
-                .build();
     }
 }

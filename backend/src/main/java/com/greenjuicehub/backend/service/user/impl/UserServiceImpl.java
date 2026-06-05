@@ -5,6 +5,7 @@ import com.greenjuicehub.backend.dto.user.request.UpdateProfileRequest;
 import com.greenjuicehub.backend.dto.user.response.UserProfileResponse;
 import com.greenjuicehub.backend.entity.User;
 import com.greenjuicehub.backend.exception.AppException;
+import com.greenjuicehub.backend.mapper.UserMapper;
 import com.greenjuicehub.backend.repository.UserRepository;
 import com.greenjuicehub.backend.service.user.IUserService;
 import lombok.RequiredArgsConstructor;
@@ -19,12 +20,14 @@ public class UserServiceImpl implements IUserService {
 
     private final UserRepository userRepository;
     private final PasswordEncoder passwordEncoder;
+    private final UserMapper userMapper;
+
 
     @Override
     @Transactional(readOnly = true)
     public UserProfileResponse getProfile(Long userId) {
         User user = findUserOrThrow(userId);
-        return toProfileResponse(user);
+        return userMapper.toProfileResponse(user);
     }
 
     @Override
@@ -59,7 +62,7 @@ public class UserServiceImpl implements IUserService {
         }
 
         userRepository.save(user);
-        return toProfileResponse(user);
+        return userMapper.toProfileResponse(user);
     }
 
     @Override
@@ -92,18 +95,4 @@ public class UserServiceImpl implements IUserService {
                 .orElseThrow(() -> new AppException(HttpStatus.NOT_FOUND, "Người dùng không tồn tại"));
     }
 
-    private UserProfileResponse toProfileResponse(User user) {
-        return UserProfileResponse.builder()
-                .id(user.getId())
-                .name(user.getName())
-                .phone(user.getPhone())
-                .phoneVerified(user.getPhoneVerifiedAt() != null)
-                .email(user.getEmail())
-                .username(user.getUsername())
-                .avatarUrl(user.getAvatarUrl())
-                .role(user.getRole().name())
-                .hasPassword(user.getHasPassword())
-                .createdAt(user.getCreatedAt())
-                .build();
-    }
 }

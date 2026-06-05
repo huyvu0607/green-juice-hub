@@ -1,6 +1,8 @@
 import { create } from 'zustand'
 import authApi from '../api/authApi'
 import userApi from '../api/userApi'
+import useCartStore from './useCartStore' // ← thêm dòng này
+
 
 const useAuthStore = create((set) => ({
   user: localStorage.getItem('role') ? { role: localStorage.getItem('role') } : null,
@@ -48,6 +50,7 @@ const useAuthStore = create((set) => ({
       localStorage.removeItem('refreshToken')
       localStorage.removeItem('role')
       set({ accessToken: null, refreshToken: null, user: null, isLoggedIn: false })
+      useCartStore.getState().resetCart()
     }
   },
 }))

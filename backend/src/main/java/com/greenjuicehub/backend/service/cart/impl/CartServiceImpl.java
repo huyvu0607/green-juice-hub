@@ -6,6 +6,7 @@ import com.greenjuicehub.backend.dto.cart.response.CartItemResponse;
 import com.greenjuicehub.backend.dto.cart.response.CartResponse;
 import com.greenjuicehub.backend.entity.*;
 import com.greenjuicehub.backend.exception.AppException;
+import com.greenjuicehub.backend.mapper.CartMapper;
 import com.greenjuicehub.backend.repository.*;
 import com.greenjuicehub.backend.service.cart.ICartService;
 import lombok.RequiredArgsConstructor;
@@ -20,18 +21,21 @@ import java.util.List;
 @RequiredArgsConstructor
 public class CartServiceImpl implements ICartService {
 
+    //-- inject--
     private final CartRepository cartRepository;
     private final CartItemRepository cartItemRepository;
     private final UserRepository userRepository;
     private final ProductRepository productRepository;
     private final ProductVariantRepository variantRepository;
+    private final CartMapper cartMapper;
+
 
     @Override
     @Transactional(readOnly = true)
     public CartResponse getCart(Long userId) {
         Cart cart = getOrCreateCart(userId);
         List<CartItem> items = cartItemRepository.findAllByCartIdWithDetails(cart.getId());
-        return buildCartResponse(cart, items);
+        return cartMapper.toCartResponse(cart, items);
     }
 
     @Override
@@ -82,7 +86,7 @@ public class CartServiceImpl implements ICartService {
                 );
 
         List<CartItem> items = cartItemRepository.findAllByCartIdWithDetails(cart.getId());
-        return buildCartResponse(cart, items);
+        return cartMapper.toCartResponse(cart, items);
     }
 
     @Override
@@ -108,7 +112,7 @@ public class CartServiceImpl implements ICartService {
         cartItemRepository.save(item);
 
         List<CartItem> items = cartItemRepository.findAllByCartIdWithDetails(cart.getId());
-        return buildCartResponse(cart, items);
+        return cartMapper.toCartResponse(cart, items);
     }
 
     @Override
@@ -123,7 +127,7 @@ public class CartServiceImpl implements ICartService {
         cartItemRepository.deleteById(cartItemId);
 
         List<CartItem> items = cartItemRepository.findAllByCartIdWithDetails(cart.getId());
-        return buildCartResponse(cart, items);
+        return cartMapper.toCartResponse(cart, items);
     }
 
     @Override
@@ -144,75 +148,4 @@ public class CartServiceImpl implements ICartService {
         });
     }
 
-    private CartResponse buildCartResponse(Cart cart, List<CartItem> items) {
-        List<CartItemResponse> itemResponses = items.stream()
-                .map(this::toCartItemResponse)
-                .toList();
-
-        int totalQuantity = itemResponses.stream()
-                .mapToInt(CartItemResponse::getQuantity)
-                .sum();
-
-        BigDecimal totalAmount = itemResponses.stream()
-                .map(CartItemResponse::getSubtotal)
-                .reduce(BigDecimal.ZERO, BigDecimal::add);
-
-        return CartResponse.builder()
-                .cartId(cart.getId())
-                .items(itemResponses)
-                .totalItems(itemResponses.size())
-                .totalQuantity(totalQuantity)
-                .totalAmount(totalAmount)
-                .build();
-    }
-
-    private CartItemResponse toCartItemResponse(CartItem item) {
-        ProductVariant variant = item.getVariant();
-        Product product = item.getProduct();
-
-        String flavorName = variant.getFlavor() != null ? variant.getFlavor().getName() : null;
-        String sizeName = variant.getSize() != null ? variant.getSize().getName() : null;
-
-        String variantLabel = buildVariantLabel(flavorName, sizeName);
-
-        String imageUrl = product.getImages().stream()
-                .filter(ProductImage::getIsPrimary)
-                .map(ProductImage::getImageUrl)
-                .findFirst()
-                .orElse(null);
-
-        BigDecimal price = variant.getSalePrice() != null
-                ? variant.getSalePrice()
-                : variant.getOriginalPrice();
-
-        BigDecimal subtotal = price.multiply(BigDecimal.valueOf(item.getQuantity()));
-
-        return CartItemResponse.builder()
-                .cartItemId(item.getId())
-                .productId(product.getId())
-                .productName(product.getName())
-                .productSlug(product.getSlug())
-                .imageUrl(imageUrl)
-                .variantId(variant.getId())
-                .flavorName(flavorName)
-                .sizeName(sizeName)
-                .variantLabel(variantLabel)
-                .originalPrice(variant.getOriginalPrice())
-                .salePrice(variant.getSalePrice())
-                .discountPercent(variant.getDiscountPercent() != null
-                        ? variant.getDiscountPercent().intValue()
-                        : null)
-                .quantity(item.getQuantity())
-                .subtotal(subtotal)
-                .stockQty(variant.getStockQty())
-                .inStock(variant.getStockQty() > 0)
-                .build();
-    }
-
-    private String buildVariantLabel(String flavor, String size) {
-        if (flavor != null && size != null) return flavor + " · " + size;
-        if (flavor != null) return flavor;
-        if (size != null) return size;
-        return null;
-    }
 }

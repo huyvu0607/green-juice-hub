@@ -6,6 +6,7 @@ import com.greenjuicehub.backend.dto.address.response.AddressResponse;
 import com.greenjuicehub.backend.entity.Address;
 import com.greenjuicehub.backend.entity.User;
 import com.greenjuicehub.backend.exception.AppException;
+import com.greenjuicehub.backend.mapper.AddressMapper;
 import com.greenjuicehub.backend.repository.AddressRepository;
 import com.greenjuicehub.backend.repository.UserRepository;
 import com.greenjuicehub.backend.service.user.IAddressService;
@@ -24,13 +25,15 @@ public class AddressServiceImpl implements IAddressService {
 
     private final AddressRepository addressRepository;
     private final UserRepository userRepository;
+    private final AddressMapper addressMapper;
+
 
     @Override
     @Transactional(readOnly = true)
     public List<AddressResponse> getAddresses(Long userId) {
         return addressRepository.findAllByUserIdOrdered(userId)
                 .stream()
-                .map(this::toResponse)
+                .map(addressMapper::toResponse)
                 .toList();
     }
 
@@ -38,7 +41,7 @@ public class AddressServiceImpl implements IAddressService {
     @Transactional(readOnly = true)
     public AddressResponse getAddress(Long userId, Long addressId) {
         Address address = findAddressOrThrow(userId, addressId);
-        return toResponse(address);
+        return addressMapper.toResponse(address);
     }
 
     @Override
@@ -62,18 +65,9 @@ public class AddressServiceImpl implements IAddressService {
             addressRepository.clearDefaultByUserId(userId);
         }
 
-        Address address = Address.builder()
-                .user(user)
-                .fullName(request.getFullName())
-                .phone(request.getPhone())
-                .province(request.getProvince())
-                .district(request.getDistrict())
-                .ward(request.getWard())
-                .detail(request.getDetail())
-                .isDefault(shouldBeDefault)
-                .build();
+        Address address = addressMapper.toAddress(request, user, shouldBeDefault);
 
-        return toResponse(addressRepository.save(address));
+        return addressMapper.toResponse(addressRepository.save(address));
     }
 
     @Override
@@ -94,7 +88,7 @@ public class AddressServiceImpl implements IAddressService {
         address.setWard(request.getWard());
         address.setDetail(request.getDetail());
 
-        return toResponse(addressRepository.save(address));
+        return addressMapper.toResponse(addressRepository.save(address));
     }
 
     @Override
@@ -122,12 +116,12 @@ public class AddressServiceImpl implements IAddressService {
         Address address = findAddressOrThrow(userId, addressId);
 
         if (Boolean.TRUE.equals(address.getIsDefault())) {
-            return toResponse(address); // Đã là default rồi, không làm gì thêm
+            return addressMapper.toResponse(address); // Đã là default rồi, không làm gì thêm
         }
 
         addressRepository.clearDefaultByUserId(userId);
         address.setIsDefault(true);
-        return toResponse(addressRepository.save(address));
+        return addressMapper.toResponse(addressRepository.save(address));
     }
 
     // ── Helpers ──────────────────────────────────────────────────────────────
@@ -138,16 +132,4 @@ public class AddressServiceImpl implements IAddressService {
                         "Không tìm thấy địa chỉ hoặc bạn không có quyền truy cập"));
     }
 
-    private AddressResponse toResponse(Address address) {
-        return AddressResponse.builder()
-                .id(address.getId())
-                .fullName(address.getFullName())
-                .phone(address.getPhone())
-                .province(address.getProvince())
-                .district(address.getDistrict())
-                .ward(address.getWard())
-                .detail(address.getDetail())
-                .isDefault(address.getIsDefault())
-                .build();
-    }
 }

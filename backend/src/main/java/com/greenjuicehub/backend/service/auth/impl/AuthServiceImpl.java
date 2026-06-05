@@ -7,6 +7,7 @@ import com.greenjuicehub.backend.dto.auth.request.*;
 import com.greenjuicehub.backend.dto.auth.response.*;
 import com.greenjuicehub.backend.entity.*;
 import com.greenjuicehub.backend.exception.AppException;
+import com.greenjuicehub.backend.mapper.AuthMapper;
 import com.greenjuicehub.backend.repository.*;
 import com.greenjuicehub.backend.service.auth.*;
 import lombok.RequiredArgsConstructor;
@@ -34,6 +35,7 @@ public class AuthServiceImpl implements IAuthService {
     private final PasswordAttemptService passwordAttemptService;
     private final CaptchaVerifier captchaVerifier;
     private final TokenBlacklistService tokenBlacklistService;
+    private final AuthMapper authMapper;
 
 
 
@@ -42,16 +44,9 @@ public class AuthServiceImpl implements IAuthService {
     public AccountCheckResponse checkAccount(CheckAccountRequest request) {
         String phone = request.getPhone();
         return userRepository.findByPhone(phone)
-                .map(user -> AccountCheckResponse.builder()
-                        .exists(true)
-                        .isNewUser(false)
-                        .hasPassword(Boolean.TRUE.equals(user.getHasPassword()))
-                        .build())
-                .orElseGet(() -> AccountCheckResponse.builder()
-                        .exists(false)
-                        .isNewUser(true)
-                        .hasPassword(false)
-                        .build());
+                .map(authMapper::toAccountCheckResponse)
+                .orElseGet(authMapper::toNewAccountCheckResponse);
+
     }
 
     // ==================== GỬI OTP ====================
@@ -101,12 +96,7 @@ public class AuthServiceImpl implements IAuthService {
                     .map(User::getHasPassword).orElse(false);
         }
 
-        return OtpResponse.builder()
-                .success(true)
-                .message("Đã gửi OTP đến " + phone)
-                .isNewUser(isNewUser)
-                .hasPassword(hasPassword)
-                .build();
+        return authMapper.toSendOtpResponse(phone, isNewUser, hasPassword);
     }
 
     // ==================== XÁC NHẬN OTP ====================
@@ -146,13 +136,7 @@ public class AuthServiceImpl implements IAuthService {
 
         boolean isNewUser = !userRepository.existsByPhone(phone);
         if (isNewUser) {
-            User newUser = User.builder()
-                    .phone(phone)
-                    .phoneVerifiedAt(LocalDateTime.now())
-                    .hasPassword(false)
-                    .role(User.Role.CUSTOMER)
-                    .isActive(true)
-                    .build();
+            User newUser = authMapper.toNewUserFromPhone(phone);
             userRepository.save(newUser);
         } else {
             userRepository.findByPhone(phone).ifPresent(u -> {
@@ -164,13 +148,7 @@ public class AuthServiceImpl implements IAuthService {
         User user = userRepository.findByPhone(phone).orElseThrow();
         String tempToken = tempTokenService.generate(user.getId());
 
-        return OtpResponse.builder()
-                .success(true)
-                .message("Xác nhận OTP thành công")
-                .isNewUser(isNewUser)
-                .hasPassword(user.getHasPassword())
-                .tempToken(tempToken)
-                .build();
+        return authMapper.toVerifyOtpResponse(isNewUser, user.getHasPassword(), tempToken);
     }
 
     // ==================== ĐĂNG NHẬP BẰNG MẬT KHẨU ====================
@@ -267,24 +245,12 @@ public class AuthServiceImpl implements IAuthService {
 
                     if (existing == null) {
                         // 3. Tạo user mới
-                        existing = User.builder()
-                                .email(email)
-                                .name(name)
-                                .phone(null)
-                                .hasPassword(false)
-                                .role(User.Role.CUSTOMER)
-                                .isActive(true)
-                                .build();
+                        existing = authMapper.toNewUserFromGoogle(email, name);
                         userRepository.save(existing);
                     }
 
                     // Tạo social_account liên kết
-                    SocialAccount social = SocialAccount.builder()
-                            .user(existing)
-                            .provider(SocialAccount.Provider.GOOGLE)
-                            .providerId(googleId)
-                            .email(email)
-                            .build();
+                    SocialAccount social = authMapper.toSocialAccount(existing,googleId,email);
                     socialAccountRepository.save(social);
 
                     return existing;
@@ -319,13 +285,7 @@ public class AuthServiceImpl implements IAuthService {
         String accessToken = jwtUtil.generateAccessToken(user.getId(), user.getRole().name());
         String refreshToken = jwtUtil.generateRefreshToken(user.getId());
 
-        return AuthResponse.builder()
-                .accessToken(accessToken)
-                .refreshToken(refreshToken)
-                .role(user.getRole().name())
-                .isNewUser(false)
-                .hasPassword(user.getHasPassword())
-                .build();
+        return authMapper.toAuthResponse(user, accessToken, refreshToken);
     }
 
     @Override

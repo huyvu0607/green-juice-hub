@@ -39,6 +39,12 @@ function App() {
       fetchMe()
       fetchCart()
     }
+  }, [isLoggedIn])
+  useEffect(() => {
+    if (isLoggedIn) {
+      fetchMe()
+      fetchCart()
+    }
   }, [])
   return (
 

@@ -62,6 +62,20 @@ public class JwtUtil {
         try {
             getClaims(token);
             return true;
+        } catch (ExpiredJwtException e) {
+            return false; // hết hạn → false, filter sẽ trả 401
+        } catch (JwtException | IllegalArgumentException e) {
+            return false; // token giả/lỗi → false
+        }
+    }
+
+    // Thêm method mới để check riêng expired
+    public boolean isTokenExpired(String token) {
+        try {
+            getClaims(token);
+            return false;
+        } catch (ExpiredJwtException e) {
+            return true;
         } catch (JwtException | IllegalArgumentException e) {
             return false;
         }
