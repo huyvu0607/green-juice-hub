@@ -68,8 +68,11 @@ api.interceptors.response.use(
 
         // Cập nhật Zustand store
         const { default: useAuthStore } = await import('../store/authStore')
-        useAuthStore.setState({ accessToken: newAccess, isLoggedIn: true })
-
+        useAuthStore.setState({
+          accessToken: newAccess,
+          refreshToken: newRefresh, // ← thêm dòng này
+          isLoggedIn: true
+        })
         queue.forEach((p) => p.resolve(newAccess))
         queue = []
 
@@ -82,6 +85,11 @@ api.interceptors.response.use(
         localStorage.removeItem('accessToken')
         localStorage.removeItem('refreshToken')
         localStorage.removeItem('role')
+
+        // Reset cart trước khi redirect
+        const { default: useCartStore } = await import('../store/useCartStore')
+        useCartStore.getState().resetCart()
+
         window.location.href = '/login'
         return Promise.reject(error)
       } finally {

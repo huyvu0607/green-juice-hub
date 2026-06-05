@@ -38,8 +38,15 @@ public class JwtAuthFilter extends OncePerRequestFilter {
 
         String token = header.substring(7);
 
+// Token hết hạn → trả 401 để FE refresh
+        if (jwtUtil.isTokenExpired(token)) {
+            response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
+            return;
+        }
+
+// Token không hợp lệ (giả mạo, sai chữ ký) → trả 401
         if (!jwtUtil.isTokenValid(token)) {
-            filterChain.doFilter(request, response);
+            response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
             return;
         }
         if (tokenBlacklistService.isBlacklisted(token)) {
