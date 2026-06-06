@@ -1,0 +1,405 @@
+@import url('https://fonts.googleapis.com/css2?family=DM+Sans:ital,wght@0,300;0,400;0,500;1,300&family=Playfair+Display:ital@1&display=swap');
+
+/* ─────────────────────────────────────────
+   ROOT SCREEN
+───────────────────────────────────────── */
+.preloader-screen {
+  position: fixed;
+  inset: 0;
+  z-index: 9999;
+  background: #0d2818;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+  opacity: 1;
+  transition: opacity 0.7s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.preloader-screen.preloader-exit {
+  opacity: 0;
+  pointer-events: none;
+}
+
+/* ─────────────────────────────────────────
+   DOT TEXTURE
+───────────────────────────────────────── */
+.preloader-dots {
+  position: absolute;
+  inset: 0;
+  background-image: radial-gradient(
+    circle,
+    rgba(255, 255, 255, 0.045) 1px,
+    transparent 1px
+  );
+  background-size: 26px 26px;
+  pointer-events: none;
+}
+
+/* ─────────────────────────────────────────
+   AMBIENT BLOBS
+───────────────────────────────────────── */
+.preloader-blob {
+  position: absolute;
+  border-radius: 50%;
+  pointer-events: none;
+  filter: blur(70px);
+}
+
+.preloader-blob--1 {
+  width: 480px;
+  height: 480px;
+  background: rgba(45, 122, 79, 0.14);
+  top: -140px;
+  left: -140px;
+  animation: blobDrift 9s ease-in-out infinite alternate;
+}
+
+.preloader-blob--2 {
+  width: 360px;
+  height: 360px;
+  background: rgba(74, 185, 115, 0.09);
+  bottom: -100px;
+  right: -80px;
+  animation: blobDrift 12s ease-in-out infinite alternate-reverse;
+}
+
+.preloader-blob--3 {
+  width: 200px;
+  height: 200px;
+  background: rgba(45, 122, 79, 0.07);
+  bottom: 20%;
+  left: 10%;
+  animation: blobDrift 7s ease-in-out infinite alternate;
+}
+
+@keyframes blobDrift {
+  from { transform: translate(0, 0) scale(1); }
+  to   { transform: translate(50px, 40px) scale(1.18); }
+}
+
+/* ─────────────────────────────────────────
+   CENTER WRAPPER
+───────────────────────────────────────── */
+.preloader-center {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0;
+  z-index: 2;
+  animation: fadeUp 0.7s cubic-bezier(0.4, 0, 0.2, 1) forwards;
+}
+
+@keyframes fadeUp {
+  from { opacity: 0; transform: translateY(16px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+/* ─────────────────────────────────────────
+   CUP SCENE
+───────────────────────────────────────── */
+.cup-scene {
+  position: relative;
+  width: 120px;
+  height: 164px;
+  margin-bottom: 40px;
+}
+
+/* ── Ống hút ── */
+.cup-straw {
+  position: absolute;
+  top: -30px;
+  right: 20px;
+  width: 7px;
+  height: 58px;
+  background: #3d9e60;
+  border-radius: 3.5px;
+  transform: rotate(4deg);
+  z-index: 3;
+}
+
+.cup-straw__shine {
+  position: absolute;
+  top: 0;
+  left: 1.5px;
+  width: 2px;
+  height: 100%;
+  background: rgba(255, 255, 255, 0.22);
+  border-radius: 1px;
+}
+
+/* ── Drip ── */
+.cup-drip {
+  position: absolute;
+  top: 26px;
+  right: 21px;
+  width: 8px;
+  height: 10px;
+  background: #4ab973;
+  border-radius: 50% 50% 55% 55% / 40% 40% 60% 60%;
+  z-index: 4;
+  animation: dripFall 2.6s ease-in infinite 0.4s;
+  opacity: 0;
+}
+
+@keyframes dripFall {
+  0%   { transform: translateY(0) scaleY(0.6); opacity: 0; }
+  10%  { opacity: 1; transform: translateY(0) scaleY(1); }
+  85%  { opacity: 0.7; }
+  100% { transform: translateY(72px) scaleY(1.4); opacity: 0; }
+}
+
+/* ── Lá garnish ── */
+.cup-garnish {
+  position: absolute;
+  top: -18px;
+  left: 6px;
+  z-index: 3;
+  transform-origin: bottom center;
+  animation: garnishSway 2.4s ease-in-out infinite;
+}
+
+@keyframes garnishSway {
+  0%, 100% { transform: rotate(-7deg); }
+  50%       { transform: rotate(6deg); }
+}
+
+/* ── Thân ly ── */
+.cup-body {
+  position: absolute;
+  bottom: 10px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 92px;
+  height: 126px;
+}
+
+.cup-glass {
+  position: absolute;
+  inset: 0;
+  background: rgba(255, 255, 255, 0.03);
+  border: 1.5px solid rgba(255, 255, 255, 0.16);
+  border-radius: 3px 3px 16px 16px;
+  /* hình thang nhẹ */
+  clip-path: polygon(7% 0%, 93% 0%, 100% 100%, 0% 100%);
+  overflow: hidden;
+}
+
+/* ── Nước ── */
+.cup-liquid {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  background: #237a49;
+  border-radius: 0 0 14px 14px;
+  animation: liquidRise 3.2s cubic-bezier(0.4, 0, 0.2, 1) infinite;
+  overflow: hidden;
+}
+
+@keyframes liquidRise {
+  0%   { height: 0%; }
+  68%  { height: 90%; }
+  82%  { height: 94%; }
+  91%  { height: 91%; }
+  100% { height: 93%; }
+}
+
+/* ── Sóng ── */
+.cup-wave {
+  position: absolute;
+  top: -8px;
+  left: -30px;
+  width: 170%;
+  height: 18px;
+  background: #2d7a4f;
+  border-radius: 50%;
+  animation: waveDrift 2s ease-in-out infinite;
+}
+
+.cup-wave--2 {
+  top: -5px;
+  left: -10px;
+  background: #33956e;
+  opacity: 0.5;
+  animation: waveDrift 2.8s ease-in-out infinite reverse;
+}
+
+@keyframes waveDrift {
+  0%, 100% { transform: scaleY(1) translateX(0); }
+  50%       { transform: scaleY(1.5) translateX(-12px); }
+}
+
+/* ── Bọt khí ── */
+.bubble {
+  position: absolute;
+  background: rgba(255, 255, 255, 0.22);
+  border-radius: 50%;
+  bottom: 4px;
+  animation: bubbleFloat linear infinite;
+}
+
+.bubble--1 { width: 5px; height: 5px; left: 14px; animation-duration: 2.3s; animation-delay: 0s; }
+.bubble--2 { width: 4px; height: 4px; left: 30px; animation-duration: 2.9s; animation-delay: 0.7s; }
+.bubble--3 { width: 6px; height: 6px; left: 50px; animation-duration: 2.1s; animation-delay: 1.2s; }
+.bubble--4 { width: 3px; height: 3px; left: 66px; animation-duration: 2.6s; animation-delay: 0.3s; }
+.bubble--5 { width: 5px; height: 5px; left: 40px; animation-duration: 3.1s; animation-delay: 1.8s; }
+
+@keyframes bubbleFloat {
+  0%   { transform: translateY(0) translateX(0);  opacity: 0.8; }
+  50%  { transform: translateY(-44px) translateX(4px); opacity: 0.5; }
+  100% { transform: translateY(-100px) translateX(-2px); opacity: 0; }
+}
+
+/* ── Bóng phản chiếu ── */
+.cup-shine--1 {
+  position: absolute;
+  top: 10px;
+  left: 9px;
+  width: 11px;
+  height: 68px;
+  background: rgba(255, 255, 255, 0.06);
+  border-radius: 6px;
+  transform: skewX(-4deg);
+}
+
+.cup-shine--2 {
+  position: absolute;
+  top: 14px;
+  left: 24px;
+  width: 5px;
+  height: 36px;
+  background: rgba(255, 255, 255, 0.03);
+  border-radius: 3px;
+}
+
+/* ── Đế ly ── */
+.cup-base {
+  position: absolute;
+  bottom: -10px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 100px;
+  height: 10px;
+  background: rgba(255, 255, 255, 0.07);
+  border-radius: 0 0 8px 8px;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+/* ─────────────────────────────────────────
+   BRAND TYPOGRAPHY
+───────────────────────────────────────── */
+.preloader-eyebrow {
+  font-family: 'Playfair Display', serif;
+  font-style: italic;
+  font-size: 12px;
+  color: rgba(255, 255, 255, 0.32);
+  letter-spacing: 3.5px;
+  text-transform: uppercase;
+  margin-bottom: 8px;
+}
+
+.preloader-brand {
+  font-family: 'DM Sans', sans-serif;
+  font-size: 30px;
+  font-weight: 300;
+  color: #ffffff;
+  letter-spacing: 0.5px;
+  margin-bottom: 6px;
+  line-height: 1;
+}
+
+.preloader-brand span {
+  font-weight: 500;
+  color: #4ab973;
+}
+
+.preloader-tagline {
+  font-family: 'DM Sans', sans-serif;
+  font-size: 10px;
+  color: rgba(255, 255, 255, 0.25);
+  letter-spacing: 4px;
+  text-transform: uppercase;
+  margin-bottom: 44px;
+}
+
+/* ─────────────────────────────────────────
+   PROGRESS BAR
+───────────────────────────────────────── */
+.preloader-progress {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12px;
+  width: 210px;
+}
+
+.preloader-track {
+  width: 100%;
+  height: 2px;
+  background: rgba(255, 255, 255, 0.07);
+  border-radius: 1px;
+  overflow: hidden;
+}
+
+.preloader-fill {
+  height: 100%;
+  background: #4ab973;
+  border-radius: 1px;
+  width: 0%;
+  animation: progressRun 3.2s cubic-bezier(0.4, 0, 0.2, 1) infinite;
+}
+
+.preloader-fill--done {
+  animation: none;
+  width: 100%;
+  transition: width 0.3s ease;
+}
+
+@keyframes progressRun {
+  0%   { width: 0%; }
+  65%  { width: 82%; }
+  85%  { width: 94%; }
+  100% { width: 100%; }
+}
+
+/* ── Message xoay vòng ── */
+.preloader-msg {
+  font-family: 'DM Sans', sans-serif;
+  font-size: 11px;
+  color: rgba(255, 255, 255, 0.28);
+  letter-spacing: 1.8px;
+  text-transform: uppercase;
+  opacity: 0;
+  transform: translateY(4px);
+  transition: opacity 0.3s ease, transform 0.3s ease;
+  height: 16px;
+}
+
+.preloader-msg--visible {
+  opacity: 1;
+  transform: translateY(0);
+}
+
+/* ─────────────────────────────────────────
+   FOOTER
+───────────────────────────────────────── */
+.preloader-footer {
+  position: absolute;
+  bottom: 28px;
+  font-family: 'DM Sans', sans-serif;
+  font-size: 11px;
+  color: rgba(255, 255, 255, 0.14);
+  letter-spacing: 1.2px;
+  z-index: 2;
+}
+
+/* ─────────────────────────────────────────
+   RESPONSIVE
+───────────────────────────────────────── */
+@media (max-width: 480px) {
+  .preloader-brand  { font-size: 24px; }
+  .cup-scene        { transform: scale(0.88); margin-bottom: 32px; }
+  .preloader-progress { width: 180px; }
+}

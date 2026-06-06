@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef } from 'react'
 import userApi from '@/api/userApi'
 import useAuthStore from '@/store/authStore'
+import { useDrawerTransition } from '@/hooks/useDrawerTransition'
 
 // ── Icons (inline SVG để không cần thêm thư viện) ──────────────────────────
 const Icon = {
@@ -209,6 +210,7 @@ function ProfileTab({ user, onUserUpdate }) {
     const [pwLoading, setPwLoading] = useState(false)
     const [pwMsg, setPwMsg] = useState(null)
     const [pwErrors, setPwErrors] = useState({})
+
 
     const hasPassword = user?.hasPassword
 
@@ -740,6 +742,8 @@ export default function ProfileModal({ isOpen, onClose }) {
     const { setUser } = useAuthStore()
     const [tab, setTab] = useState('profile')
     const overlayRef = useRef(null)
+    const { overlayStyle, drawerStyle } = useDrawerTransition(isOpen)
+
 
     // Đóng khi click overlay
     const handleOverlayClick = (e) => {
@@ -770,9 +774,10 @@ export default function ProfileModal({ isOpen, onClose }) {
                     background: 'rgba(0,0,0,0.35)',
                     backdropFilter: 'blur(4px)',
                     zIndex: 'var(--z-modal)',
-                    opacity: isOpen ? 1 : 0,
-                    pointerEvents: isOpen ? 'auto' : 'none',
-                    transition: 'opacity 0.3s var(--ease-smooth)',
+                    // opacity: isOpen ? 1 : 0,
+                    // pointerEvents: isOpen ? 'auto' : 'none',
+                    // transition: 'opacity 0.3s var(--ease-smooth)',
+                    ...overlayStyle,
                 }}
             />
 
@@ -784,8 +789,9 @@ export default function ProfileModal({ isOpen, onClose }) {
                     background: 'var(--color-bg-elevated)',
                     zIndex: 'calc(var(--z-modal) + 1)',
                     boxShadow: 'var(--shadow-lg)',
-                    transform: isOpen ? 'translateX(0)' : 'translateX(100%)',
-                    transition: 'transform 0.35s var(--ease-spring)',
+                    // transform: isOpen ? 'translateX(0)' : 'translateX(100%)',
+                    // transition: 'transform 0.35s var(--ease-spring)',
+                    ...drawerStyle,
                 }}
             >
                 {/* Header cố định */}

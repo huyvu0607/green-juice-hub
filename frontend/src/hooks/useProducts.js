@@ -80,8 +80,6 @@ export function useProducts() {
   const [loading, setLoading]         = useState(false);
   const [loadingMore, setLoadingMore] = useState(false);
 
-  const pendingScrollRef = useRef(readSession()?.scroll ?? null);
-
   const [categories, setCategories] = useState([]);
   const [flavors, setFlavors]       = useState([]);
   const [sizes, setSizes]           = useState([]);
@@ -161,17 +159,6 @@ export function useProducts() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
     filter.sizeIds?.join(","),
   ]);
-
-  // ── Restore scroll ───────────────────────────────────────
-  useEffect(() => {
-    if (!loading && products.length > 0 && pendingScrollRef.current !== null) {
-      const scrollY = pendingScrollRef.current;
-      pendingScrollRef.current = null;
-      requestAnimationFrame(() => {
-        window.scrollTo({ top: scrollY, behavior: "instant" });
-      });
-    }
-  }, [loading, products.length]);
 
   // ── Lưu scroll ───────────────────────────────────────────
   useEffect(() => {

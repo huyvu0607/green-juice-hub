@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom'
 import useCartStore from '../../store/useCartStore'
 import useAuthStore from '../../store/authStore'
 import CartItemCard from './CartItemCard'
+import { useDrawerTransition } from '@/hooks/useDrawerTransition'
 
 const CartSidebar = () => {
   const navigate = useNavigate()
@@ -11,6 +12,8 @@ const CartSidebar = () => {
   const { isOpen, closeCart, items, totalItems, totalAmount, loading, error, fetchCart, clearCart } =
     useCartStore()
   const { isLoggedIn } = useAuthStore()
+  const { overlayStyle, drawerStyle } = useDrawerTransition(isOpen)
+
 
   // ── Selection state ──────────────────────────────────
   const [selectedIds, setSelectedIds] = useState(new Set())
@@ -91,7 +94,9 @@ const CartSidebar = () => {
           transition-opacity duration-[var(--duration-base)]
           ${isOpen ? 'opacity-100 pointer-events-auto' : 'opacity-0 pointer-events-none'}
         `}
-        style={{ zIndex: 'var(--z-overlay)' }}
+        style={{ zIndex: 'var(--z-overlay)' ,
+          ...overlayStyle,
+        }}
       />
 
       {/* Sidebar panel */}
@@ -104,7 +109,9 @@ const CartSidebar = () => {
           transition-transform duration-[var(--duration-slow)] ease-[var(--ease-smooth)]
           ${isOpen ? 'translate-x-0' : 'translate-x-full'}
         `}
-        style={{ zIndex: 'var(--z-modal)' }}
+        style={{ zIndex: 'var(--z-modal)',
+          ...drawerStyle, 
+         }}
       >
         {/* ── Header ────────────────────────────────────── */}
         <div className="flex items-center justify-between px-5 py-4 border-b border-[var(--color-border-subtle)]">

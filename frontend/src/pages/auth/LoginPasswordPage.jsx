@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react'
-import { useNavigate, useLocation } from 'react-router-dom'
+import { Link, useNavigate, useLocation } from 'react-router-dom'
 import { GoogleLogin } from '@react-oauth/google'
 import authApi from '../../api/authApi'
 import useAuthStore from '../../store/authStore'
@@ -209,6 +209,25 @@ const handleGoogleLogin = async (credentialResponse) => {
 
         <section className="flex items-center justify-center px-6 py-10 sm:px-8 lg:px-10">
           <div className="auth-fade-up w-full max-w-[560px] [animation-delay:120ms]">
+            <div className="mb-6">
+              <Link
+                to="/"
+                className="inline-flex h-11 items-center gap-2 rounded-[14px] border border-emerald-100 bg-white px-4 text-sm font-bold text-emerald-700 shadow-[0_14px_32px_rgba(15,23,42,.05)] transition duration-300 hover:-translate-y-0.5 hover:border-emerald-200 hover:bg-emerald-50 focus:outline-none focus:ring-4 focus:ring-emerald-100"
+              >
+                <svg
+                  aria-hidden="true"
+                  className="h-4 w-4"
+                  fill="none"
+                  viewBox="0 0 24 24"
+                  stroke="currentColor"
+                  strokeWidth="2"
+                >
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M10.5 19.5 3 12m0 0 7.5-7.5M3 12h18" />
+                </svg>
+                Trang chủ
+              </Link>
+            </div>
+
             <div className="mb-7 lg:hidden">
               <p className="text-sm font-semibold uppercase tracking-[.2em] text-emerald-600">
                 Green Juice Hub
