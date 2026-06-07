@@ -1,6 +1,7 @@
 package com.greenjuicehub.backend.controller;
 
 import com.greenjuicehub.backend.dto.order.request.ApplyPromoRequest;
+import com.greenjuicehub.backend.dto.order.request.BuyNowRequest;
 import com.greenjuicehub.backend.dto.order.request.PlaceOrderRequest;
 import com.greenjuicehub.backend.dto.order.response.ApplyPromoResponse;
 import com.greenjuicehub.backend.dto.order.response.OrderResponse;
@@ -60,7 +61,17 @@ public class OrderController {
     ) {
         return ResponseEntity.ok(orderService.getOrderDetail(userId, orderId));
     }
-
+    /**
+     * POST /api/orders/buy-now
+     * Mua ngay — không qua giỏ hàng
+     */
+    @PostMapping("/buy-now")
+    public ResponseEntity<OrderResponse> buyNow(
+            @AuthenticationPrincipal Long userId,
+            @Valid @RequestBody BuyNowRequest request
+    ) {
+        return ResponseEntity.ok(orderService.buyNow(userId, request));
+    }
     /**
      * PATCH /api/orders/{orderId}/cancel
      * Huỷ đơn hàng (chỉ khi status = PENDING)

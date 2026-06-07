@@ -89,29 +89,14 @@ const CartSidebar = () => {
       <div
         ref={overlayRef}
         onClick={handleOverlayClick}
-        className={`
-          fixed inset-0 bg-black/40 backdrop-blur-[2px]
-          transition-opacity duration-[var(--duration-base)]
-          ${isOpen ? 'opacity-100 pointer-events-auto' : 'opacity-0 pointer-events-none'}
-        `}
-        style={{ zIndex: 'var(--z-overlay)' ,
-          ...overlayStyle,
-        }}
+        className="fixed inset-0 bg-black/40 backdrop-blur-[2px]"
+        style={{ zIndex: 'var(--z-overlay)', ...overlayStyle }}
       />
 
       {/* Sidebar panel */}
       <div
-        className={`
-          fixed top-0 right-0 h-full w-full max-w-[420px]
-          flex flex-col
-          bg-[var(--color-bg-base)]
-          shadow-[var(--shadow-lg)]
-          transition-transform duration-[var(--duration-slow)] ease-[var(--ease-smooth)]
-          ${isOpen ? 'translate-x-0' : 'translate-x-full'}
-        `}
-        style={{ zIndex: 'var(--z-modal)',
-          ...drawerStyle, 
-         }}
+        className="fixed top-0 right-0 h-full w-full max-w-[420px] flex flex-col bg-[var(--color-bg-base)] shadow-[var(--shadow-lg)]"
+        style={{ zIndex: 'var(--z-modal)', ...drawerStyle }}
       >
         {/* ── Header ────────────────────────────────────── */}
         <div className="flex items-center justify-between px-5 py-4 border-b border-[var(--color-border-subtle)]">

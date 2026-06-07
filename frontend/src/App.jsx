@@ -6,9 +6,9 @@ import CartSidebar from '@/components/cart/CartSidebar'
 import { useEffect, useState, useRef } from 'react'
 import useAuthStore from '@/store/authStore'
 import useCartStore from '@/store/useCartStore'
+import useAppStore from '@/store/useAppStore'
 import Preloader from '@/components/common/Preloader'
 
-// Auth pages
 import LoginPage from './pages/auth/LoginPage'
 import LoginPasswordPage from './pages/auth/LoginPasswordPage'
 import VerifyOtpPage from './pages/auth/VerifyOtpPage'
@@ -19,6 +19,9 @@ import LoginOptionPage from './pages/auth/LoginOptionPage'
 import HomePage from '@/pages/home/HomePage'
 import ProductsPage from '@/pages/products/ProductsPage'
 import ProductDetailPage from '@/pages/products/ProductDetailPage'
+import CheckoutPage from '@/pages/checkout/CheckoutPage'                      // ← thêm
+import OrderDetailPage from '@/pages/orders/OrderDetailPage'
+import OrdersListPage from '@/pages/orders/OrdersListPage'
 
 function ScrollToTop() {
   const { pathname, search } = useLocation()
@@ -39,37 +42,53 @@ function MainLayout({ children }) {
   )
 }
 
-// ─── Tách ra để dùng useLocation bên trong Router ───
+const AUTH_PATHS = ['/login', '/login-password', '/verify-otp', '/set-password', '/forgot-password', '/reset-password', '/login-option']
+
 function AppRoutes() {
   const location = useLocation()
   const isFirstRender = useRef(true)
+  const minDisplayRef = useRef(2000)
 
-  // key để force re-mount Preloader mỗi lần đổi route
   const [preloaderKey, setPreloaderKey] = useState(0)
-  // true = đang "loading", false = xong → Preloader bắt đầu đếm minDisplay
   const [isLoading, setIsLoading] = useState(true)
-  // false = ẩn hẳn Preloader khỏi DOM
   const [showPreloader, setShowPreloader] = useState(true)
 
-  // Lần đầu: giả lập init xong sau 200ms
-  useEffect(() => {
-    const t = setTimeout(() => setIsLoading(false), 100)
-    return () => clearTimeout(t)
-  }, [])
+  const { pageReady, setPageReady } = useAppStore()
 
-  // Mỗi lần đổi route (bỏ qua render đầu tiên)
+  const isAuthPage = AUTH_PATHS.includes(location.pathname)
+
+  useEffect(() => {
+    if (pageReady) setIsLoading(false)
+  }, [pageReady])
+
   useEffect(() => {
     if (isFirstRender.current) {
       isFirstRender.current = false
       return
     }
-    // Reset & hiện lại preloader
-    setShowPreloader(true)
-    setIsLoading(true)
-    setPreloaderKey(k => k + 1)
 
-    const t = setTimeout(() => setIsLoading(false), 100)
-    return () => clearTimeout(t)
+    if (AUTH_PATHS.includes(location.pathname)) {
+      setShowPreloader(false)
+      return
+    }
+
+    setPageReady(false)
+    setIsLoading(true)
+
+    const showTimer = setTimeout(() => {
+      if (!useAppStore.getState().pageReady) {
+        minDisplayRef.current = 400
+        setShowPreloader(true)
+        setPreloaderKey(k => k + 1)
+      }
+    }, 500)
+
+    const fallback = setTimeout(() => setIsLoading(false), 5000)
+
+    return () => {
+      clearTimeout(showTimer)
+      clearTimeout(fallback)
+    }
   }, [location.pathname])
 
   return (
@@ -78,7 +97,7 @@ function AppRoutes() {
         <Preloader
           key={preloaderKey}
           isLoading={isLoading}
-          minDisplay={500}
+          minDisplay={minDisplayRef.current}
           onDone={() => setShowPreloader(false)}
         />
       )}
@@ -108,12 +127,18 @@ function AppRoutes() {
         } />
         <Route path="/checkout" element={
           <ProtectedRoute allowedRoles={['CUSTOMER']}>
-            <MainLayout><div>Thanh toán</div></MainLayout>
+            <MainLayout><CheckoutPage /></MainLayout>   {/* ← sửa */}
           </ProtectedRoute>
         } />
         <Route path="/orders" element={
           <ProtectedRoute allowedRoles={['CUSTOMER']}>
-            <MainLayout><div>Đơn hàng</div></MainLayout>
+            <MainLayout><OrdersListPage /></MainLayout>  {/* ← sửa */}
+          </ProtectedRoute>
+        } />
+        {/* ← thêm route mới */}
+        <Route path="/orders/:orderId" element={
+          <ProtectedRoute allowedRoles={['CUSTOMER']}>
+            <MainLayout><OrderDetailPage /></MainLayout>
           </ProtectedRoute>
         } />
         <Route path="/profile" element={

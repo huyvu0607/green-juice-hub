@@ -37,7 +37,7 @@ const useCartStore = create((set, get) => ({
     try {
       const res = await cartApi.addItem(productId, variantId, quantity)
       const { cartId, items, totalItems, totalQuantity, totalAmount } = res.data
-      set({ cartId, items, totalItems, totalQuantity, totalAmount, isOpen: true })
+      set({ cartId, items, totalItems, totalQuantity, totalAmount })
     } catch (err) {
       const msg = err.response?.data?.message || 'Không thể thêm vào giỏ'
       set({ error: msg })

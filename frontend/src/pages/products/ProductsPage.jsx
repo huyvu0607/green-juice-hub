@@ -4,6 +4,7 @@ import { useProducts } from "@/hooks/useProducts";
 import FilterSidebar from "@/components/product/FilterSidebar";
 import ProductCard, { ProductCardSkeleton } from "@/components/product/ProductCard";
 import { sharedObserver } from "@/utils/sharedObserver";
+import { usePageReady } from "@/hooks/usePageReady";
 
 
 const TAG_CHIPS = [
@@ -90,6 +91,8 @@ export default function ProductsPage() {
 
   const [sortOpen, setSortOpen] = useState(false);
   const sortRef = useRef(null);
+
+  usePageReady(loading)
 
   // useEffect đóng dropdown khi click ra ngoài:
   useEffect(() => {

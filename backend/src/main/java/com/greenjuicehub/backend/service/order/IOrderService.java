@@ -1,5 +1,6 @@
 package com.greenjuicehub.backend.service.order;
 
+import com.greenjuicehub.backend.dto.order.request.*;
 import com.greenjuicehub.backend.dto.order.request.ApplyPromoRequest;
 import com.greenjuicehub.backend.dto.order.request.PlaceOrderRequest;
 import com.greenjuicehub.backend.dto.order.response.ApplyPromoResponse;
@@ -14,6 +15,9 @@ public interface IOrderService {
 
     /** Xem danh sách đơn hàng của user (có phân trang) */
     Page<OrderResponse> getMyOrders(Long userId, Pageable pageable);
+
+    /** Mua ngay — không qua giỏ hàng */
+    OrderResponse buyNow(Long userId, BuyNowRequest request);
 
     /** Xem chi tiết 1 đơn hàng */
     OrderResponse getOrderDetail(Long userId, Long orderId);

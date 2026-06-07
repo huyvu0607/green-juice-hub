@@ -1,5 +1,6 @@
 package com.greenjuicehub.backend.service.order.impl;
 
+import com.greenjuicehub.backend.dto.order.request.BuyNowRequest;
 import com.greenjuicehub.backend.dto.order.request.ApplyPromoRequest;
 import com.greenjuicehub.backend.dto.order.request.PlaceOrderRequest;
 import com.greenjuicehub.backend.dto.order.response.ApplyPromoResponse;
@@ -36,6 +37,8 @@ public class OrderServiceImpl implements IOrderService {
     private final AddressRepository addressRepository;
     private final UserRepository userRepository;
     private final OrderMapper orderMapper;
+    private final ProductVariantRepository productVariantRepository;
+
 
     // ─────────────────────────────────────────────────────────────────────────
     // ĐẶT HÀNG
@@ -182,6 +185,120 @@ public class OrderServiceImpl implements IOrderService {
         return orderMapper.toOrderResponse(savedOrder, orderItems, payment);
     }
 
+    // ─────────────────────────────────────────────────────────────────────────
+// MUA NGAY (không qua giỏ hàng)
+// ─────────────────────────────────────────────────────────────────────────
+    @Override
+    @Transactional
+    public OrderResponse buyNow(Long userId, BuyNowRequest request) {
+        User user = userRepository.findById(userId)
+                .orElseThrow(() -> new AppException(HttpStatus.NOT_FOUND, "Người dùng không tồn tại"));
+
+        // 1. Địa chỉ giao hàng
+        Address address = addressRepository.findById(request.getAddressId())
+                .orElseThrow(() -> new AppException(HttpStatus.NOT_FOUND, "Địa chỉ giao hàng không tồn tại"));
+
+        if (!address.getUser().getId().equals(userId)) {
+            throw new AppException(HttpStatus.FORBIDDEN, "Địa chỉ không thuộc về bạn");
+        }
+
+        // 2. Lấy variant
+        ProductVariant variant = productVariantRepository.findById(request.getVariantId())
+                .orElseThrow(() -> new AppException(HttpStatus.NOT_FOUND, "Sản phẩm không tồn tại"));
+
+        // 3. Kiểm tra tồn kho
+        if (!variant.getIsActive()) {
+            throw new AppException(HttpStatus.BAD_REQUEST,
+                    "Sản phẩm \"" + variant.getProduct().getName() + "\" hiện không còn bán");
+        }
+        if (variant.getStockQty() < request.getQuantity()) {
+            throw new AppException(HttpStatus.BAD_REQUEST,
+                    "Sản phẩm \"" + variant.getProduct().getName() + "\" chỉ còn " + variant.getStockQty() + " trong kho");
+        }
+
+        // 4. Tính subtotal
+        BigDecimal price = variant.getSalePrice() != null
+                ? variant.getSalePrice()
+                : variant.getOriginalPrice();
+        BigDecimal subtotal = price.multiply(BigDecimal.valueOf(request.getQuantity()));
+
+        // 5. Áp mã khuyến mãi (nếu có)
+        Promotion promotion = null;
+        BigDecimal discountAmount = BigDecimal.ZERO;
+
+        if (request.getPromoCode() != null && !request.getPromoCode().isBlank()) {
+            promotion = validatePromo(request.getPromoCode(), userId, subtotal);
+            discountAmount = calculateDiscount(promotion, subtotal);
+        }
+
+        // 6. Phí ship
+        BigDecimal shippingFee = calculateShippingFee(subtotal, discountAmount);
+        BigDecimal totalAmount = subtotal.subtract(discountAmount).add(shippingFee);
+
+        // 7. Tạo Order
+        Payment.PaymentMethod paymentMethod = parsePaymentMethod(request.getPaymentMethod());
+
+        Order order = Order.builder()
+                .user(user)
+                .promotion(promotion)
+                .orderCode(generateOrderCode())
+                .subtotal(subtotal)
+                .discountAmount(discountAmount)
+                .shippingFee(shippingFee)
+                .totalAmount(totalAmount)
+                .status(Order.OrderStatus.PENDING)
+                .paymentStatus(Order.PaymentStatus.PENDING)
+                .shippingAddress(orderMapper.toShippingAddressJson(address))
+                .note(request.getNote())
+                .build();
+
+        order = orderRepository.save(order);
+
+        // 8. Tạo OrderItem + trừ tồn kho
+        String variantLabel = buildVariantLabel(
+                variant.getFlavor() != null ? variant.getFlavor().getName() : null,
+                variant.getSize() != null ? variant.getSize().getName() : null
+        );
+
+        OrderItem orderItem = OrderItem.builder()
+                .order(order)
+                .product(variant.getProduct())
+                .variant(variant)
+                .productName(variant.getProduct().getName())
+                .variantName(variantLabel != null ? variantLabel : "")
+                .unitPrice(price)
+                .quantity(request.getQuantity())
+                .subtotal(subtotal)
+                .build();
+
+        orderItemRepository.save(orderItem);
+        variant.setStockQty(variant.getStockQty() - request.getQuantity());
+
+        // 9. Tạo Payment record
+        Payment payment = Payment.builder()
+                .order(order)
+                .method(paymentMethod)
+                .status(Payment.PaymentStatus.PENDING)
+                .amount(totalAmount)
+                .build();
+
+        paymentRepository.save(payment);
+
+        // 10. Ghi nhận lượt dùng mã
+        if (promotion != null) {
+            promotion.setUsedCount(promotion.getUsedCount() + 1);
+            promotionRepository.save(promotion);
+
+            PromotionUsage usage = PromotionUsage.builder()
+                    .promotion(promotion)
+                    .user(user)
+                    .order(order)
+                    .build();
+            promotionUsageRepository.save(usage);
+        }
+
+        return orderMapper.toOrderResponse(order, List.of(orderItem), payment);
+    }
     // ─────────────────────────────────────────────────────────────────────────
     // DANH SÁCH ĐƠN HÀNG
     // ─────────────────────────────────────────────────────────────────────────
