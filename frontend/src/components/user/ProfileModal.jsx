@@ -2,6 +2,7 @@ import { useState, useEffect, useRef } from 'react'
 import userApi from '@/api/userApi'
 import useAuthStore from '@/store/authStore'
 import { useDrawerTransition } from '@/hooks/useDrawerTransition'
+import LocationSelect from './LocationSelect'
 
 // ── Icons (inline SVG để không cần thêm thư viện) ──────────────────────────
 const Icon = {
@@ -557,18 +558,13 @@ function AddressTab() {
                     <Input value={d.phone} onChange={(e) => updateField('phone', e.target.value)} placeholder="0901234567" />
                 </Field>
 
-                <div className="grid grid-cols-2 gap-3">
-                    <Field label="Tỉnh / Thành phố" error={errors.province}>
-                        <Input value={d.province} onChange={(e) => updateField('province', e.target.value)} placeholder="TP. Hồ Chí Minh" />
-                    </Field>
-                    <Field label="Quận / Huyện" error={errors.district}>
-                        <Input value={d.district} onChange={(e) => updateField('district', e.target.value)} placeholder="Quận 1" />
-                    </Field>
-                </div>
-
-                <Field label="Phường / Xã" error={errors.ward}>
-                    <Input value={d.ward} onChange={(e) => updateField('ward', e.target.value)} placeholder="Phường Bến Nghé" />
-                </Field>
+                <LocationSelect
+                    value={{ province: d.province, district: d.district, ward: d.ward }}
+                    onChange={({ province, district, ward }) => {
+                        setForm((f) => ({ ...f, data: { ...f.data, province, district, ward } }))
+                    }}
+                    errors={{ province: errors.province, district: errors.district, ward: errors.ward }}
+                />
 
                 <Field label="Địa chỉ chi tiết" error={errors.detail}>
                     <Input value={d.detail} onChange={(e) => updateField('detail', e.target.value)} placeholder="Số nhà, tên đường..." />
@@ -769,14 +765,11 @@ export default function ProfileModal({ isOpen, onClose }) {
             <div
                 ref={overlayRef}
                 onClick={handleOverlayClick}
-                className="fixed inset-0 transition-all"
+                className="fixed inset-0"
                 style={{
                     background: 'rgba(0,0,0,0.35)',
                     backdropFilter: 'blur(4px)',
                     zIndex: 'var(--z-modal)',
-                    // opacity: isOpen ? 1 : 0,
-                    // pointerEvents: isOpen ? 'auto' : 'none',
-                    // transition: 'opacity 0.3s var(--ease-smooth)',
                     ...overlayStyle,
                 }}
             />
@@ -789,8 +782,6 @@ export default function ProfileModal({ isOpen, onClose }) {
                     background: 'var(--color-bg-elevated)',
                     zIndex: 'calc(var(--z-modal) + 1)',
                     boxShadow: 'var(--shadow-lg)',
-                    // transform: isOpen ? 'translateX(0)' : 'translateX(100%)',
-                    // transition: 'transform 0.35s var(--ease-spring)',
                     ...drawerStyle,
                 }}
             >

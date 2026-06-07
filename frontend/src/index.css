@@ -224,3 +224,97 @@
 .animate-scale-in {
   animation: scale-in 0.35s ease-out both;
 }
+
+/* ============================================================
+   SCROLL REVEAL ANIMATIONS
+   ============================================================ */
+
+/* Base state — ẩn trước khi reveal */
+.sr {
+  opacity: 0;
+  will-change: opacity, transform;
+}
+
+/* Các kiểu reveal */
+.sr-up        { transform: translateY(40px); }
+.sr-up-sm     { transform: translateY(20px); }
+.sr-left      { transform: translateX(-36px); }
+.sr-right     { transform: translateX(36px); }
+.sr-scale     { transform: scale(0.92); }
+.sr-scale-sm  { transform: scale(0.96); }
+
+/* Trạng thái "đã reveal" */
+.sr.is-visible {
+  opacity: 1;
+  transform: none;
+  transition:
+    opacity 0.6s var(--ease-out),
+    transform 0.6s var(--ease-out);
+}
+
+/* Stagger delay helpers */
+.sr-delay-1 { transition-delay: 80ms !important; }
+.sr-delay-2 { transition-delay: 160ms !important; }
+.sr-delay-3 { transition-delay: 240ms !important; }
+.sr-delay-4 { transition-delay: 320ms !important; }
+
+/* Spring easing cho cards */
+.sr.sr-spring.is-visible {
+  transition:
+    opacity 0.55s var(--ease-out),
+    transform 0.55s var(--ease-spring);
+}
+
+/* Shimmer accent line trên section headings */
+@keyframes shimmer-slide {
+  from { background-position: -200% center; }
+  to   { background-position: 200% center; }
+}
+
+.shimmer-text {
+  background: linear-gradient(
+    90deg,
+    var(--color-primary) 0%,
+    var(--color-brand-300) 40%,
+    var(--color-primary) 80%
+  );
+  background-size: 200% auto;
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+  animation: shimmer-slide 3s linear infinite;
+}
+
+/* Floating badge animation trong hero */
+@keyframes float-badge {
+  0%, 100% { transform: translateY(0px); }
+  50%       { transform: translateY(-4px); }
+}
+.animate-float {
+  animation: float-badge 3s var(--ease-smooth) infinite;
+}
+
+/* Pulse ring cho stats */
+@keyframes pulse-ring {
+  0%   { box-shadow: 0 0 0 0 color-mix(in srgb, var(--color-primary) 40%, transparent); }
+  70%  { box-shadow: 0 0 0 8px transparent; }
+  100% { box-shadow: 0 0 0 0 transparent; }
+}
+.animate-pulse-ring {
+  animation: pulse-ring 2.5s var(--ease-smooth) infinite;
+}
+
+/* Gradient line dưới section title */
+.section-title-line::after {
+  content: '';
+  display: block;
+  width: 40px;
+  height: 3px;
+  margin-top: 10px;
+  background: linear-gradient(90deg, var(--color-primary), var(--color-brand-300));
+  border-radius: var(--radius-pill);
+  transition: width 0.4s var(--ease-spring);
+}
+.section-title-line:hover::after {
+  width: 80px;
+}

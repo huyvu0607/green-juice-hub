@@ -6,6 +6,8 @@ import useCartStore from '@/store/useCartStore'
 import RichText from '@/components/common/RichText';
 import { useParams, Link, useNavigate } from "react-router-dom";  // thêm useNavigate
 import useAuthStore from "@/store/authStore";
+import { usePageReady } from '@/hooks/usePageReady'
+
 
 
 
@@ -76,6 +78,10 @@ function mapToProductCardShape(p) {
     inStock: p.inStock ?? false,
     tags: p.tags ?? [],        // backend đã trả lowercase rồi
     categoryName: p.categoryName ?? "",
+     id: p.id,
+    defaultVariantId: p.defaultVariantId
+      ?? variants.find(v => v.isActive && v.stockQty > 0)?.id
+      ?? variants[0]?.id,
   };
 }
 
@@ -442,6 +448,7 @@ export default function ProductDetailPage() {
   const { addItem, loading: cartLoading } = useCartStore()
   const { isLoggedIn } = useAuthStore();
   const navigate = useNavigate();
+  usePageReady(loading)
 
 
   // Chọn variant mặc định khi data load xong
@@ -466,11 +473,36 @@ export default function ProductDetailPage() {
       await addItem(product.id, selectedVariant.id, qty);
       setAddedToCart(true);
       setTimeout(() => setAddedToCart(false), 2000);
+      window.dispatchEvent(new CustomEvent('cart:item-added', {
+      detail: { imageUrl: product.images?.[0]?.url ?? product.primaryImage ?? null }
+    }))
     } catch {
       // error đã được set trong store
     }
   };
+  const handleBuyNow = () => {
+    if (!isLoggedIn) {
+      navigate("/login");
+      return;
+    }
+    if (!selectedVariant || !product?.id) return;
 
+    navigate("/checkout", {
+      state: {
+        buyNowItem: {
+          cartItemId: `buynow-${selectedVariant.id}`,
+          productName: product.name,
+          imageUrl: product.images?.[0]?.url ?? null,
+          variantId: selectedVariant.id,
+          variantLabel: [selectedVariant.flavor?.name, selectedVariant.size?.name]
+            .filter(Boolean).join(" / "),
+          originalPrice: selectedVariant.originalPrice,
+          salePrice: selectedVariant.salePrice,
+          quantity: qty,
+        },
+      },
+    });
+  };
   /* ── Loading ── */
   if (loading) return <DetailSkeleton />;
 
@@ -623,10 +655,11 @@ export default function ProductDetailPage() {
               </button>
 
               <button
+                onClick={handleBuyNow}   // ← thêm dòng này
                 className="flex-1 flex items-center justify-center gap-2 px-5 py-3 rounded-[var(--radius-pill)]
-                  text-sm font-semibold bg-orange-500 text-white border border-orange-500
-                  hover:bg-orange-600 active:scale-[0.98] transition-all duration-200 disabled:opacity-40"
-                disabled={!inStock}
+    text-sm font-semibold bg-orange-500 text-white border border-orange-500
+    hover:bg-orange-600 active:scale-[0.98] transition-all duration-200 disabled:opacity-40"
+                disabled={!inStock || cartLoading}  // ← thêm cartLoading vào disabled
               >
                 <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                   <path strokeLinecap="round" strokeLinejoin="round"

@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef, useCallback } from "react";
 import { Link } from "react-router-dom";
 import {
   ArrowRight,
@@ -13,6 +13,8 @@ import {
   Star,
 } from "lucide-react";
 import { getProducts } from "@/api/productApi";
+import useAppStore from '@/store/useAppStore'
+
 
 const HERO_IMAGE =
   "https://images.unsplash.com/photo-1622597467836-f3285f2131b8?auto=format&fit=crop&w=1800&q=85";
@@ -82,8 +84,43 @@ function formatPrice(price) {
   return `${Number(price).toLocaleString("vi-VN")}đ`;
 }
 
+/* ─── Custom hook: scroll reveal ─── */
+function useScrollReveal() {
+  const revealRef = useRef(null);
+
+  const registerRef = useCallback((el) => {
+    revealRef.current = el;
+  }, []);
+
+  useEffect(() => {
+    const observer = new IntersectionObserver(
+      (entries) => {
+        entries.forEach((entry) => {
+          if (entry.isIntersecting) {
+            entry.target.classList.add("is-visible");
+            // Unobserve sau khi đã reveal để tiết kiệm tài nguyên
+            observer.unobserve(entry.target);
+          }
+        });
+      },
+      { threshold: 0.12, rootMargin: "0px 0px -48px 0px" }
+    );
+
+    // Observe tất cả elements có class "sr" trong document
+    const elements = document.querySelectorAll(".sr");
+    elements.forEach((el) => observer.observe(el));
+
+    return () => observer.disconnect();
+  }, []);
+
+  return registerRef;
+}
+
 export default function HomePage() {
   const [featuredProducts, setFeaturedProducts] = useState(FEATURED_PRODUCTS);
+  const { setPageReady } = useAppStore()
+
+  useScrollReveal(); // Khởi động IntersectionObserver
 
   useEffect(() => {
     let ignore = false;
@@ -95,15 +132,18 @@ export default function HomePage() {
           setFeaturedProducts(products);
         }
       })
-      .catch(() => {});
+      .catch(() => { })
+      .finally(() => {
+      if (!ignore) setPageReady(true)  // ← báo xong dù thành công hay lỗi
+    })
 
-    return () => {
-      ignore = true;
-    };
+    return () => { ignore = true; };
   }, []);
 
   return (
     <div className="bg-[var(--color-bg-surface)] text-[var(--color-text-primary)] transition-theme">
+
+      {/* ── HERO ── */}
       <section
         className="relative isolate flex min-h-[calc(100svh-10rem)] overflow-hidden bg-[var(--color-bg-base)] px-4 pt-32 pb-14 sm:px-6 lg:px-8"
         style={{
@@ -112,10 +152,21 @@ export default function HomePage() {
           backgroundPosition: "center",
         }}
       >
+        {/* Decorative blurred orb */}
+        <div
+          className="pointer-events-none absolute inset-0 z-0"
+          aria-hidden
+          style={{
+            background:
+              "radial-gradient(ellipse 60% 60% at 15% 80%, rgba(26,155,94,0.18) 0%, transparent 70%)",
+          }}
+        />
+
         <div className="relative z-10 mx-auto flex w-full max-w-7xl items-center">
           <div className="max-w-2xl text-white">
+            {/* Badge — giữ animation cũ + thêm float */}
             <div
-              className="mb-5 inline-flex animate-fade-slide-up items-center gap-2 rounded-[var(--radius-pill)] border border-white/20 bg-white/10 px-4 py-2 text-[var(--text-sm)] font-medium backdrop-blur-md"
+              className="mb-5 inline-flex animate-fade-slide-up animate-float items-center gap-2 rounded-[var(--radius-pill)] border border-white/20 bg-white/10 px-4 py-2 text-[var(--text-sm)] font-medium backdrop-blur-md"
               style={{ animationDelay: "60ms" }}
             >
               <BadgeCheck size={16} />
@@ -142,19 +193,20 @@ export default function HomePage() {
             >
               <Link
                 to="/products"
-                className="inline-flex h-12 items-center justify-center gap-2 rounded-[var(--radius-pill)] bg-[var(--color-primary)] px-6 text-[var(--text-sm)] font-semibold text-white shadow-[var(--shadow-md)] transition-colors hover:bg-[var(--color-primary-hover)]"
+                className="inline-flex h-12 items-center justify-center gap-2 rounded-[var(--radius-pill)] bg-[var(--color-primary)] px-6 text-[var(--text-sm)] font-semibold text-white shadow-[var(--shadow-md)] transition-all hover:bg-[var(--color-primary-hover)] hover:scale-[1.03] hover:shadow-[var(--shadow-lg)] active:scale-100"
               >
                 Mua ngay
                 <ArrowRight size={17} />
               </Link>
               <Link
                 to="/products?keyword=detox"
-                className="inline-flex h-12 items-center justify-center rounded-[var(--radius-pill)] border border-white/25 bg-white/10 px-6 text-[var(--text-sm)] font-semibold text-white backdrop-blur-md transition-colors hover:bg-white/18"
+                className="inline-flex h-12 items-center justify-center rounded-[var(--radius-pill)] border border-white/25 bg-white/10 px-6 text-[var(--text-sm)] font-semibold text-white backdrop-blur-md transition-all hover:bg-white/18 hover:scale-[1.03] active:scale-100"
               >
                 Xem combo detox
               </Link>
             </div>
 
+            {/* Stats — thêm hover pulse */}
             <div
               className="mt-10 grid max-w-xl animate-fade-slide-up grid-cols-3 gap-3"
               style={{ animationDelay: "380ms" }}
@@ -164,55 +216,80 @@ export default function HomePage() {
                 ["2h", "giao nội thành"],
                 ["4.8", "đánh giá"],
               ].map(([value, label]) => (
-                <div key={label} className="border-l border-white/25 pl-4">
-                  <p className="text-2xl font-semibold">{value}</p>
+                <div
+                  key={label}
+                  className="group border-l border-white/25 pl-4 cursor-default"
+                >
+                  <p className="text-2xl font-semibold transition-transform duration-200 group-hover:translate-x-1">
+                    {value}
+                  </p>
                   <p className="mt-1 text-[var(--text-xs)] uppercase text-white/60">{label}</p>
                 </div>
               ))}
             </div>
           </div>
         </div>
+
+        {/* Scroll indicator */}
+        <div
+          className="absolute bottom-6 left-1/2 -translate-x-1/2 animate-fade-slide-up flex flex-col items-center gap-1.5 opacity-60"
+          style={{ animationDelay: "600ms" }}
+          aria-hidden
+        >
+          <span className="text-[10px] uppercase tracking-widest text-white/70">Cuộn xuống</span>
+          <div className="h-8 w-px bg-gradient-to-b from-white/60 to-transparent" />
+        </div>
       </section>
 
+      {/* ── STEPS BAR ── */}
       <section className="border-b border-[var(--color-border-subtle)] bg-[var(--color-bg-base)] px-4 py-5 sm:px-6">
         <div className="mx-auto grid max-w-7xl gap-3 md:grid-cols-3">
-          {STEPS.map(({ icon: Icon, label }) => (
-            <div key={label} className="flex items-center gap-3 rounded-[var(--radius-sm)] bg-[var(--color-bg-muted)] px-4 py-3">
+          {STEPS.map(({ icon: Icon, label }, i) => (
+            <div
+              key={label}
+              className={`sr sr-up sr-spring sr-delay-${i + 1} flex items-center gap-3 rounded-[var(--radius-sm)] bg-[var(--color-bg-muted)] px-4 py-3 transition-shadow hover:shadow-[var(--shadow-sm)]`}
+            >
               <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-[var(--radius-sm)] bg-[var(--color-primary-subtle)] text-[var(--color-primary)]">
                 <Icon size={18} />
               </span>
-              <span className="text-[var(--text-sm)] font-medium text-[var(--color-text-primary)]">{label}</span>
+              <span className="text-[var(--text-sm)] font-medium text-[var(--color-text-primary)]">
+                {label}
+              </span>
             </div>
           ))}
         </div>
       </section>
 
+      {/* ── CATEGORIES ── */}
       <section className="px-4 py-14 sm:px-6 lg:px-8">
         <div className="mx-auto max-w-7xl">
-          <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
+
+          {/* Section header — slide từ trái */}
+          <div className="sr sr-left flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
             <div>
               <p className="text-[var(--text-xs)] font-semibold uppercase text-[var(--color-primary)]">
                 Danh mục
               </p>
-              <h2 className="mt-2 font-display text-3xl font-semibold text-[var(--color-text-primary)]">
+              <h2 className="mt-2 font-display text-3xl font-semibold text-[var(--color-text-primary)] section-title-line">
                 Hôm nay uống gì?
               </h2>
             </div>
             <Link
               to="/products"
-              className="inline-flex items-center gap-2 text-[var(--text-sm)] font-semibold text-[var(--color-primary)] hover:text-[var(--color-primary-hover)]"
+              className="inline-flex items-center gap-2 text-[var(--text-sm)] font-semibold text-[var(--color-primary)] hover:text-[var(--color-primary-hover)] transition-colors group"
             >
               Xem tất cả sản phẩm
-              <ArrowRight size={16} />
+              <ArrowRight size={16} className="transition-transform group-hover:translate-x-1" />
             </Link>
           </div>
 
+          {/* Cards — stagger fade + scale */}
           <div className="mt-8 grid gap-5 md:grid-cols-3">
-            {CATEGORY_ITEMS.map((item) => (
+            {CATEGORY_ITEMS.map((item, i) => (
               <Link
                 key={item.title}
                 to={`/products?keyword=${encodeURIComponent(item.query)}`}
-                className="group overflow-hidden rounded-[var(--radius-sm)] border border-[var(--color-border-subtle)] bg-[var(--color-bg-elevated)] shadow-[var(--shadow-sm)] transition-all hover:-translate-y-1 hover:shadow-[var(--shadow-md)]"
+                className={`sr sr-up sr-spring sr-delay-${i + 1} group overflow-hidden rounded-[var(--radius-sm)] border border-[var(--color-border-subtle)] bg-[var(--color-bg-elevated)] shadow-[var(--shadow-sm)] transition-all duration-300 ease-out hover:-translate-y-1.5 hover:shadow-[var(--shadow-md)] hover:border-[var(--color-primary-muted)]`}
               >
                 <div className="aspect-[4/3] overflow-hidden bg-[var(--color-bg-muted)]">
                   <img
@@ -229,6 +306,9 @@ export default function HomePage() {
                   <p className="mt-2 text-[var(--text-sm)] leading-6 text-[var(--color-text-secondary)]">
                     {item.text}
                   </p>
+                  <span className="mt-4 inline-flex items-center gap-1.5 text-[var(--text-xs)] font-semibold text-[var(--color-primary)] opacity-0 -translate-x-2 transition-all duration-300 group-hover:opacity-100 group-hover:translate-x-0">
+                    Xem thêm <ArrowRight size={13} />
+                  </span>
                 </div>
               </Link>
             ))}
@@ -236,13 +316,16 @@ export default function HomePage() {
         </div>
       </section>
 
+      {/* ── FEATURED PRODUCTS ── */}
       <section className="bg-[var(--color-bg-base)] px-4 py-14 sm:px-6 lg:px-8">
         <div className="mx-auto grid max-w-7xl gap-10 lg:grid-cols-[0.88fr_1.12fr] lg:items-start">
-          <div>
+
+          {/* Left copy — slide từ trái */}
+          <div className="sr sr-left">
             <p className="text-[var(--text-xs)] font-semibold uppercase text-[var(--color-primary)]">
               Gợi ý nổi bật
             </p>
-            <h2 className="mt-2 font-display text-3xl font-semibold text-[var(--color-text-primary)]">
+            <h2 className="mt-2 font-display text-3xl font-semibold text-[var(--color-text-primary)] section-title-line">
               Những vị dễ bắt đầu
             </h2>
             <p className="mt-4 max-w-md text-[var(--text-base)] leading-7 text-[var(--color-text-secondary)]">
@@ -252,8 +335,16 @@ export default function HomePage() {
               <Star size={17} className="fill-yellow-400 text-yellow-400" />
               Được khách hàng chọn nhiều trong tuần
             </div>
+            <Link
+              to="/products"
+              className="mt-8 inline-flex h-11 items-center gap-2 rounded-[var(--radius-pill)] bg-[var(--color-primary)] px-5 text-[var(--text-sm)] font-semibold text-white shadow-[var(--shadow-sm)] transition-all hover:bg-[var(--color-primary-hover)] hover:scale-[1.03] hover:shadow-[var(--shadow-md)] active:scale-100"
+            >
+              Xem tất cả
+              <ArrowRight size={15} />
+            </Link>
           </div>
 
+          {/* Product cards — stagger từ phải */}
           <div className="grid gap-4 sm:grid-cols-3">
             {featuredProducts.map((product, index) => {
               const accent = product.accent ?? ["bg-emerald-500", "bg-amber-400", "bg-rose-400"][index % 3];
@@ -268,8 +359,7 @@ export default function HomePage() {
                 <Link
                   key={product.slug ?? product.name}
                   to={href}
-                  className="group overflow-hidden rounded-[var(--radius-sm)] border border-[var(--color-border-subtle)] bg-[var(--color-bg-elevated)] shadow-[var(--shadow-sm)] transition-all hover:-translate-y-1 hover:shadow-[var(--shadow-md)]"
-                  style={{ animationDelay: `${index * 90}ms` }}
+                  className={`sr sr-up sr-spring sr-delay-${index + 1} group overflow-hidden rounded-[var(--radius-sm)] border border-[var(--color-border-subtle)] bg-[var(--color-bg-elevated)] shadow-[var(--shadow-sm)] transition-all duration-300 ease-out hover:-translate-y-1.5 hover:shadow-[var(--shadow-md)] hover:border-[var(--color-primary-muted)]`}
                 >
                   {product.primaryImage && (
                     <div className="aspect-[4/3] overflow-hidden bg-[var(--color-bg-muted)]">
@@ -282,7 +372,7 @@ export default function HomePage() {
                     </div>
                   )}
                   <div className="p-4">
-                    <div className={`mb-5 h-2 w-14 rounded-[var(--radius-pill)] ${accent}`} />
+                    <div className={`mb-5 h-2 w-14 rounded-[var(--radius-pill)] ${accent} transition-all duration-300 group-hover:w-20`} />
                     <div className="mb-4 inline-flex items-center gap-1.5 rounded-[var(--radius-pill)] bg-[var(--color-primary-subtle)] px-3 py-1 text-[var(--text-xs)] font-semibold text-[var(--color-primary)]">
                       <Flame size={13} />
                       {badge}
@@ -302,14 +392,25 @@ export default function HomePage() {
         </div>
       </section>
 
+      {/* ── PROMISES ── */}
       <section className="px-4 py-14 sm:px-6 lg:px-8">
+        {/* Section label — fade in */}
+        <div className="sr sr-up mx-auto mb-10 max-w-7xl text-center">
+          <p className="text-[var(--text-xs)] font-semibold uppercase text-[var(--color-primary)]">
+            Cam kết của chúng mình
+          </p>
+          <h2 className="mt-2 font-display text-3xl font-semibold text-[var(--color-text-primary)]">
+            Tươi — Sạch — Nhanh
+          </h2>
+        </div>
+
         <div className="mx-auto grid max-w-7xl gap-5 md:grid-cols-3">
-          {PROMISES.map(({ icon: Icon, title, text }) => (
+          {PROMISES.map(({ icon: Icon, title, text }, i) => (
             <div
               key={title}
-              className="rounded-[var(--radius-sm)] border border-[var(--color-border-subtle)] bg-[var(--color-bg-elevated)] p-6 shadow-[var(--shadow-sm)]"
+              className={`sr sr-scale sr-spring sr-delay-${i + 1} group rounded-[var(--radius-sm)] border border-[var(--color-border-subtle)] bg-[var(--color-bg-elevated)] p-6 shadow-[var(--shadow-sm)] transition-all duration-300 ease-out hover:shadow-[var(--shadow-md)] hover:-translate-y-1 hover:border-[var(--color-primary-muted)]`}
             >
-              <div className="mb-5 flex h-11 w-11 items-center justify-center rounded-[var(--radius-sm)] bg-[var(--color-primary-subtle)] text-[var(--color-primary)]">
+              <div className="mb-5 flex h-11 w-11 items-center justify-center rounded-[var(--radius-sm)] bg-[var(--color-primary-subtle)] text-[var(--color-primary)] transition-all duration-300 group-hover:scale-110 group-hover:bg-[var(--color-primary)] group-hover:text-white">
                 <Icon size={21} />
               </div>
               <h3 className="font-display text-xl font-semibold text-[var(--color-text-primary)]">
@@ -322,6 +423,30 @@ export default function HomePage() {
           ))}
         </div>
       </section>
+
+      {/* ── CTA BANNER ── */}
+      <section className="px-4 pb-16 sm:px-6 lg:px-8">
+        <div className="sr sr-up mx-auto max-w-7xl overflow-hidden rounded-[var(--radius-lg)] bg-[var(--color-primary)] px-8 py-12 text-center shadow-[var(--shadow-lg)]"
+          style={{
+            background: "linear-gradient(135deg, var(--color-brand-700) 0%, var(--color-brand-500) 60%, var(--color-brand-400) 100%)",
+          }}
+        >
+          <p className="font-display text-3xl font-semibold text-white sm:text-4xl">
+            Bắt đầu ngày xanh hôm nay?
+          </p>
+          <p className="mt-3 text-white/75 text-[var(--text-base)]">
+            Đặt đơn trước 10h sáng — nhận trong ngày.
+          </p>
+          <Link
+            to="/products"
+            className="mt-7 inline-flex h-12 items-center gap-2 rounded-[var(--radius-pill)] bg-white px-7 text-[var(--text-sm)] font-semibold text-[var(--color-brand-700)] shadow-[var(--shadow-md)] transition-all hover:scale-105 hover:shadow-[var(--shadow-lg)] active:scale-100"
+          >
+            Mua ngay
+            <ArrowRight size={17} />
+          </Link>
+        </div>
+      </section>
+
     </div>
   );
 }

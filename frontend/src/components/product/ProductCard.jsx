@@ -1,7 +1,7 @@
 import { ShoppingCart } from "lucide-react";
 import { useState } from "react";
 import useCartStore from '@/store/useCartStore'
-import { Link, useNavigate } from "react-router-dom"; 
+import { Link, useNavigate } from "react-router-dom";
 import useAuthStore from "@/store/authStore";
 
 const TAG_STYLE = {
@@ -105,12 +105,17 @@ export default function ProductCard({ product }) {
           <button
             onClick={(e) => {
               e.preventDefault();
-              if (!isLoggedIn) {
-                navigate("/login");
-                return;
-              }
-              if (!product.defaultVariantId) return;
-              addItem(product.id, product.defaultVariantId, 1);
+              if (!isLoggedIn) { navigate("/login"); return; }
+
+              // Ưu tiên defaultVariantId, fallback sang id đầu tiên trong variants
+              const variantId = product.defaultVariantId ?? product.variants?.[0]?.id
+              if (!variantId) return;
+
+              addItem(product.id, variantId, 1).then(() => {
+                window.dispatchEvent(new CustomEvent('cart:item-added', {
+                  detail: { imageUrl: product.primaryImage }
+                }))
+              })
             }}
             className="absolute bottom-0 inset-x-0 bg-[var(--color-primary)] text-white
         py-2.5 text-sm font-medium flex items-center justify-center gap-2

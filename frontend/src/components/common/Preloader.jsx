@@ -47,7 +47,7 @@ export default function Preloader({ isLoading = true, minDisplay = 1800, onDone 
     setTimeout(() => {
       setVisible(false);
       onDone?.();
-    }, 700); // khớp với transition exit trong CSS
+    }, 400); // khớp với transition exit trong CSS
   }
 
   // Xoay vòng message
@@ -155,3 +155,4 @@ export default function Preloader({ isLoading = true, minDisplay = 1800, onDone 
     </div>
   );
 }
+export const PRELOADER_DURATION = 900;

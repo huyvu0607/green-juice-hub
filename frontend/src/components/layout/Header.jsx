@@ -4,6 +4,8 @@ import ThemeToggle from "@/components/common/ThemeToggle";
 import useAuthStore from "@/store/authStore";
 import useCartStore from "@/store/useCartStore";
 import ProfileModal from '@/components/user/ProfileModal'
+import { useCartAnimation } from '@/hooks/useCartAnimation'
+
 
 const NAV_LINKS = [
   { label: "Trang chủ", to: "/" },
@@ -139,6 +141,11 @@ function UserDropdown({ user, onLogout, onOpenProfile }) {
       icon: (<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" /><circle cx="12" cy="7" r="4" /></svg>),
       label: "Hồ sơ",
       onClick: () => { onOpenProfile(); setOpen(false) },
+    },
+    {
+      icon: (<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M9 5H7a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V7a2 2 0 0 0-2-2h-2" /><rect x="9" y="3" width="6" height="4" rx="1" ry="1" /><line x1="9" y1="12" x2="15" y2="12" /><line x1="9" y1="16" x2="13" y2="16" /></svg>),
+      label: "Lịch sử giao dịch",
+      onClick: () => { navigate("/orders"); setOpen(false); },
     },
     {
       icon: (<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 1 1.72v.51a2 2 0 0 1-1 1.74l-.15.09a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.39a2 2 0 0 0-.73-2.73l-.15-.08a2 2 0 0 1-1-1.74v-.5a2 2 0 0 1 1-1.74l.15-.09a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z" /><circle cx="12" cy="12" r="3" /></svg>),
@@ -355,6 +362,8 @@ export default function Header() {
   const headerRef = useRef(null);
   const timerRef = useRef(null);
   const [profileOpen, setProfileOpen] = useState(false);
+  const cartBtnRef = useRef(null)
+  useCartAnimation(cartBtnRef)
 
 
   const { isLoggedIn, user, logout } = useAuthStore();
@@ -442,6 +451,7 @@ export default function Header() {
             <div className="flex items-center gap-2 shrink-0">
               <ThemeToggle />
               <button
+                ref={cartBtnRef}
                 onClick={toggleCart}
                 className="relative w-9 h-9 flex items-center justify-center rounded-[var(--radius-md)] text-[var(--color-text-secondary)] hover:text-[var(--color-text-primary)] hover:bg-[var(--color-bg-muted)] transition-colors duration-[var(--duration-base)]"
                 aria-label="Giỏ hàng"
