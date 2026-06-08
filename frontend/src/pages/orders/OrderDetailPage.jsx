@@ -163,7 +163,6 @@ export default function OrderDetailPage() {
   const { currentOrder, loading, error, fetchOrderDetail, cancelOrder } = useOrderStore()
   const [cancelling, setCancelling] = useState(false)
 
-  usePageReady(loading)
 
   useEffect(() => {
     fetchOrderDetail(orderId)

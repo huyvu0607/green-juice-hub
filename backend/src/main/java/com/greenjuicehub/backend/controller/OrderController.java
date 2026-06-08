@@ -16,6 +16,8 @@ import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
 
+import java.util.Map;
+
 @RestController
 @RequestMapping("/api/orders")
 @RequiredArgsConstructor
@@ -44,10 +46,11 @@ public class OrderController {
     public ResponseEntity<Page<OrderResponse>> getMyOrders(
             @AuthenticationPrincipal Long userId,
             @RequestParam(defaultValue = "0") int page,
-            @RequestParam(defaultValue = "10") int size
+            @RequestParam(defaultValue = "10") int size,
+             @RequestParam(required = false) String status
     ) {
         Pageable pageable = PageRequest.of(page, size);
-        return ResponseEntity.ok(orderService.getMyOrders(userId, pageable));
+        return ResponseEntity.ok(orderService.getMyOrders(userId, status, pageable));
     }
 
     /**
@@ -84,6 +87,10 @@ public class OrderController {
         return ResponseEntity.ok(orderService.cancelOrder(userId, orderId));
     }
 
+    @GetMapping("/status-counts")
+    public ResponseEntity<Map<String, Long>> getStatusCounts(@AuthenticationPrincipal Long userId) {
+        return ResponseEntity.ok(orderService.getStatusCounts(userId));
+    }
     /**
      * POST /api/orders/apply-promo
      * Kiểm tra và tính toán mã giảm giá trước khi đặt hàng

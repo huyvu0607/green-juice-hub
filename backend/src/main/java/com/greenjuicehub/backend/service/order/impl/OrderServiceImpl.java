@@ -20,7 +20,9 @@ import org.springframework.transaction.annotation.Transactional;
 import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.time.LocalDateTime;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.UUID;
 
 @Service
@@ -304,13 +306,19 @@ public class OrderServiceImpl implements IOrderService {
     // ─────────────────────────────────────────────────────────────────────────
     @Override
     @Transactional(readOnly = true)
-    public Page<OrderResponse> getMyOrders(Long userId, Pageable pageable) {
-        return orderRepository.findByUserIdOrderByCreatedAtDesc(userId, pageable)
-                .map(order -> {
-                    List<OrderItem> items = orderItemRepository.findAllByOrderIdWithDetails(order.getId());
-                    Payment payment = paymentRepository.findTopByOrderIdOrderByCreatedAtDesc(order.getId()).orElse(null);
-                    return orderMapper.toOrderResponse(order, items, payment);
-                });
+    public Page<OrderResponse> getMyOrders(Long userId, String status, Pageable pageable) {
+        Page<Order> page;
+        if (status != null && !status.isBlank()) {
+            Order.OrderStatus orderStatus = Order.OrderStatus.valueOf(status.toUpperCase());
+            page = orderRepository.findByUserIdAndStatusOrderByCreatedAtDesc(userId, orderStatus, pageable);
+        } else {
+            page = orderRepository.findByUserIdOrderByCreatedAtDesc(userId, pageable);
+        }
+        return page.map(order -> {
+            List<OrderItem> items = orderItemRepository.findAllByOrderIdWithDetails(order.getId());
+            Payment payment = paymentRepository.findTopByOrderIdOrderByCreatedAtDesc(order.getId()).orElse(null);
+            return orderMapper.toOrderResponse(order, items, payment);
+        });
     }
 
     // ─────────────────────────────────────────────────────────────────────────
@@ -403,7 +411,16 @@ public class OrderServiceImpl implements IOrderService {
                 .message("Áp dụng mã thành công! Giảm " + formatDiscount(promo))
                 .build();
     }
-
+    @Override
+    @Transactional(readOnly = true)
+    public Map<String, Long> getStatusCounts(Long userId) {
+        Map<String, Long> counts = new HashMap<>();
+        counts.put("ALL", orderRepository.countByUserId(userId));
+        for (Order.OrderStatus status : Order.OrderStatus.values()) {
+            counts.put(status.name(), orderRepository.countByUserIdAndStatus(userId, status));
+        }
+        return counts;
+    }
     // ─────────────────────────────────────────────────────────────────────────
     // HELPERS
     // ─────────────────────────────────────────────────────────────────────────

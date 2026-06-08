@@ -10,19 +10,33 @@ const useOrderStore = create((set, get) => ({
   loading: false,
   placing: false,       // riêng cho nút "Đặt hàng" để tránh double-submit
   error: null,
+  statusCounts: {},
+  activeStatus: null,
 
   // promo preview
   promoResult: null,    // { promoCode, promoName, discountAmount, totalAfterDiscount, ... }
   promoLoading: false,
   promoError: null,
 
+  // ── Actions ─────────────────────────────────────────────
+  fetchStatusCounts: async () => {
+    try {
+      const res = await orderApi.getStatusCounts()
+      set({ statusCounts: res.data })
+    } catch { }
+  },
   // ── Fetch danh sách ──────────────────────────────────────
-  fetchMyOrders: async (page = 0) => {
+  fetchMyOrders: async (page = 0, size = 10, status = null) => {
     set({ loading: true, error: null })
     try {
-      const res = await orderApi.getMyOrders(page)
+      const res = await orderApi.getMyOrders(page, size, status)
       const { content, totalPages, number } = res.data
-      set({ orders: content, totalPages, currentPage: number })
+      set((s) => ({
+        orders: page === 0 ? content : [...s.orders, ...content],
+        totalPages,
+        currentPage: number,
+        activeStatus: status,
+      }))
     } catch (err) {
       set({ error: err.response?.data?.message || 'Không thể tải đơn hàng' })
     } finally {

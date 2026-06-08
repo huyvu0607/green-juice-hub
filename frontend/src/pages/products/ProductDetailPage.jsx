@@ -78,7 +78,7 @@ function mapToProductCardShape(p) {
     inStock: p.inStock ?? false,
     tags: p.tags ?? [],        // backend đã trả lowercase rồi
     categoryName: p.categoryName ?? "",
-     id: p.id,
+    id: p.id,
     defaultVariantId: p.defaultVariantId
       ?? variants.find(v => v.isActive && v.stockQty > 0)?.id
       ?? variants[0]?.id,
@@ -448,7 +448,6 @@ export default function ProductDetailPage() {
   const { addItem, loading: cartLoading } = useCartStore()
   const { isLoggedIn } = useAuthStore();
   const navigate = useNavigate();
-  usePageReady(loading)
 
 
   // Chọn variant mặc định khi data load xong
@@ -458,9 +457,9 @@ export default function ProductDetailPage() {
     setSelectedVariant(first);
   }, []);
 
-  if (product && !selectedVariant) {
-    initVariant(product.variants);
-  }
+  useEffect(() => {
+    if (product?.variants?.length) initVariant(product.variants)
+  }, [product])
 
   /* Add to cart mock */
   const handleAddToCart = async () => {
@@ -474,8 +473,8 @@ export default function ProductDetailPage() {
       setAddedToCart(true);
       setTimeout(() => setAddedToCart(false), 2000);
       window.dispatchEvent(new CustomEvent('cart:item-added', {
-      detail: { imageUrl: product.images?.[0]?.url ?? product.primaryImage ?? null }
-    }))
+        detail: { imageUrl: product.images?.[0]?.url ?? product.primaryImage ?? null }
+      }))
     } catch {
       // error đã được set trong store
     }
@@ -715,7 +714,7 @@ export default function ProductDetailPage() {
 
           <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4">
             {relatedCards.map((p, idx) => (
-              <AnimatedCard key={p.slug ?? idx} delay={idx * 60}>
+              <AnimatedCard key={p.slug ?? idx} colIndex={idx}>
                 <ProductCard product={p} />
               </AnimatedCard>
             ))}

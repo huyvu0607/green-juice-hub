@@ -8,6 +8,7 @@ import momoLogo from '@/assets/payment-momo.png'
 import vnpayLogo from '@/assets/payment-vnpay.png'
 import { usePageReady } from '@/hooks/usePageReady'
 import BankTransferModal from '@/components/order/BankTransferModal'
+import OrderSuccessModal from '@/components/order/OrderSuccessModal'
 
 
 // ── Helpers ────────────────────────────────────────────────────────────────
@@ -424,7 +425,8 @@ export default function CheckoutPage() {
   const { items: cartItems } = useCartStore()
   const buyNowItem = location.state?.buyNowItem
   const { placeOrder, buyNow, placing, error, clearError, promoResult, clearPromo } = useOrderStore()
-  usePageReady(false)
+  const [bankTransferOrder, setBankTransferOrder] = useState(null)
+  const [successOrder, setSuccessOrder] = useState(null)  // ← thêm vào đâ
 
   // Lấy danh sách cartItemId từ navigate state (truyền từ CartSidebar)
   const selectedIds = useMemo(
@@ -510,7 +512,7 @@ export default function CheckoutPage() {
       if (paymentMethod === 'BANK_TRANSFER') {
         setBankTransferOrder(order)
       } else {
-        navigate('/orders/' + order.id, { state: { fromCheckout: true } })
+        setSuccessOrder(order)   // ← thay navigate bằng hiện modal
       }
     } catch {
       // Lỗi đã được xử lý trong store, chỉ cần hiện alert nếu muốn
@@ -525,6 +527,14 @@ export default function CheckoutPage() {
         <BankTransferModal
           order={bankTransferOrder}
           onClose={() => navigate('/orders/' + bankTransferOrder.id, { state: { fromCheckout: true } })}
+        />
+      )}
+
+      {/* Success Modal — thêm vào đây */}
+      {successOrder && (
+        <OrderSuccessModal
+          order={successOrder}
+          onClose={() => setSuccessOrder(null)}
         />
       )}
       <div
