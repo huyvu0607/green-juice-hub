@@ -19,4 +19,14 @@ public interface OrderRepository extends JpaRepository<Order, Long> {
 
     /** Kiểm tra mã đơn hàng có tồn tại chưa (tránh trùng) */
     boolean existsByOrderCode(String orderCode);
+
+    /** Lấy số lượng đơn hàng của User **/
+    long countByUserId(Long userId);
+
+    /** Lấy số lượng đơn hàng của status **/
+    long countByUserIdAndStatus(Long userId, Order.OrderStatus status);
+
+    /** Lấy số lượng đơn hàng của status theo ngày tạo**/
+    Page<Order> findByUserIdAndStatusOrderByCreatedAtDesc(Long userId, Order.OrderStatus status, Pageable pageable);
+
 }

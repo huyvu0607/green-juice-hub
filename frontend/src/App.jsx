@@ -50,8 +50,8 @@ function AppRoutes() {
   const minDisplayRef = useRef(2000)
 
   const [preloaderKey, setPreloaderKey] = useState(0)
-  const [isLoading, setIsLoading] = useState(true)
-  const [showPreloader, setShowPreloader] = useState(true)
+  const [isLoading, setIsLoading] = useState(() => window.location.pathname === '/')
+  const [showPreloader, setShowPreloader] = useState(() => window.location.pathname === '/')
 
   const { pageReady, setPageReady } = useAppStore()
 
@@ -72,6 +72,14 @@ function AppRoutes() {
       return
     }
 
+    // Chỉ show Preloader cho HomePage
+    if (location.pathname !== '/') {
+      setShowPreloader(false)
+      setPageReady(false)
+      return
+    }
+
+    // Logic cũ chỉ chạy cho '/'
     setPageReady(false)
     setIsLoading(true)
 

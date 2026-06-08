@@ -92,7 +92,6 @@ export default function ProductsPage() {
   const [sortOpen, setSortOpen] = useState(false);
   const sortRef = useRef(null);
 
-  usePageReady(loading)
 
   // useEffect đóng dropdown khi click ra ngoài:
   useEffect(() => {
@@ -103,7 +102,7 @@ export default function ProductsPage() {
     return () => document.removeEventListener("mousedown", handler);
   }, []);
   // khai báo sidebarOpen trước khi dùng
-  const sidebarOpen = filter._sidebarOpen !== false;
+  const sidebarOpen = filter._sidebarOpen === true;
   const setSidebarOpen = (val) => updateFilter({ _sidebarOpen: val });
 
   // số cột phụ thuộc sidebar — khai báo sau sidebarOpen

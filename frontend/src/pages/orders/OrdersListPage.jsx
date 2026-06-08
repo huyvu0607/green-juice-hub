@@ -1,44 +1,60 @@
-// src/pages/orders/OrdersListPage.jsx
-import { useEffect, useState } from 'react'
+import { useEffect, useState, useRef } from 'react'
 import { useNavigate } from 'react-router-dom'
 import useOrderStore from '@/store/useOrderStore'
-import { usePageReady } from '@/hooks/usePageReady'
 import { fmt, formatDate, StatusBadge, Icon } from './orderHelpers'
 
 const TABS = [
-  { key: 'ALL',       label: 'Tất cả' },
-  { key: 'PENDING',   label: 'Chờ xác nhận' },
+  { key: 'ALL', label: 'Tất cả' },
+  { key: 'PENDING', label: 'Chờ xác nhận' },
   { key: 'CONFIRMED', label: 'Đã xác nhận' },
-  { key: 'SHIPPING',  label: 'Đang giao' },
+  { key: 'SHIPPING', label: 'Đang giao' },
   { key: 'DELIVERED', label: 'Đã giao' },
   { key: 'CANCELLED', label: 'Đã huỷ' },
 ]
 
-// ── icon clock nhỏ inline ──────────────────────────────────────────
 function ClockIcon() {
   return (
     <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" style={{ flexShrink: 0 }}>
-      <circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/>
+      <circle cx="12" cy="12" r="10" /><polyline points="12 6 12 12 16 14" />
     </svg>
   )
 }
 
 export default function OrdersListPage() {
   const navigate = useNavigate()
-  const { orders, loading, totalPages, currentPage, fetchMyOrders } = useOrderStore()
+  const {
+    orders, loading, statusCounts,
+    totalPages, currentPage,
+    fetchMyOrders, fetchStatusCounts,
+  } = useOrderStore()
+
   const [activeTab, setActiveTab] = useState('ALL')
+  const tabRef = useRef(null)
 
-  usePageReady(loading)
+  useEffect(() => {
+    fetchMyOrders(0)
+    fetchStatusCounts()
+  }, [])
 
-  useEffect(() => { fetchMyOrders(0) }, [])
+  // Scroll tab active vào giữa khi đổi tab
+  useEffect(() => {
+    if (!tabRef.current) return
+    const activeEl = tabRef.current.querySelector('[data-active="true"]')
+    if (activeEl) {
+      activeEl.scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'center' })
+    }
+  }, [activeTab])
 
-  const filtered = activeTab === 'ALL'
-    ? orders
-    : orders.filter((o) => o.status === activeTab)
+  const filtered = orders
+
+  const handleTabChange = (key) => {
+    setActiveTab(key)
+    fetchMyOrders(0, 10, key === 'ALL' ? null : key)
+  }
 
   const countFor = (key) => key === 'ALL'
-    ? orders.length
-    : orders.filter((o) => o.status === key).length
+    ? statusCounts['ALL'] ?? 0
+    : statusCounts[key] ?? 0
 
   return (
     <div className="min-h-screen" style={{ background: 'var(--color-bg-surface)' }}>
@@ -53,8 +69,9 @@ export default function OrdersListPage() {
             Đơn hàng của tôi
           </h1>
 
-          {/* Tab bar — pill segment style */}
+          {/* Tab bar */}
           <div
+            ref={tabRef}
             className="flex gap-1 p-1 overflow-x-auto -mx-4 px-4"
             style={{
               background: 'var(--color-bg-muted)',
@@ -68,23 +85,42 @@ export default function OrdersListPage() {
               return (
                 <button
                   key={tab.key}
-                  onClick={() => setActiveTab(tab.key)}
+                  data-active={isActive}
+                  onClick={() => handleTabChange(tab.key)}
                   className="flex-shrink-0 flex items-center gap-1.5 px-3 py-1.5 text-sm cursor-pointer transition-all whitespace-nowrap"
                   style={{
                     borderRadius: 'var(--radius-md)',
                     fontWeight: isActive ? 500 : 400,
+                    padding : '10px 12px',
                     background: isActive ? 'var(--color-bg-elevated)' : 'transparent',
                     color: isActive ? 'var(--color-text-primary)' : 'var(--color-text-secondary)',
                     border: isActive ? '0.5px solid var(--color-border-subtle)' : '0.5px solid transparent',
                   }}
                 >
                   {tab.label}
-                  {count > 0 && (
+                  {count > 0 && ['PENDING', 'CONFIRMED', 'SHIPPING'].includes(tab.key) && (
                     <span
                       className="text-xs px-1.5 rounded-full"
                       style={{
-                        background: isActive ? 'var(--color-primary)' : 'transparent',
-                        color: isActive ? '#fff' : 'var(--color-text-muted)',
+                        background: isActive ? 'var(--color-primary)' : '#ef4444',
+                        color: '#fff',
+                        fontWeight: 500,
+                        lineHeight: '1.6',
+                        minWidth: 18,
+                        textAlign: 'center',
+                      }}
+                    >
+                      {count}
+                    </span>
+                  )}
+
+                  {/* Tab ALL và DELIVERED, CANCELLED chỉ hiện số khi active */}
+                  {count > 0 && !['PENDING', 'CONFIRMED', 'SHIPPING'].includes(tab.key) && isActive && (
+                    <span
+                      className="text-xs px-1.5 rounded-full"
+                      style={{
+                        background: 'var(--color-primary)',
+                        color: '#fff',
                         fontWeight: 500,
                         lineHeight: '1.6',
                         minWidth: 18,
@@ -104,7 +140,7 @@ export default function OrdersListPage() {
       {/* ── Content ── */}
       <div className="max-w-2xl mx-auto px-4 py-3">
 
-        {loading && (
+        {loading && orders.length === 0 && (
           <div className="flex justify-center py-16">
             <div className="w-8 h-8 rounded-full border-2 border-[var(--color-primary)] border-t-transparent animate-spin" />
           </div>
@@ -137,7 +173,6 @@ export default function OrdersListPage() {
 
         <div className="flex flex-col gap-2.5">
           {filtered.map((order) => {
-            // Gom tên sản phẩm để hiển thị inline
             const previewNames = order.items
               ?.slice(0, 2)
               .map((i) => i.productName)
@@ -156,7 +191,7 @@ export default function OrdersListPage() {
                 onMouseEnter={(e) => e.currentTarget.style.borderColor = 'var(--color-primary)'}
                 onMouseLeave={(e) => e.currentTarget.style.borderColor = 'var(--color-border-subtle)'}
               >
-                {/* Top strip: order code + status */}
+                {/* Top: order code + status */}
                 <div
                   className="flex items-center justify-between px-4 py-2.5"
                   style={{ borderBottom: '0.5px solid var(--color-border-subtle)' }}
@@ -257,24 +292,24 @@ export default function OrdersListPage() {
           })}
         </div>
 
-        {/* Pagination */}
-        {activeTab === 'ALL' && totalPages > 1 && (
-          <div className="flex justify-center gap-2 mt-6">
-            {Array.from({ length: totalPages }, (_, i) => (
-              <button
-                key={i}
-                onClick={() => fetchMyOrders(i)}
-                className="w-8 h-8 rounded-[var(--radius-sm)] text-sm font-medium cursor-pointer transition-all"
-                style={{
-                  background: currentPage === i ? 'var(--color-primary)' : 'var(--color-bg-muted)',
-                  color: currentPage === i ? '#fff' : 'var(--color-text-secondary)',
-                }}
-              >
-                {i + 1}
-              </button>
-            ))}
+        {/* Load more */}
+        {currentPage + 1 < totalPages && (
+          <div className="flex justify-center mt-6 pb-6">
+            <button
+              onClick={() => fetchMyOrders(currentPage + 1, 10, activeTab === 'ALL' ? null : activeTab)}
+              disabled={loading}
+              className="px-5 py-2 rounded-[var(--radius-md)] text-sm font-medium cursor-pointer disabled:opacity-50 transition-colors"
+              style={{
+                background: 'var(--color-bg-muted)',
+                color: 'var(--color-text-secondary)',
+                border: '1px solid var(--color-border-subtle)',
+              }}
+            >
+              {loading ? 'Đang tải...' : 'Xem thêm đơn hàng'}
+            </button>
           </div>
         )}
+
       </div>
     </div>
   )
