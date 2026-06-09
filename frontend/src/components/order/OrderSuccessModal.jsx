@@ -1,15 +1,26 @@
-import { useEffect } from 'react'
+import { useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import './OrderSuccessModal.css'
 
 export default function OrderSuccessModal({ order, onClose }) {
   const navigate = useNavigate()
+  const [countdown, setCountdown] = useState(5)
 
   // Khoá scroll body khi modal mở
   useEffect(() => {
     document.body.style.overflow = 'hidden'
     return () => { document.body.style.overflow = '' }
   }, [])
+
+  // Đếm ngược 5 giây rồi chuyển sang trang chi tiết đơn
+  useEffect(() => {
+    if (countdown <= 0) {
+      handleViewOrder()
+      return
+    }
+    const timer = setTimeout(() => setCountdown((c) => c - 1), 1000)
+    return () => clearTimeout(timer)
+  }, [countdown])
 
   const handleViewOrder = () => {
     onClose?.()
@@ -22,7 +33,7 @@ export default function OrderSuccessModal({ order, onClose }) {
   }
 
   return (
-    <div className="osm-backdrop" onClick={onClose}>
+    <div className="osm-backdrop" onClick={handleViewOrder}>
       <div className="osm-card" onClick={(e) => e.stopPropagation()}>
 
         {/* ── Circle + checkmark ── */}
@@ -45,6 +56,11 @@ export default function OrderSuccessModal({ order, onClose }) {
             Mã đơn: <span>{order.orderCode}</span>
           </p>
         )}
+
+        {/* ── Countdown ── */}
+        <p className="osm-countdown">
+          Tự động chuyển sang đơn hàng sau <strong>{countdown}s</strong>
+        </p>
 
         {/* ── Buttons ── */}
         <div className="osm-actions">

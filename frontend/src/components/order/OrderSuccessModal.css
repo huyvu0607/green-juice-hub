@@ -163,3 +163,16 @@
   background: var(--color-bg-muted);
   color: var(--color-text-primary);
 }
+/* Thêm vào OrderSuccessModal.css */
+.osm-countdown {
+  font-size: 0.75rem;
+  color: var(--color-text-muted);
+  margin-top: -4px;
+  margin-bottom: 4px;
+}
+ 
+.osm-countdown strong {
+  color: var(--color-primary);
+  font-variant-numeric: tabular-nums;
+}
+ 

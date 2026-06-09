@@ -377,27 +377,43 @@ public class OrderServiceImpl implements IOrderService {
     @Override
     @Transactional(readOnly = true)
     public ApplyPromoResponse applyPromo(Long userId, ApplyPromoRequest request) {
-        Cart cart = cartRepository.findByUserId(userId)
-                .orElseThrow(() -> new AppException(HttpStatus.BAD_REQUEST, "Giỏ hàng trống"));
+        BigDecimal subtotal;
 
-        List<CartItem> selectedItems = cartItemRepository
-                .findAllByCartIdWithDetails(cart.getId())
-                .stream()
-                .filter(i -> request.getCartItemIds().contains(i.getId()))
-                .toList();
+        if (request.getVariantId() != null) {
+            // ── BuyNow: tính từ variant ──────────────────────────────────────
+            ProductVariant variant = productVariantRepository.findById(request.getVariantId())
+                    .orElseThrow(() -> new AppException(HttpStatus.NOT_FOUND, "Sản phẩm không tồn tại"));
+            BigDecimal price = variant.getSalePrice() != null
+                    ? variant.getSalePrice()
+                    : variant.getOriginalPrice();
+            subtotal = price.multiply(BigDecimal.valueOf(request.getQuantity()));
+        } else {
+            // ── Cart: tính từ cartItemIds ────────────────────────────────────
+            if (request.getCartItemIds() == null || request.getCartItemIds().isEmpty()) {
+                throw new AppException(HttpStatus.BAD_REQUEST, "Phải chọn ít nhất 1 sản phẩm");
+            }
+            Cart cart = cartRepository.findByUserId(userId)
+                    .orElseThrow(() -> new AppException(HttpStatus.BAD_REQUEST, "Giỏ hàng trống"));
 
-        if (selectedItems.isEmpty()) {
-            throw new AppException(HttpStatus.BAD_REQUEST, "Không tìm thấy sản phẩm đã chọn");
+            List<CartItem> selectedItems = cartItemRepository
+                    .findAllByCartIdWithDetails(cart.getId())
+                    .stream()
+                    .filter(i -> request.getCartItemIds().contains(i.getId()))
+                    .toList();
+
+            if (selectedItems.isEmpty()) {
+                throw new AppException(HttpStatus.BAD_REQUEST, "Không tìm thấy sản phẩm đã chọn");
+            }
+
+            subtotal = selectedItems.stream()
+                    .map(i -> {
+                        BigDecimal price = i.getVariant().getSalePrice() != null
+                                ? i.getVariant().getSalePrice()
+                                : i.getVariant().getOriginalPrice();
+                        return price.multiply(BigDecimal.valueOf(i.getQuantity()));
+                    })
+                    .reduce(BigDecimal.ZERO, BigDecimal::add);
         }
-
-        BigDecimal subtotal = selectedItems.stream()
-                .map(i -> {
-                    BigDecimal price = i.getVariant().getSalePrice() != null
-                            ? i.getVariant().getSalePrice()
-                            : i.getVariant().getOriginalPrice();
-                    return price.multiply(BigDecimal.valueOf(i.getQuantity()));
-                })
-                .reduce(BigDecimal.ZERO, BigDecimal::add);
 
         Promotion promo = validatePromo(request.getPromoCode(), userId, subtotal);
         BigDecimal discount = calculateDiscount(promo, subtotal);
