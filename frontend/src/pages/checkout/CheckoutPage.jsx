@@ -1,5 +1,5 @@
-import { useState, useEffect, useMemo } from 'react'
-import { useNavigate, useLocation } from 'react-router-dom'
+import { useState, useEffect, useMemo, useRef } from 'react'
+import { useNavigate, useLocation, Link } from 'react-router-dom'
 import useAuthStore from '@/store/authStore'
 import useOrderStore from '@/store/useOrderStore'
 import useCartStore from '@/store/useCartStore'
@@ -63,6 +63,35 @@ const Icon = {
       <line x1="19" y1="12" x2="5" y2="12" /><polyline points="12 19 5 12 12 5" />
     </svg>
   ),
+  Search: () => (
+    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
+      <circle cx="11" cy="11" r="8" />
+      <line x1="21" y1="21" x2="16.65" y2="16.65" />
+    </svg>
+  ),
+  Percent: () => (
+    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
+      <line x1="19" y1="5" x2="5" y2="19" />
+      <circle cx="6.5" cy="6.5" r="2.5" />
+      <circle cx="17.5" cy="17.5" r="2.5" />
+    </svg>
+  ),
+  ChevronDown: () => (
+    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
+      <polyline points="6 9 12 15 18 9" />
+    </svg>
+  ),
+  Cart: () => (
+    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round">
+      <circle cx="9" cy="21" r="1" /><circle cx="20" cy="21" r="1" />
+      <path d="M1 1h4l2.68 13.39a2 2 0 002 1.61h9.72a2 2 0 002-1.61L23 6H6" />
+    </svg>
+  ),
+  Zap: () => (
+    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round">
+      <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2" />
+    </svg>
+  ),
 }
 
 // ── Payment methods ─────────────────────────────────────────────────────────
@@ -109,7 +138,14 @@ function SectionTitle({ icon, title }) {
   return (
     <div className="flex items-center gap-2 mb-4">
       <span style={{ color: 'var(--color-primary)' }}>{icon}</span>
-      <h2 className="font-semibold text-base" style={{ color: 'var(--color-text-primary)', fontFamily: 'var(--font-display)' }}>
+      <h2
+        className="font-semibold text-base"
+        style={{
+          color: 'var(--color-text-primary)',
+          fontFamily: '"Be Vietnam Pro", "Inter", system-ui, sans-serif',
+          letterSpacing: '-0.01em',
+        }}
+      >
         {title}
       </h2>
     </div>
@@ -130,6 +166,23 @@ function Card({ children, className = '' }) {
   )
 }
 
+// ── Breadcrumb ──────────────────────────────────────────────────────────────
+function Breadcrumb({ isBuyNow }) {
+  return (
+    <nav className="flex items-center gap-1.5 text-xs mb-6" style={{ color: 'var(--color-text-muted)' }}>
+      <Link to="/" className="transition-colors hover:text-[var(--color-primary)]">Trang chủ</Link>
+      <span className="opacity-40">/</span>
+      {!isBuyNow && (
+        <>
+          <Link to="/cart" className="transition-colors hover:text-[var(--color-primary)]">Giỏ hàng</Link>
+          <span className="opacity-40">/</span>
+        </>
+      )}
+      <span style={{ color: 'var(--color-text-primary)', fontWeight: 500 }}>Thanh toán</span>
+    </nav>
+  )
+}
+
 // ── Address selector ────────────────────────────────────────────────────────
 function AddressSelector({ selectedId, onSelect }) {
   const [addresses, setAddresses] = useState([])
@@ -141,7 +194,6 @@ function AddressSelector({ selectedId, onSelect }) {
       .then((res) => {
         const list = res.data
         setAddresses(list)
-        // Tự chọn mặc định
         if (!selectedId) {
           const def = list.find((a) => a.isDefault) ?? list[0]
           if (def) onSelect(def.id)
@@ -172,7 +224,6 @@ function AddressSelector({ selectedId, onSelect }) {
 
   return (
     <>
-      {/* Hiện địa chỉ đang chọn */}
       {selected && (
         <div
           className="flex items-start justify-between gap-3 p-3 rounded-[var(--radius-md)]"
@@ -209,7 +260,6 @@ function AddressSelector({ selectedId, onSelect }) {
         </div>
       )}
 
-      {/* Modal chọn địa chỉ */}
       {showPicker && (
         <div
           className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-4"
@@ -269,39 +319,128 @@ function AddressSelector({ selectedId, onSelect }) {
   )
 }
 
-// ── Promo input ─────────────────────────────────────────────────────────────
-function PromoInput({ cartItemIds, onApplied, onCleared }) {
-  const { applyPromo, clearPromo, promoResult, promoLoading, promoError } = useOrderStore()
-  const [code, setCode] = useState('')
+// ── Promo Picker Modal ──────────────────────────────────────────────────────
+// availablePromos: array of { code, description, discountType, discountValue, minOrderValue, isEligible, reason }
+// Nếu store chưa expose danh sách promo, bạn có thể fetch riêng hoặc truyền vào từ ngoài.
+function PromoPickerModal({ onClose, onSelect, promoPayload, subtotal, currentCode }) {
+  const { fetchAvailablePromos, applyPromo, promoLoading } = useOrderStore()
+  const [promos, setPromos] = useState([])
+  const [loading, setLoading] = useState(true)
+  const [search, setSearch] = useState('')
+  const [applying, setApplying] = useState(null)
 
-  const handleApply = async () => {
-    if (!code.trim()) return
+  // Khoá scroll body
+  useEffect(() => {
+    document.body.style.overflow = 'hidden'
+    return () => { document.body.style.overflow = '' }
+  }, [])
+
+  // Escape để đóng
+  useEffect(() => {
+    const h = (e) => { if (e.key === 'Escape') onClose() }
+    window.addEventListener('keydown', h)
+    return () => window.removeEventListener('keydown', h)
+  }, [onClose])
+
+  useEffect(() => {
+    const load = async () => {
+      setLoading(true)
+      try {
+        const list = await fetchAvailablePromos(promoPayload)
+        setPromos(list)
+      } catch {
+        setPromos([])
+      } finally {
+        setLoading(false)
+      }
+    }
+    load()
+  }, [])
+
+  const filtered = promos.filter(
+    (p) =>
+      p.code.toLowerCase().includes(search.toLowerCase()) ||
+      (p.description || '').toLowerCase().includes(search.toLowerCase())
+  )
+
+  // Tách eligible / ineligible
+  const eligible = filtered.filter((p) => p.isEligible)
+  const ineligible = filtered.filter((p) => !p.isEligible)
+  const sorted = [...eligible, ...ineligible]
+
+  const handleApply = async (code) => {
+    setApplying(code)
     try {
-      const result = await applyPromo(code.trim(), cartItemIds)
-      onApplied?.(result)
-    } catch { }
+      const result = await applyPromo(code, promoPayload)
+      onSelect(result)
+      onClose()
+    } catch {
+    } finally {
+      setApplying(null)
+    }
   }
 
-  const handleClear = () => {
-    setCode('')
-    clearPromo()
-    onCleared?.()
+  const fmtDiscount = (p) => {
+    if (p.discountType === 'PERCENT') return `Giảm ${p.discountValue}%`
+    if (p.discountType === 'FIXED') return `Giảm ${fmt(p.discountValue)}`
+    return ''
   }
 
   return (
-    <div className="flex flex-col gap-2">
-      <div className="flex gap-2">
-        <div className="relative flex-1">
-          <span className="absolute left-3 top-1/2 -translate-y-1/2" style={{ color: 'var(--color-text-muted)' }}>
-            <Icon.Tag />
-          </span>
+    <div
+      className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-4"
+      style={{ background: 'rgba(0,0,0,0.5)', backdropFilter: 'blur(4px)', animation: 'fadeIn 0.2s ease' }}
+      onClick={onClose}
+    >
+      <div
+        className="w-full max-w-md rounded-[var(--radius-lg)] overflow-hidden shadow-2xl flex flex-col"
+        style={{
+          background: 'var(--color-bg-elevated)',
+          border: '1px solid var(--color-border-subtle)',
+          maxHeight: '85vh',
+          animation: 'slideUp 0.25s cubic-bezier(0.16,1,0.3,1)',
+        }}
+        onClick={(e) => e.stopPropagation()}
+      >
+        {/* Header */}
+        <div
+          className="flex items-center justify-between px-5 py-4 flex-shrink-0"
+          style={{ borderBottom: '1px solid var(--color-border-subtle)' }}
+        >
+          <div>
+            <p
+              className="font-bold text-base"
+              style={{
+                color: 'var(--color-text-primary)',
+                fontFamily: '"Be Vietnam Pro", "Inter", system-ui, sans-serif',
+                letterSpacing: '-0.02em',
+              }}
+            >
+              Mã khuyến mãi
+            </p>
+            <p className="text-xs mt-0.5" style={{ color: 'var(--color-text-muted)' }}>
+              {eligible.length} mã khả dụng
+            </p>
+          </div>
+          <button
+            onClick={onClose}
+            className="w-8 h-8 flex items-center justify-center rounded-full cursor-pointer transition-colors"
+            style={{ background: 'var(--color-bg-muted)', color: 'var(--color-text-secondary)' }}
+            onMouseEnter={(e) => e.currentTarget.style.background = 'var(--color-border-subtle)'}
+            onMouseLeave={(e) => e.currentTarget.style.background = 'var(--color-bg-muted)'}
+          >
+            <Icon.X />
+          </button>
+        </div>
+
+        {/* Search */}
+        <div className="px-5 py-3 flex-shrink-0" style={{ borderBottom: '1px solid var(--color-border-subtle)' }}>
           <input
-            value={code}
-            onChange={(e) => setCode(e.target.value.toUpperCase())}
-            onKeyDown={(e) => e.key === 'Enter' && handleApply()}
-            disabled={!!promoResult}
-            placeholder="Nhập mã khuyến mãi"
-            className="w-full pl-9 pr-3 py-2 rounded-[var(--radius-md)] text-sm outline-none transition-all"
+            autoFocus
+            value={search}
+            onChange={(e) => setSearch(e.target.value.toUpperCase())}
+            placeholder="Tìm mã khuyến mãi..."
+            className="w-full px-3 py-2 rounded-[var(--radius-md)] text-sm outline-none transition-all"
             style={{
               background: 'var(--color-bg-muted)',
               border: '1.5px solid var(--color-border-subtle)',
@@ -312,38 +451,248 @@ function PromoInput({ cartItemIds, onApplied, onCleared }) {
           />
         </div>
 
-        {promoResult ? (
+        {/* List */}
+        <div className="flex-1 overflow-y-auto px-5 py-3 flex flex-col gap-2">
+          {loading ? (
+            <div className="flex items-center justify-center py-10">
+              <div className="w-6 h-6 rounded-full border-2 border-[var(--color-primary)] border-t-transparent animate-spin" />
+            </div>
+          ) : sorted.length === 0 ? (
+            <div className="py-10 text-center">
+              <p className="text-sm" style={{ color: 'var(--color-text-muted)' }}>
+                {search ? 'Không tìm thấy mã phù hợp' : 'Chưa có mã khuyến mãi nào'}
+              </p>
+            </div>
+          ) : (
+            sorted.map((promo) => {
+              const isActive = currentCode === promo.code
+              const isApplying = applying === promo.code
+
+              return (
+                <div
+                  key={promo.code}
+                  className="rounded-[var(--radius-md)] overflow-hidden transition-all"
+                  style={{
+                    border: isActive
+                      ? '1.5px solid var(--color-primary)'
+                      : promo.isEligible
+                        ? '1.5px solid var(--color-border-subtle)'
+                        : '1.5px solid var(--color-border-subtle)',
+                    opacity: promo.isEligible ? 1 : 0.5,
+                    background: isActive
+                      ? 'var(--color-primary-subtle)'
+                      : promo.isEligible
+                        ? 'var(--color-bg-muted)'
+                        : 'var(--color-bg-surface)',
+                  }}
+                >
+                  {/* Stripe top accent */}
+                  <div
+                    className="h-0.5 w-full"
+                    style={{
+                      background: promo.isEligible
+                        ? 'linear-gradient(90deg, var(--color-primary), var(--color-primary-hover))'
+                        : 'var(--color-border-subtle)',
+                    }}
+                  />
+
+                  <div className="p-3 flex items-center gap-3">
+                    {/* Info */}
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center gap-2 flex-wrap">
+                        <span
+                          className="font-mono font-bold text-sm"
+                          style={{ color: promo.isEligible ? 'var(--color-primary)' : 'var(--color-text-muted)' }}
+                        >
+                          {promo.code}
+                        </span>
+                        {isActive && (
+                          <span
+                            className="text-xs px-1.5 py-0.5 rounded-full font-medium"
+                            style={{ background: 'var(--color-primary)', color: '#fff' }}
+                          >
+                            Đang dùng
+                          </span>
+                        )}
+                        {!promo.isEligible && (
+                          <span
+                            className="text-xs px-1.5 py-0.5 rounded-full font-medium"
+                            style={{ background: 'var(--color-bg-surface)', color: 'var(--color-text-muted)', border: '1px solid var(--color-border-subtle)' }}
+                          >
+                            Không đủ điều kiện
+                          </span>
+                        )}
+                      </div>
+                      <p
+                        className="text-xs mt-0.5 font-medium"
+                        style={{ color: promo.isEligible ? 'var(--color-text-primary)' : 'var(--color-text-muted)' }}
+                      >
+                        {fmtDiscount(promo)}
+                        {promo.minOrderValue > 0 && (
+                          <span className="font-normal"> · Đơn tối thiểu {fmt(promo.minOrderValue)}</span>
+                        )}
+                      </p>
+                      {promo.description && (
+                        <p className="text-xs mt-0.5 truncate" style={{ color: 'var(--color-text-muted)' }}>
+                          {promo.description}
+                        </p>
+                      )}
+                      {/* Lý do không đủ điều kiện */}
+                      {!promo.isEligible && promo.reason && (
+                        <p className="text-xs mt-1" style={{ color: '#ef4444' }}>
+                          ⚠ {promo.reason}
+                        </p>
+                      )}
+                    </div>
+
+                    {/* Button */}
+                    <button
+                      disabled={!promo.isEligible || isApplying}
+                      onClick={() => promo.isEligible && handleApply(promo.code)}
+                      className="flex-shrink-0 px-3 py-1.5 rounded-[var(--radius-sm)] text-xs font-semibold transition-all"
+                      style={
+                        !promo.isEligible
+                          ? { background: 'var(--color-bg-surface)', color: 'var(--color-text-muted)', cursor: 'not-allowed', border: '1px solid var(--color-border-subtle)' }
+                          : isActive
+                            ? { background: '#ef444415', color: '#ef4444', border: '1px solid #ef444430', cursor: 'pointer' }
+                            : { background: 'var(--color-primary)', color: '#fff', cursor: 'pointer' }
+                      }
+                    >
+                      {isApplying ? '...' : isActive ? 'Bỏ' : 'Dùng'}
+                    </button>
+                  </div>
+                </div>
+              )
+            })
+          )}
+        </div>
+
+        {/* Footer info */}
+        <div
+          className="px-5 py-3 flex-shrink-0"
+          style={{ borderTop: '1px solid var(--color-border-subtle)', background: 'var(--color-bg-surface)' }}
+        >
+          <p className="text-xs text-center" style={{ color: 'var(--color-text-muted)' }}>
+            Giá trị đơn hàng hiện tại: <span style={{ color: 'var(--color-text-primary)', fontWeight: 600 }}>{fmt(subtotal)}</span>
+          </p>
+        </div>
+      </div>
+
+      <style>{`
+        @keyframes fadeIn  { from { opacity: 0 } to { opacity: 1 } }
+        @keyframes slideUp { from { opacity: 0; transform: translateY(16px) scale(0.97) } to { opacity: 1; transform: none } }
+      `}</style>
+    </div>
+  )
+}
+
+// ── Promo input (mới: có nút "Xem tất cả mã") ───────────────────────────────
+function PromoInput({ promoPayload, onApplied, onCleared, subtotal }) {
+  const { applyPromo, clearPromo, promoResult, promoLoading, promoError } = useOrderStore()
+  const [code, setCode] = useState('')
+  const [showPicker, setShowPicker] = useState(false)
+
+  const handleApply = async (codeToApply) => {
+    const c = codeToApply ?? code.trim()
+    if (!c) return
+    try {
+      // promoPayload có dạng { cartItemIds } hoặc { variantId, quantity }
+      const result = await applyPromo(c, promoPayload)
+      onApplied?.(result)
+    } catch { }
+  }
+
+  const handleClear = () => {
+    setCode('')
+    clearPromo()
+    onCleared?.()
+  }
+
+  const handlePickerSelect = (result) => {
+    onApplied?.(result)
+  }
+
+  return (
+    <>
+      <div className="flex flex-col gap-2">
+        {/* Input row */}
+        <div className="flex gap-2">
+          <div className="relative flex-1">
+            <span className="absolute left-3 top-1/2 -translate-y-1/2" style={{ color: 'var(--color-text-muted)' }}>
+              <Icon.Tag />
+            </span>
+            <input
+              value={promoResult ? promoResult.promoCode || code : code}
+              onChange={(e) => setCode(e.target.value.toUpperCase())}
+              onKeyDown={(e) => e.key === 'Enter' && handleApply()}
+              disabled={!!promoResult}
+              placeholder="Nhập mã khuyến mãi"
+              className="w-full pl-9 pr-3 py-2 rounded-[var(--radius-md)] text-sm outline-none transition-all"
+              style={{
+                background: 'var(--color-bg-muted)',
+                border: '1.5px solid var(--color-border-subtle)',
+                color: 'var(--color-text-primary)',
+              }}
+              onFocus={(e) => { e.target.style.borderColor = 'var(--color-primary)' }}
+              onBlur={(e) => { e.target.style.borderColor = 'var(--color-border-subtle)' }}
+            />
+          </div>
+
+          {promoResult ? (
+            <button
+              onClick={handleClear}
+              className="px-3 py-2 rounded-[var(--radius-md)] text-sm font-medium flex items-center gap-1 cursor-pointer"
+              style={{ background: '#ef444415', color: '#ef4444', border: '1.5px solid #ef444430' }}
+            >
+              <Icon.X /> Bỏ
+            </button>
+          ) : (
+            <button
+              onClick={() => handleApply()}
+              disabled={promoLoading || !code.trim()}
+              className="px-4 py-2 rounded-[var(--radius-md)] text-sm font-medium cursor-pointer disabled:opacity-50"
+              style={{ background: 'var(--color-primary)', color: '#fff' }}
+            >
+              {promoLoading ? '...' : 'Áp dụng'}
+            </button>
+          )}
+        </div>
+
+        {/* Nút xem danh sách mã */}
+        {!promoResult && (
           <button
-            onClick={handleClear}
-            className="px-3 py-2 rounded-[var(--radius-md)] text-sm font-medium flex items-center gap-1 cursor-pointer"
-            style={{ background: '#ef444415', color: '#ef4444', border: '1.5px solid #ef444430' }}
+            onClick={() => setShowPicker(true)}
+            className="flex items-center gap-1.5 text-xs font-medium cursor-pointer transition-colors self-start"
+            style={{ color: 'var(--color-primary)' }}
           >
-            <Icon.X /> Bỏ
+            <Icon.ChevronDown />
+            Xem tất cả mã khuyến mãi
           </button>
-        ) : (
-          <button
-            onClick={handleApply}
-            disabled={promoLoading || !code.trim()}
-            className="px-4 py-2 rounded-[var(--radius-md)] text-sm font-medium cursor-pointer disabled:opacity-50"
-            style={{ background: 'var(--color-primary)', color: '#fff' }}
-          >
-            {promoLoading ? '...' : 'Áp dụng'}
-          </button>
+        )}
+
+        {promoError && (
+          <p className="text-xs px-3 py-1.5 rounded-[var(--radius-sm)]" style={{ background: '#ef444415', color: '#ef4444' }}>
+            {promoError}
+          </p>
+        )}
+
+        {promoResult && (
+          <p className="text-xs px-3 py-1.5 rounded-[var(--radius-sm)]" style={{ background: '#16a34a15', color: '#16a34a' }}>
+            🎉 {promoResult.message}
+          </p>
         )}
       </div>
 
-      {promoError && (
-        <p className="text-xs px-3 py-1.5 rounded-[var(--radius-sm)]" style={{ background: '#ef444415', color: '#ef4444' }}>
-          {promoError}
-        </p>
+      {showPicker && (
+        <PromoPickerModal
+          onClose={() => setShowPicker(false)}
+          onSelect={handlePickerSelect}
+          promoPayload={promoPayload}
+          subtotal={subtotal}
+          currentCode={promoResult?.promoCode || code}
+        />
       )}
-
-      {promoResult && (
-        <p className="text-xs px-3 py-1.5 rounded-[var(--radius-sm)]" style={{ background: '#16a34a15', color: '#16a34a' }}>
-          🎉 {promoResult.message}
-        </p>
-      )}
-    </div>
+    </>
   )
 }
 
@@ -425,16 +774,13 @@ export default function CheckoutPage() {
   const { items: cartItems } = useCartStore()
   const buyNowItem = location.state?.buyNowItem
   const { placeOrder, buyNow, placing, error, clearError, promoResult, clearPromo } = useOrderStore()
-  const [bankTransferOrder, setBankTransferOrder] = useState(null)
-  const [successOrder, setSuccessOrder] = useState(null)  // ← thêm vào đâ
+  const [successOrder, setSuccessOrder] = useState(null)
 
-  // Lấy danh sách cartItemId từ navigate state (truyền từ CartSidebar)
   const selectedIds = useMemo(
     () => new Set(location.state?.selectedIds || []),
     [location.state]
   )
 
-  // Items đã chọn
   const selectedItems = useMemo(() => {
     if (buyNowItem) return [buyNowItem]
     return cartItems.filter((i) => selectedIds.has(i.cartItemId))
@@ -446,7 +792,6 @@ export default function CheckoutPage() {
   const [promoCode, setPromoCode] = useState('')
   const [bankTransferOrder, setBankTransferOrder] = useState(null)
 
-  // Tính tiền
   const subtotal = useMemo(() =>
     selectedItems.reduce((sum, i) => {
       const price = i.salePrice ?? i.originalPrice
@@ -455,19 +800,24 @@ export default function CheckoutPage() {
     [selectedItems]
   )
 
+  const promoPayload = useMemo(() =>
+    buyNowItem
+      ? { variantId: buyNowItem.variantId, quantity: buyNowItem.quantity }
+      : { cartItemIds: [...selectedIds] },
+    [buyNowItem, selectedIds]
+  )
+
   const discount = promoResult?.discountAmount ?? 0
   const shipping = subtotal - discount >= 200000 ? 0 : 30000
   const total = subtotal - discount + shipping
 
-  // Nếu không có item nào → về trang chủ
   useEffect(() => {
-    if (buyNowItem) return                                    // ← thêm
+    if (buyNowItem) return
     if (selectedItems.length === 0 && cartItems.length > 0) {
       navigate('/products')
     }
-  }, [selectedItems, cartItems, buyNowItem])   // ← thêm buyNowItem vào dependency
+  }, [selectedItems, cartItems, buyNowItem])
 
-  // Clear promo khi unmount
   useEffect(() => () => clearPromo(), [])
 
   const handlePromoApplied = (result) => {
@@ -496,6 +846,7 @@ export default function CheckoutPage() {
           quantity: buyNowItem.quantity,
           addressId,
           paymentMethod,
+          promoCode: promoCode || undefined,  // ← thêm dòng này
           note: note.trim() || undefined,
         })
       } else {
@@ -508,21 +859,16 @@ export default function CheckoutPage() {
         })
       }
 
-
       if (paymentMethod === 'BANK_TRANSFER') {
         setBankTransferOrder(order)
       } else {
-        setSuccessOrder(order)   // ← thay navigate bằng hiện modal
+        setSuccessOrder(order)
       }
-    } catch {
-      // Lỗi đã được xử lý trong store, chỉ cần hiện alert nếu muốn
-      // alert('Đặt hàng thất bại. Vui lòng thử lại.')
-    }
+    } catch { }
   }
 
   return (
     <>
-      {/* Bank Transfer Modal */}
       {bankTransferOrder && (
         <BankTransferModal
           order={bankTransferOrder}
@@ -530,20 +876,23 @@ export default function CheckoutPage() {
         />
       )}
 
-      {/* Success Modal — thêm vào đây */}
       {successOrder && (
         <OrderSuccessModal
           order={successOrder}
           onClose={() => setSuccessOrder(null)}
         />
       )}
+
       <div
         className="min-h-screen py-8 px-4"
         style={{ background: 'var(--color-bg-surface)' }}
       >
         <div className="max-w-5xl mx-auto">
 
-          {/* Header */}
+          {/* ── Breadcrumb ── */}
+          <Breadcrumb isBuyNow={!!buyNowItem} />
+
+          {/* ── Header ── */}
           <div className="flex items-center gap-3 mb-8">
             <button
               onClick={() => navigate(-1)}
@@ -555,10 +904,19 @@ export default function CheckoutPage() {
               <Icon.ArrowLeft />
             </button>
             <div>
-              <h1 className="text-xl font-bold" style={{ color: 'var(--color-text-primary)', fontFamily: 'var(--font-display)' }}>
+              <h1
+                style={{
+                  fontSize: '1.5rem',
+                  fontWeight: 800,
+                  letterSpacing: '-0.03em',
+                  lineHeight: 1.15,
+                  color: 'var(--color-text-primary)',
+                  fontFamily: '"Be Vietnam Pro", "Inter", system-ui, sans-serif',
+                }}
+              >
                 Thanh toán
               </h1>
-              <p className="text-xs mt-0.5" style={{ color: 'var(--color-text-muted)' }}>
+              <p className="text-xs mt-1" style={{ color: 'var(--color-text-muted)' }}>
                 {selectedItems.length} sản phẩm
               </p>
             </div>
@@ -575,7 +933,7 @@ export default function CheckoutPage() {
             </div>
           )}
 
-          {/* Layout 2 cột */}
+          {/* ── Layout 2 cột ── */}
           <div className="grid grid-cols-1 lg:grid-cols-[1fr_380px] gap-6">
 
             {/* ── Cột trái ── */}
@@ -613,10 +971,7 @@ export default function CheckoutPage() {
                           <div className="w-2 h-2 rounded-full" style={{ background: 'var(--color-primary)' }} />
                         )}
                       </div>
-
-                      {/* Logo thay cho emoji */}
                       {method.logo}
-
                       <div>
                         <p className="text-sm font-medium" style={{ color: 'var(--color-text-primary)' }}>{method.label}</p>
                         <p className="text-xs" style={{ color: 'var(--color-text-muted)' }}>{method.desc}</p>
@@ -627,16 +982,15 @@ export default function CheckoutPage() {
               </Card>
 
               {/* 3. Mã khuyến mãi */}
-              {!buyNowItem && (
-                <Card>
-                  <SectionTitle icon={<Icon.Tag />} title="Mã khuyến mãi" />
-                  <PromoInput
-                    cartItemIds={[...selectedIds]}
-                    onApplied={handlePromoApplied}
-                    onCleared={handlePromoCleared}
-                  />
-                </Card>
-              )}
+              <Card>
+                <SectionTitle icon={<Icon.Tag />} title="Mã khuyến mãi" />
+                <PromoInput
+                  promoPayload={promoPayload}
+                  onApplied={handlePromoApplied}
+                  onCleared={handlePromoCleared}
+                  subtotal={subtotal}
+                />
+              </Card>
 
               {/* 4. Ghi chú */}
               <Card>

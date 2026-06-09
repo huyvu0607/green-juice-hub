@@ -1,13 +1,13 @@
 import { useEffect, useState, useRef } from 'react'
-import { useNavigate } from 'react-router-dom'
+import { useNavigate, Link } from 'react-router-dom'
 import useOrderStore from '@/store/useOrderStore'
 import { fmt, formatDate, StatusBadge, Icon } from './orderHelpers'
 
 const TABS = [
-  { key: 'ALL', label: 'Tất cả' },
-  { key: 'PENDING', label: 'Chờ xác nhận' },
+  { key: 'ALL',       label: 'Tất cả' },
+  { key: 'PENDING',   label: 'Chờ xác nhận' },
   { key: 'CONFIRMED', label: 'Đã xác nhận' },
-  { key: 'SHIPPING', label: 'Đang giao' },
+  { key: 'SHIPPING',  label: 'Đang giao' },
   { key: 'DELIVERED', label: 'Đã giao' },
   { key: 'CANCELLED', label: 'Đã huỷ' },
 ]
@@ -20,6 +20,22 @@ function ClockIcon() {
   )
 }
 
+function SearchIcon() {
+  return (
+    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <circle cx="11" cy="11" r="8" /><line x1="21" y1="21" x2="16.65" y2="16.65" />
+    </svg>
+  )
+}
+
+function XIcon() {
+  return (
+    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round">
+      <line x1="18" y1="6" x2="6" y2="18" /><line x1="6" y1="6" x2="18" y2="18" />
+    </svg>
+  )
+}
+
 export default function OrdersListPage() {
   const navigate = useNavigate()
   const {
@@ -28,8 +44,11 @@ export default function OrdersListPage() {
     fetchMyOrders, fetchStatusCounts,
   } = useOrderStore()
 
-  const [activeTab, setActiveTab] = useState('ALL')
-  const tabRef = useRef(null)
+  const [activeTab, setActiveTab]   = useState('ALL')
+  const [searchQuery, setSearchQuery] = useState('')
+  const tabRef     = useRef(null)
+  const debounceRef = useRef(null)
+  const searchRef  = useRef(null)
 
   useEffect(() => {
     fetchMyOrders(0)
@@ -45,105 +64,197 @@ export default function OrdersListPage() {
     }
   }, [activeTab])
 
-  const filtered = orders
+  // Filter client-side theo mã đơn
+  const filtered = searchQuery.trim()
+    ? orders.filter(o =>
+        o.orderCode?.toLowerCase().includes(searchQuery.trim().toLowerCase())
+      )
+    : orders
 
   const handleTabChange = (key) => {
     setActiveTab(key)
-    fetchMyOrders(0, 10, key === 'ALL' ? null : key)
+    setSearchQuery('')
+    clearTimeout(debounceRef.current)
+    debounceRef.current = setTimeout(() => {
+      fetchMyOrders(0, 10, key === 'ALL' ? null : key)
+    }, 300)
+  }
+
+  const handleSearch = (e) => {
+    const val = e.target.value
+    setSearchQuery(val)
+  }
+
+  const handleClearSearch = () => {
+    setSearchQuery('')
+    searchRef.current?.focus()
   }
 
   const countFor = (key) => key === 'ALL'
     ? statusCounts['ALL'] ?? 0
     : statusCounts[key] ?? 0
 
+  const isSearching = searchQuery.trim().length > 0
+
   return (
     <div className="min-h-screen" style={{ background: 'var(--color-bg-surface)' }}>
 
       {/* ── Sticky header ── */}
-      <div className="sticky top-0 z-10" style={{ background: 'var(--color-bg-surface)' }}>
-        <div className="max-w-2xl mx-auto px-4 pt-6 pb-3">
-          <h1
-            className="text-xl font-bold mb-4"
-            style={{ color: 'var(--color-text-primary)', fontFamily: 'var(--font-display)' }}
-          >
-            Đơn hàng của tôi
-          </h1>
+      <div
+        className="sticky top-16 z-10"
+        style={{ background: 'var(--color-bg-surface)', borderBottom: '0.5px solid var(--color-border-subtle)' }}
+      >
+        <div className="max-w-6xl mx-auto px-6 pt-5 pb-3">
 
-          {/* Tab bar */}
-          <div
-            ref={tabRef}
-            className="flex gap-1 p-1 overflow-x-auto -mx-4 px-4"
-            style={{
-              background: 'var(--color-bg-muted)',
-              borderRadius: 'var(--radius-lg)',
-              scrollbarWidth: 'none',
-            }}
-          >
-            {TABS.map((tab) => {
-              const isActive = activeTab === tab.key
-              const count = countFor(tab.key)
-              return (
+          {/* Breadcrumb */}
+          <nav className="flex items-center gap-1.5 text-sm mb-3" style={{ color: 'var(--color-text-muted)' }}>
+            <Link to="/" className="hover:text-[var(--color-primary)] transition-colors">Trang chủ</Link>
+            <span className="opacity-50">/</span>
+            <span className="font-medium" style={{ color: 'var(--color-text-primary)' }}>Đơn hàng của tôi</span>
+          </nav>
+
+          {/* Title + Search hàng ngang */}
+          <div className="flex items-end justify-between gap-4 mb-4">
+            <div>
+              <h1
+                className="font-bold"
+                style={{
+                  color: 'var(--color-text-primary)',
+                  fontSize: '1.6rem',
+                  letterSpacing: '-0.02em',
+                  lineHeight: 1.2,
+                  fontFamily: '"Be Vietnam Pro", "Inter", system-ui, sans-serif',
+                }}
+              >
+                Đơn hàng của tôi
+              </h1>
+              <p className="text-xs mt-1" style={{ color: 'var(--color-text-muted)' }}>
+                Theo dõi, xem chi tiết và trạng thái tất cả đơn hàng của bạn.
+              </p>
+            </div>
+
+            {/* ── Search box ── */}
+            <div
+              className="flex items-center gap-2 px-3 py-2 rounded-[var(--radius-lg)] transition-all flex-shrink-0"
+              style={{
+                width: 260,
+                background: 'var(--color-bg-elevated)',
+                border: '1px solid var(--color-border-subtle)',
+              }}
+              onFocusCapture={e => e.currentTarget.style.borderColor = 'var(--color-primary)'}
+              onBlurCapture={e => e.currentTarget.style.borderColor = 'var(--color-border-subtle)'}
+            >
+              <span style={{ color: 'var(--color-text-muted)', flexShrink: 0 }}>
+                <SearchIcon />
+              </span>
+              <input
+                ref={searchRef}
+                type="text"
+                value={searchQuery}
+                onChange={handleSearch}
+                placeholder="Tìm theo mã đơn hàng..."
+                className="flex-1 text-sm bg-transparent outline-none min-w-0"
+                style={{ color: 'var(--color-text-primary)' }}
+              />
+              {isSearching && (
                 <button
-                  key={tab.key}
-                  data-active={isActive}
-                  onClick={() => handleTabChange(tab.key)}
-                  className="flex-shrink-0 flex items-center gap-1.5 px-3 py-1.5 text-sm cursor-pointer transition-all whitespace-nowrap"
-                  style={{
-                    borderRadius: 'var(--radius-md)',
-                    fontWeight: isActive ? 500 : 400,
-                    padding : '10px 12px',
-                    background: isActive ? 'var(--color-bg-elevated)' : 'transparent',
-                    color: isActive ? 'var(--color-text-primary)' : 'var(--color-text-secondary)',
-                    border: isActive ? '0.5px solid var(--color-border-subtle)' : '0.5px solid transparent',
-                  }}
+                  onClick={handleClearSearch}
+                  className="flex-shrink-0 cursor-pointer rounded-full p-0.5 transition-colors"
+                  style={{ color: 'var(--color-text-muted)' }}
+                  onMouseEnter={e => e.currentTarget.style.color = 'var(--color-text-primary)'}
+                  onMouseLeave={e => e.currentTarget.style.color = 'var(--color-text-muted)'}
                 >
-                  {tab.label}
-                  {count > 0 && ['PENDING', 'CONFIRMED', 'SHIPPING'].includes(tab.key) && (
-                    <span
-                      className="text-xs px-1.5 rounded-full"
-                      style={{
-                        background: isActive ? 'var(--color-primary)' : '#ef4444',
-                        color: '#fff',
-                        fontWeight: 500,
-                        lineHeight: '1.6',
-                        minWidth: 18,
-                        textAlign: 'center',
-                      }}
-                    >
-                      {count}
-                    </span>
-                  )}
-
-                  {/* Tab ALL và DELIVERED, CANCELLED chỉ hiện số khi active */}
-                  {count > 0 && !['PENDING', 'CONFIRMED', 'SHIPPING'].includes(tab.key) && isActive && (
-                    <span
-                      className="text-xs px-1.5 rounded-full"
-                      style={{
-                        background: 'var(--color-primary)',
-                        color: '#fff',
-                        fontWeight: 500,
-                        lineHeight: '1.6',
-                        minWidth: 18,
-                        textAlign: 'center',
-                      }}
-                    >
-                      {count}
-                    </span>
-                  )}
+                  <XIcon />
                 </button>
-              )
-            })}
+              )}
+            </div>
           </div>
+
+          {/* Tab bar — ẩn khi đang search */}
+          {!isSearching && (
+            <div
+              ref={tabRef}
+              className="flex gap-1 p-1 overflow-x-auto -mx-6 px-6"
+              style={{
+                background: 'var(--color-bg-muted)',
+                borderRadius: 'var(--radius-lg)',
+                scrollbarWidth: 'none',
+              }}
+            >
+              {TABS.map((tab) => {
+                const isActive = activeTab === tab.key
+                const count = countFor(tab.key)
+                return (
+                  <button
+                    key={tab.key}
+                    data-active={isActive}
+                    onClick={() => handleTabChange(tab.key)}
+                    className="flex-shrink-0 flex items-center gap-1.5 text-sm cursor-pointer transition-all whitespace-nowrap"
+                    style={{
+                      borderRadius: 'var(--radius-md)',
+                      fontWeight: isActive ? 600 : 400,
+                      padding: '8px 12px',
+                      background: isActive ? 'var(--color-bg-elevated)' : 'transparent',
+                      color: isActive ? 'var(--color-text-primary)' : 'var(--color-text-secondary)',
+                      border: isActive ? '0.5px solid var(--color-border-subtle)' : '0.5px solid transparent',
+                    }}
+                  >
+                    {tab.label}
+                    {count > 0 && ['PENDING', 'CONFIRMED', 'SHIPPING'].includes(tab.key) && (
+                      <span
+                        className="text-xs px-1.5 rounded-full"
+                        style={{
+                          background: isActive ? 'var(--color-primary)' : '#ef4444',
+                          color: '#fff',
+                          fontWeight: 600,
+                          lineHeight: '1.6',
+                          minWidth: 18,
+                          textAlign: 'center',
+                        }}
+                      >
+                        {count}
+                      </span>
+                    )}
+                    {count > 0 && !['PENDING', 'CONFIRMED', 'SHIPPING'].includes(tab.key) && isActive && (
+                      <span
+                        className="text-xs px-1.5 rounded-full"
+                        style={{
+                          background: 'var(--color-primary)',
+                          color: '#fff',
+                          fontWeight: 600,
+                          lineHeight: '1.6',
+                          minWidth: 18,
+                          textAlign: 'center',
+                        }}
+                      >
+                        {count}
+                      </span>
+                    )}
+                  </button>
+                )
+              })}
+            </div>
+          )}
         </div>
       </div>
 
       {/* ── Content ── */}
-      <div className="max-w-2xl mx-auto px-4 py-3">
+      <div className="max-w-6xl mx-auto px-6 py-4">
 
         {loading && orders.length === 0 && (
           <div className="flex justify-center py-16">
             <div className="w-8 h-8 rounded-full border-2 border-[var(--color-primary)] border-t-transparent animate-spin" />
           </div>
+        )}
+
+        {/* Kết quả tìm kiếm */}
+        {isSearching && (
+          <p className="text-xs mb-3" style={{ color: 'var(--color-text-muted)' }}>
+            {filtered.length > 0
+              ? `Tìm thấy ${filtered.length} đơn khớp với "${searchQuery}"`
+              : `Không tìm thấy đơn nào khớp với "${searchQuery}"`
+            }
+          </p>
         )}
 
         {!loading && filtered.length === 0 && (
@@ -155,11 +266,26 @@ export default function OrdersListPage() {
               <Icon.Package />
             </div>
             <p className="text-sm" style={{ color: 'var(--color-text-muted)' }}>
-              {activeTab === 'ALL'
-                ? 'Bạn chưa có đơn hàng nào'
-                : `Không có đơn "${TABS.find(t => t.key === activeTab)?.label}"`}
+              {isSearching
+                ? `Không tìm thấy đơn hàng nào với mã "${searchQuery}"`
+                : activeTab === 'ALL'
+                  ? 'Bạn chưa có đơn hàng nào'
+                  : `Không có đơn "${TABS.find(t => t.key === activeTab)?.label}"`
+              }
             </p>
-            {activeTab === 'ALL' && (
+            {isSearching ? (
+              <button
+                onClick={handleClearSearch}
+                className="px-5 py-2 rounded-[var(--radius-md)] text-sm font-medium cursor-pointer"
+                style={{
+                  background: 'var(--color-bg-muted)',
+                  border: '1px solid var(--color-border-subtle)',
+                  color: 'var(--color-text-secondary)',
+                }}
+              >
+                Xoá tìm kiếm
+              </button>
+            ) : activeTab === 'ALL' && (
               <button
                 onClick={() => navigate('/products')}
                 className="px-5 py-2 rounded-[var(--radius-md)] text-sm font-medium text-white cursor-pointer"
@@ -171,7 +297,7 @@ export default function OrdersListPage() {
           </div>
         )}
 
-        <div className="flex flex-col gap-2.5">
+        <div className="flex flex-col gap-3">
           {filtered.map((order) => {
             const previewNames = order.items
               ?.slice(0, 2)
@@ -191,14 +317,43 @@ export default function OrdersListPage() {
                 onMouseEnter={(e) => e.currentTarget.style.borderColor = 'var(--color-primary)'}
                 onMouseLeave={(e) => e.currentTarget.style.borderColor = 'var(--color-border-subtle)'}
               >
-                {/* Top: order code + status */}
+                {/* Top: mã đơn + status */}
                 <div
-                  className="flex items-center justify-between px-4 py-2.5"
-                  style={{ borderBottom: '0.5px solid var(--color-border-subtle)' }}
+                  className="flex items-center justify-between px-4 py-3"
+                  style={{
+                    borderBottom: '0.5px solid var(--color-border-subtle)',
+                    background: 'var(--color-bg-muted)',
+                  }}
                 >
-                  <p className="text-xs font-mono" style={{ color: 'var(--color-text-muted)' }}>
-                    #{order.orderCode}
-                  </p>
+                  <div className="flex items-center gap-2">
+                    <div
+                      className="flex items-center justify-center w-5 h-5 rounded"
+                      style={{ background: 'var(--color-primary)', flexShrink: 0 }}
+                    >
+                      <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                        <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
+                        <polyline points="14 2 14 8 20 8" />
+                      </svg>
+                    </div>
+                    <div className="flex flex-col">
+                      <span className="text-xs" style={{ color: 'var(--color-text-muted)', lineHeight: 1 }}>
+                        Mã đơn hàng
+                      </span>
+                      <span
+                        className="font-bold"
+                        style={{
+                          color: 'var(--color-text-primary)',
+                          fontSize: '0.8rem',
+                          fontFamily: 'monospace',
+                          letterSpacing: '0.05em',
+                          lineHeight: 1.3,
+                        }}
+                      >
+                        #{order.orderCode}
+                      </span>
+                    </div>
+                  </div>
+
                   <div className="flex items-center gap-1.5">
                     {order.paymentMethod === 'BANK_TRANSFER' && order.paymentStatus === 'PENDING' && (
                       <span
@@ -221,10 +376,7 @@ export default function OrdersListPage() {
                         src={item.imageUrl || '/placeholder.png'}
                         alt={item.productName}
                         className="w-11 h-11 object-cover rounded-[var(--radius-sm)]"
-                        style={{
-                          border: '2px solid var(--color-bg-elevated)',
-                          zIndex: 3 - idx,
-                        }}
+                        style={{ border: '2px solid var(--color-bg-elevated)', zIndex: 3 - idx }}
                       />
                     ))}
                     {(order.items?.length ?? 0) > 3 && (
@@ -270,18 +422,12 @@ export default function OrdersListPage() {
                   className="flex items-center justify-between px-4 py-2.5"
                   style={{ borderTop: '0.5px solid var(--color-border-subtle)' }}
                 >
-                  <span
-                    className="text-xs flex items-center gap-1"
-                    style={{ color: 'var(--color-text-muted)' }}
-                  >
+                  <span className="text-xs flex items-center gap-1" style={{ color: 'var(--color-text-muted)' }}>
                     <ClockIcon />
                     {formatDate(order.createdAt)}
                   </span>
-                  <div className="flex items-center gap-1">
-                    <span
-                      className="text-sm font-semibold"
-                      style={{ color: 'var(--color-primary)' }}
-                    >
+                  <div className="flex items-center gap-1.5">
+                    <span className="text-sm font-bold" style={{ color: 'var(--color-primary)' }}>
                       {fmt(order.totalAmount)}
                     </span>
                     <Icon.ChevronRight />
@@ -292,8 +438,8 @@ export default function OrdersListPage() {
           })}
         </div>
 
-        {/* Load more */}
-        {currentPage + 1 < totalPages && (
+        {/* Load more — ẩn khi đang search */}
+        {!isSearching && currentPage + 1 < totalPages && (
           <div className="flex justify-center mt-6 pb-6">
             <button
               onClick={() => fetchMyOrders(currentPage + 1, 10, activeTab === 'ALL' ? null : activeTab)}

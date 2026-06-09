@@ -22,12 +22,16 @@ const orderApi = {
     api.patch(`/orders/${orderId}/cancel`),
 
   /** Kiểm tra mã khuyến mãi */
-  applyPromo: (promoCode, cartItemIds) =>
-    api.post('/orders/apply-promo', { promoCode, cartItemIds }),
+  applyPromo: (promoCode, payload) =>
+    api.post('/orders/apply-promo', { promoCode, ...payload }),
 
   // Thống kê số lượng đơn theo trạng thái (để show badge ở OrdersListPage)
   getStatusCounts: () =>
     api.get('/orders/status-counts'),
+
+  // Lấy danh sách mã khuyến mãi có thể áp dụng cho giỏ hàng hiện tại
+  getAvailablePromos: (payload) =>
+  api.post('/promos/available', payload),
 }
 
 export default orderApi

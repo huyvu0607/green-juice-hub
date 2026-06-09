@@ -25,6 +25,13 @@ const useOrderStore = create((set, get) => ({
       set({ statusCounts: res.data })
     } catch { }
   },
+
+  // Lấy danh sách mã khuyến mãi có thể áp dụng cho giỏ hàng hiện tại
+  fetchAvailablePromos: async (payload) => {
+    const res = await orderApi.getAvailablePromos(payload)
+    return res.data  // trả về array, PromoPickerModal tự set vào state
+  },
+
   // ── Fetch danh sách ──────────────────────────────────────
   fetchMyOrders: async (page = 0, size = 10, status = null) => {
     set({ loading: true, error: null })
@@ -110,10 +117,10 @@ const useOrderStore = create((set, get) => ({
   },
 
   // ── Áp mã khuyến mãi ────────────────────────────────────
-  applyPromo: async (promoCode, cartItemIds) => {
+  applyPromo: async (promoCode, promoPayload) => {
     set({ promoLoading: true, promoError: null, promoResult: null })
     try {
-      const res = await orderApi.applyPromo(promoCode, cartItemIds)
+      const res = await orderApi.applyPromo(promoCode, promoPayload)
       set({ promoResult: res.data })
       return res.data
     } catch (err) {
