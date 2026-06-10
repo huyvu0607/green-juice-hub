@@ -61,6 +61,7 @@ public class OrderMapper {
                 .totalAmount(order.getTotalAmount())
                 .promoCode(promoCode)
                 .note(order.getNote())
+                .cancelReason(order.getCancelReason())
                 .shippingAddress(shippingAddress)
                 .items(itemResponses)
                 .createdAt(order.getCreatedAt())

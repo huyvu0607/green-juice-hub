@@ -25,7 +25,7 @@ public interface IOrderService {
     OrderResponse getOrderDetail(Long userId, Long orderId);
 
     /** Huỷ đơn — chỉ cho phép khi status = PENDING */
-    OrderResponse cancelOrder(Long userId, Long orderId);
+    OrderResponse cancelOrder(Long userId, Long orderId, String reason);
 
     /** Kiểm tra & tính toán mã giảm giá trước khi đặt */
     ApplyPromoResponse applyPromo(Long userId, ApplyPromoRequest request);

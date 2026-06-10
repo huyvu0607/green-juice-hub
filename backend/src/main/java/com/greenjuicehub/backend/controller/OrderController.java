@@ -82,9 +82,11 @@ public class OrderController {
     @PatchMapping("/{orderId}/cancel")
     public ResponseEntity<OrderResponse> cancelOrder(
             @AuthenticationPrincipal Long userId,
-            @PathVariable Long orderId
+            @PathVariable Long orderId,
+            @RequestBody(required = false) Map<String, String> body
     ) {
-        return ResponseEntity.ok(orderService.cancelOrder(userId, orderId));
+        String reason = body != null ? body.get("reason") : null;
+        return ResponseEntity.ok(orderService.cancelOrder(userId, orderId, reason));
     }
 
     @GetMapping("/status-counts")

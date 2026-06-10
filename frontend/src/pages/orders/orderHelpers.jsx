@@ -30,10 +30,12 @@ export const PAYMENT_METHOD = {
   BANK_TRANSFER: 'Chuyển khoản ngân hàng',
 }
 
-export const BANK_BIN = '970436'
-export const ACCOUNT_NUMBER = '1234567890'
-export const ACCOUNT_NAME = 'NGUYEN VAN A'
-export const BANK_NAME = 'Vietcombank'
+// ── Thông tin ngân hàng — single source of truth ─────────────────────────────
+// BankTransferModal và PaymentModal đều import từ đây, không tự khai báo lại
+export const BANK_BIN        = '970436'
+export const ACCOUNT_NUMBER  = '1234567890'
+export const ACCOUNT_NAME    = 'NGUYEN VAN A'
+export const BANK_NAME       = 'Vietcombank'
 
 export const getQrUrl = (amount, content) =>
   `https://img.vietqr.io/image/${BANK_BIN}-${ACCOUNT_NUMBER}-compact2.png` +

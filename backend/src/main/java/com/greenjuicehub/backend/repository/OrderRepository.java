@@ -29,4 +29,8 @@ public interface OrderRepository extends JpaRepository<Order, Long> {
     /** Lấy số lượng đơn hàng của status theo ngày tạo**/
     Page<Order> findByUserIdAndStatusOrderByCreatedAtDesc(Long userId, Order.OrderStatus status, Pageable pageable);
 
+    /** Tìm Order theo code  **/
+    Optional<Order> findByOrderCode(String orderCode);
+
+
 }

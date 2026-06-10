@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
+import useCartStore from '@/store/useCartStore'
 import './OrderSuccessModal.css'
 
 export default function OrderSuccessModal({ order, onClose }) {

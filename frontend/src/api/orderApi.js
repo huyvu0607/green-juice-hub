@@ -18,8 +18,8 @@ const orderApi = {
     api.post('/orders/buy-now', data),
 
   /** Huỷ đơn */
-  cancelOrder: (orderId) =>
-    api.patch(`/orders/${orderId}/cancel`),
+  cancelOrder: (orderId, reason) =>
+    api.patch(`/orders/${orderId}/cancel`, { reason }),
 
   /** Kiểm tra mã khuyến mãi */
   applyPromo: (promoCode, payload) =>
@@ -31,7 +31,7 @@ const orderApi = {
 
   // Lấy danh sách mã khuyến mãi có thể áp dụng cho giỏ hàng hiện tại
   getAvailablePromos: (payload) =>
-  api.post('/promos/available', payload),
+    api.post('/promos/available', payload),
 }
 
 export default orderApi
