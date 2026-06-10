@@ -320,22 +320,19 @@ function AddressSelector({ selectedId, onSelect }) {
 }
 
 // ── Promo Picker Modal ──────────────────────────────────────────────────────
-// availablePromos: array of { code, description, discountType, discountValue, minOrderValue, isEligible, reason }
-// Nếu store chưa expose danh sách promo, bạn có thể fetch riêng hoặc truyền vào từ ngoài.
+// ── Promo Picker Modal ──────────────────────────────────────────────────────
 function PromoPickerModal({ onClose, onSelect, promoPayload, subtotal, currentCode }) {
-  const { fetchAvailablePromos, applyPromo, promoLoading } = useOrderStore()
+  const { fetchAvailablePromos, applyPromo } = useOrderStore()
   const [promos, setPromos] = useState([])
   const [loading, setLoading] = useState(true)
   const [search, setSearch] = useState('')
   const [applying, setApplying] = useState(null)
 
-  // Khoá scroll body
   useEffect(() => {
     document.body.style.overflow = 'hidden'
     return () => { document.body.style.overflow = '' }
   }, [])
 
-  // Escape để đóng
   useEffect(() => {
     const h = (e) => { if (e.key === 'Escape') onClose() }
     window.addEventListener('keydown', h)
@@ -363,7 +360,6 @@ function PromoPickerModal({ onClose, onSelect, promoPayload, subtotal, currentCo
       (p.description || '').toLowerCase().includes(search.toLowerCase())
   )
 
-  // Tách eligible / ineligible
   const eligible = filtered.filter((p) => p.isEligible)
   const ineligible = filtered.filter((p) => !p.isEligible)
   const sorted = [...eligible, ...ineligible]
@@ -392,8 +388,9 @@ function PromoPickerModal({ onClose, onSelect, promoPayload, subtotal, currentCo
       style={{ background: 'rgba(0,0,0,0.5)', backdropFilter: 'blur(4px)', animation: 'fadeIn 0.2s ease' }}
       onClick={onClose}
     >
+      {/* ── Tăng max-w lên xl (576px), padding rộng hơn ── */}
       <div
-        className="w-full max-w-md rounded-[var(--radius-lg)] overflow-hidden shadow-2xl flex flex-col"
+        className="w-full max-w-xl rounded-[var(--radius-lg)] overflow-hidden shadow-2xl flex flex-col"
         style={{
           background: 'var(--color-bg-elevated)',
           border: '1px solid var(--color-border-subtle)',
@@ -404,7 +401,7 @@ function PromoPickerModal({ onClose, onSelect, promoPayload, subtotal, currentCo
       >
         {/* Header */}
         <div
-          className="flex items-center justify-between px-5 py-4 flex-shrink-0"
+          className="flex items-center justify-between px-6 py-4 flex-shrink-0"
           style={{ borderBottom: '1px solid var(--color-border-subtle)' }}
         >
           <div>
@@ -434,7 +431,7 @@ function PromoPickerModal({ onClose, onSelect, promoPayload, subtotal, currentCo
         </div>
 
         {/* Search */}
-        <div className="px-5 py-3 flex-shrink-0" style={{ borderBottom: '1px solid var(--color-border-subtle)' }}>
+        <div className="px-6 py-3 flex-shrink-0" style={{ borderBottom: '1px solid var(--color-border-subtle)' }}>
           <input
             autoFocus
             value={search}
@@ -452,7 +449,8 @@ function PromoPickerModal({ onClose, onSelect, promoPayload, subtotal, currentCo
         </div>
 
         {/* List */}
-        <div className="flex-1 overflow-y-auto px-5 py-3 flex flex-col gap-2">
+        <div className="flex-1 overflow-y-auto px-6 py-4 flex flex-col gap-3"
+          style={{ minHeight: 0 }}>
           {loading ? (
             <div className="flex items-center justify-center py-10">
               <div className="w-6 h-6 rounded-full border-2 border-[var(--color-primary)] border-t-transparent animate-spin" />
@@ -469,39 +467,53 @@ function PromoPickerModal({ onClose, onSelect, promoPayload, subtotal, currentCo
               const isApplying = applying === promo.code
 
               return (
-                <div
-                  key={promo.code}
-                  className="rounded-[var(--radius-md)] overflow-hidden transition-all"
-                  style={{
-                    border: isActive
-                      ? '1.5px solid var(--color-primary)'
-                      : promo.isEligible
-                        ? '1.5px solid var(--color-border-subtle)'
-                        : '1.5px solid var(--color-border-subtle)',
-                    opacity: promo.isEligible ? 1 : 0.5,
-                    background: isActive
-                      ? 'var(--color-primary-subtle)'
-                      : promo.isEligible
-                        ? 'var(--color-bg-muted)'
-                        : 'var(--color-bg-surface)',
-                  }}
-                >
-                  {/* Stripe top accent */}
+                <div key={promo.code} className="flex flex-col">
+                  {/* ── Stripe top — để ngoài wrapper overflow ── */}
                   <div
-                    className="h-0.5 w-full"
                     style={{
+                      height: 3,
+                      borderRadius: '6px 6px 0 0',
                       background: promo.isEligible
                         ? 'linear-gradient(90deg, var(--color-primary), var(--color-primary-hover))'
                         : 'var(--color-border-subtle)',
+                      flexShrink: 0,
                     }}
                   />
 
-                  <div className="p-3 flex items-center gap-3">
+                  {/* ── Card body ── */}
+                  <div
+                    className="flex items-center gap-4 px-4 py-3 transition-all"
+                    style={{
+                      border: isActive
+                        ? '1.5px solid var(--color-primary)'
+                        : '1.5px solid var(--color-border-subtle)',
+                      borderTop: 'none',           // stripe đã làm top rồi
+                      borderRadius: '0 0 var(--radius-md) var(--radius-md)',
+                      opacity: promo.isEligible ? 1 : 0.55,
+                      background: isActive
+                        ? 'var(--color-primary-subtle)'
+                        : promo.isEligible
+                          ? 'var(--color-bg-muted)'
+                          : 'var(--color-bg-surface)',
+                    }}
+                  >
+                    {/* Icon */}
+                    <div
+                      className="flex-shrink-0 w-10 h-10 rounded-[var(--radius-sm)] flex items-center justify-center"
+                      style={{
+                        background: promo.isEligible ? 'var(--color-primary-muted)' : 'var(--color-bg-surface)',
+                        border: '1px solid var(--color-border-subtle)',
+                        color: promo.isEligible ? 'var(--color-primary)' : 'var(--color-text-muted)',
+                      }}
+                    >
+                      <Icon.Percent />
+                    </div>
+
                     {/* Info */}
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center gap-2 flex-wrap">
                         <span
-                          className="font-mono font-bold text-sm"
+                          className="font-mono font-bold text-sm tracking-wide"
                           style={{ color: promo.isEligible ? 'var(--color-primary)' : 'var(--color-text-muted)' }}
                         >
                           {promo.code}
@@ -517,27 +529,35 @@ function PromoPickerModal({ onClose, onSelect, promoPayload, subtotal, currentCo
                         {!promo.isEligible && (
                           <span
                             className="text-xs px-1.5 py-0.5 rounded-full font-medium"
-                            style={{ background: 'var(--color-bg-surface)', color: 'var(--color-text-muted)', border: '1px solid var(--color-border-subtle)' }}
+                            style={{
+                              background: 'var(--color-bg-surface)',
+                              color: 'var(--color-text-muted)',
+                              border: '1px solid var(--color-border-subtle)',
+                            }}
                           >
                             Không đủ điều kiện
                           </span>
                         )}
                       </div>
+
                       <p
-                        className="text-xs mt-0.5 font-medium"
+                        className="text-xs mt-1 font-semibold"
                         style={{ color: promo.isEligible ? 'var(--color-text-primary)' : 'var(--color-text-muted)' }}
                       >
                         {fmtDiscount(promo)}
                         {promo.minOrderValue > 0 && (
-                          <span className="font-normal"> · Đơn tối thiểu {fmt(promo.minOrderValue)}</span>
+                          <span className="font-normal ml-1" style={{ color: 'var(--color-text-muted)' }}>
+                            · Đơn tối thiểu {fmt(promo.minOrderValue)}
+                          </span>
                         )}
                       </p>
+
                       {promo.description && (
-                        <p className="text-xs mt-0.5 truncate" style={{ color: 'var(--color-text-muted)' }}>
+                        <p className="text-xs mt-0.5" style={{ color: 'var(--color-text-muted)' }}>
                           {promo.description}
                         </p>
                       )}
-                      {/* Lý do không đủ điều kiện */}
+
                       {!promo.isEligible && promo.reason && (
                         <p className="text-xs mt-1" style={{ color: '#ef4444' }}>
                           ⚠ {promo.reason}
@@ -549,7 +569,7 @@ function PromoPickerModal({ onClose, onSelect, promoPayload, subtotal, currentCo
                     <button
                       disabled={!promo.isEligible || isApplying}
                       onClick={() => promo.isEligible && handleApply(promo.code)}
-                      className="flex-shrink-0 px-3 py-1.5 rounded-[var(--radius-sm)] text-xs font-semibold transition-all"
+                      className="flex-shrink-0 w-16 py-1.5 rounded-[var(--radius-sm)] text-xs font-semibold transition-all text-center"
                       style={
                         !promo.isEligible
                           ? { background: 'var(--color-bg-surface)', color: 'var(--color-text-muted)', cursor: 'not-allowed', border: '1px solid var(--color-border-subtle)' }
@@ -567,13 +587,14 @@ function PromoPickerModal({ onClose, onSelect, promoPayload, subtotal, currentCo
           )}
         </div>
 
-        {/* Footer info */}
+        {/* Footer */}
         <div
-          className="px-5 py-3 flex-shrink-0"
+          className="px-6 py-3 flex-shrink-0"
           style={{ borderTop: '1px solid var(--color-border-subtle)', background: 'var(--color-bg-surface)' }}
         >
           <p className="text-xs text-center" style={{ color: 'var(--color-text-muted)' }}>
-            Giá trị đơn hàng hiện tại: <span style={{ color: 'var(--color-text-primary)', fontWeight: 600 }}>{fmt(subtotal)}</span>
+            Giá trị đơn hàng hiện tại:{' '}
+            <span style={{ color: 'var(--color-text-primary)', fontWeight: 600 }}>{fmt(subtotal)}</span>
           </p>
         </div>
       </div>
@@ -586,7 +607,7 @@ function PromoPickerModal({ onClose, onSelect, promoPayload, subtotal, currentCo
   )
 }
 
-// ── Promo input (mới: có nút "Xem tất cả mã") ───────────────────────────────
+// ── Promo input ─────────────────────────────────────────────────────────────
 function PromoInput({ promoPayload, onApplied, onCleared, subtotal }) {
   const { applyPromo, clearPromo, promoResult, promoLoading, promoError } = useOrderStore()
   const [code, setCode] = useState('')
@@ -596,7 +617,6 @@ function PromoInput({ promoPayload, onApplied, onCleared, subtotal }) {
     const c = codeToApply ?? code.trim()
     if (!c) return
     try {
-      // promoPayload có dạng { cartItemIds } hoặc { variantId, quantity }
       const result = await applyPromo(c, promoPayload)
       onApplied?.(result)
     } catch { }
@@ -615,7 +635,6 @@ function PromoInput({ promoPayload, onApplied, onCleared, subtotal }) {
   return (
     <>
       <div className="flex flex-col gap-2">
-        {/* Input row */}
         <div className="flex gap-2">
           <div className="relative flex-1">
             <span className="absolute left-3 top-1/2 -translate-y-1/2" style={{ color: 'var(--color-text-muted)' }}>
@@ -658,7 +677,6 @@ function PromoInput({ promoPayload, onApplied, onCleared, subtotal }) {
           )}
         </div>
 
-        {/* Nút xem danh sách mã */}
         {!promoResult && (
           <button
             onClick={() => setShowPicker(true)}
@@ -700,7 +718,6 @@ function PromoInput({ promoPayload, onApplied, onCleared, subtotal }) {
 function OrderSummary({ items, subtotal, discount, shipping, total }) {
   return (
     <div className="flex flex-col gap-3">
-      {/* Item list */}
       <div className="flex flex-col gap-2 pb-3" style={{ borderBottom: '1px solid var(--color-border-subtle)' }}>
         {items.map((item) => {
           const price = item.salePrice ?? item.originalPrice
@@ -736,7 +753,6 @@ function OrderSummary({ items, subtotal, discount, shipping, total }) {
         })}
       </div>
 
-      {/* Tổng tiền */}
       <div className="flex flex-col gap-2 text-sm">
         <div className="flex justify-between">
           <span style={{ color: 'var(--color-text-secondary)' }}>Tạm tính</span>
@@ -771,10 +787,13 @@ export default function CheckoutPage() {
   const navigate = useNavigate()
   const location = useLocation()
   const { user } = useAuthStore()
-  const { items: cartItems } = useCartStore()
+  const { items: cartItems, fetchCart } = useCartStore()
   const buyNowItem = location.state?.buyNowItem
   const { placeOrder, buyNow, placing, error, clearError, promoResult, clearPromo } = useOrderStore()
   const [successOrder, setSuccessOrder] = useState(null)
+  // ── FIX: frozenItems lưu snapshot items + snapshot các giá trị tính tiền ──
+  const [frozenItems, setFrozenItems] = useState(null)
+  const [frozenPrices, setFrozenPrices] = useState(null)
 
   const selectedIds = useMemo(
     () => new Set(location.state?.selectedIds || []),
@@ -791,13 +810,17 @@ export default function CheckoutPage() {
   const [note, setNote] = useState('')
   const [promoCode, setPromoCode] = useState('')
   const [bankTransferOrder, setBankTransferOrder] = useState(null)
+  const [orderPlaced, setOrderPlaced] = useState(false)
+
+  // ── Dùng frozenItems nếu đã đặt hàng, tránh mất data khi fetchCart cập nhật ──
+  const displayItems = frozenItems ?? selectedItems
 
   const subtotal = useMemo(() =>
-    selectedItems.reduce((sum, i) => {
+    displayItems.reduce((sum, i) => {
       const price = i.salePrice ?? i.originalPrice
       return sum + price * i.quantity
     }, 0),
-    [selectedItems]
+    [displayItems]
   )
 
   const promoPayload = useMemo(() =>
@@ -807,12 +830,14 @@ export default function CheckoutPage() {
     [buyNowItem, selectedIds]
   )
 
-  const discount = promoResult?.discountAmount ?? 0
-  const shipping = subtotal - discount >= 200000 ? 0 : 30000
-  const total = subtotal - discount + shipping
+  // ── Dùng frozenPrices nếu có (sau khi đặt hàng thành công) ──
+  const discount = frozenPrices?.discount ?? promoResult?.discountAmount ?? 0
+  const shipping = frozenPrices?.shipping ?? (subtotal - discount >= 200000 ? 0 : 30000)
+  const total = frozenPrices?.total ?? (subtotal - discount + shipping)
 
   useEffect(() => {
     if (buyNowItem) return
+    if (orderPlaced) return
     if (selectedItems.length === 0 && cartItems.length > 0) {
       navigate('/products')
     }
@@ -838,6 +863,23 @@ export default function CheckoutPage() {
       return
     }
 
+    // ── Snapshot toàn bộ items + giá trước khi gọi API ──
+    const snapshotItems = [...selectedItems]
+    const snapshotDiscount = promoResult?.discountAmount ?? 0
+    const snapshotSubtotal = snapshotItems.reduce((sum, i) => {
+      const price = i.salePrice ?? i.originalPrice
+      return sum + price * i.quantity
+    }, 0)
+    const snapshotShipping = snapshotSubtotal - snapshotDiscount >= 200000 ? 0 : 30000
+    const snapshotTotal = snapshotSubtotal - snapshotDiscount + snapshotShipping
+
+    setFrozenItems(snapshotItems)
+    setFrozenPrices({
+      discount: snapshotDiscount,
+      shipping: snapshotShipping,
+      total: snapshotTotal,
+    })
+
     try {
       let order
       if (buyNowItem) {
@@ -846,7 +888,7 @@ export default function CheckoutPage() {
           quantity: buyNowItem.quantity,
           addressId,
           paymentMethod,
-          promoCode: promoCode || undefined,  // ← thêm dòng này
+          promoCode: promoCode || undefined,
           note: note.trim() || undefined,
         })
       } else {
@@ -859,12 +901,20 @@ export default function CheckoutPage() {
         })
       }
 
+      if (!buyNowItem) {
+        setOrderPlaced(true)
+        await fetchCart()
+      }
       if (paymentMethod === 'BANK_TRANSFER') {
         setBankTransferOrder(order)
       } else {
         setSuccessOrder(order)
       }
-    } catch { }
+    } catch {
+      // Nếu lỗi thì xoá frozen để UI về trạng thái bình thường
+      setFrozenItems(null)
+      setFrozenPrices(null)
+    }
   }
 
   return (
@@ -889,10 +939,8 @@ export default function CheckoutPage() {
       >
         <div className="max-w-5xl mx-auto">
 
-          {/* ── Breadcrumb ── */}
           <Breadcrumb isBuyNow={!!buyNowItem} />
 
-          {/* ── Header ── */}
           <div className="flex items-center gap-3 mb-8">
             <button
               onClick={() => navigate(-1)}
@@ -917,12 +965,11 @@ export default function CheckoutPage() {
                 Thanh toán
               </h1>
               <p className="text-xs mt-1" style={{ color: 'var(--color-text-muted)' }}>
-                {selectedItems.length} sản phẩm
+                {displayItems.length} sản phẩm
               </p>
             </div>
           </div>
 
-          {/* Error */}
           {error && (
             <div
               className="mb-4 px-4 py-3 rounded-[var(--radius-md)] text-sm flex items-center justify-between"
@@ -933,19 +980,15 @@ export default function CheckoutPage() {
             </div>
           )}
 
-          {/* ── Layout 2 cột ── */}
           <div className="grid grid-cols-1 lg:grid-cols-[1fr_380px] gap-6">
 
             {/* ── Cột trái ── */}
             <div className="flex flex-col gap-5">
-
-              {/* 1. Địa chỉ giao hàng */}
               <Card>
                 <SectionTitle icon={<Icon.MapPin />} title="Địa chỉ giao hàng" />
                 <AddressSelector selectedId={addressId} onSelect={setAddressId} />
               </Card>
 
-              {/* 2. Phương thức thanh toán */}
               <Card>
                 <SectionTitle icon={<Icon.Wallet />} title="Phương thức thanh toán" />
                 <div className="flex flex-col gap-2">
@@ -981,7 +1024,6 @@ export default function CheckoutPage() {
                 </div>
               </Card>
 
-              {/* 3. Mã khuyến mãi */}
               <Card>
                 <SectionTitle icon={<Icon.Tag />} title="Mã khuyến mãi" />
                 <PromoInput
@@ -992,7 +1034,6 @@ export default function CheckoutPage() {
                 />
               </Card>
 
-              {/* 4. Ghi chú */}
               <Card>
                 <SectionTitle icon={<Icon.Truck />} title="Ghi chú đơn hàng" />
                 <textarea
@@ -1012,12 +1053,12 @@ export default function CheckoutPage() {
               </Card>
             </div>
 
-            {/* ── Cột phải: tóm tắt đơn ── */}
+            {/* ── Cột phải ── */}
             <div className="flex flex-col gap-4 lg:sticky lg:top-20 lg:self-start">
               <Card>
                 <SectionTitle icon="🛒" title="Đơn hàng của bạn" />
                 <OrderSummary
-                  items={selectedItems}
+                  items={displayItems}
                   subtotal={subtotal}
                   discount={discount}
                   shipping={shipping}
@@ -1025,10 +1066,9 @@ export default function CheckoutPage() {
                 />
               </Card>
 
-              {/* Nút đặt hàng */}
               <button
                 onClick={handleSubmit}
-                disabled={placing || !addressId || selectedItems.length === 0}
+                disabled={placing || !addressId || displayItems.length === 0}
                 className="w-full py-3.5 rounded-[var(--radius-md)] font-semibold text-sm text-white flex items-center justify-center gap-2 transition-colors cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
                 style={{ background: 'var(--color-primary)' }}
                 onMouseEnter={(e) => { if (!placing) e.currentTarget.style.background = 'var(--color-primary-hover)' }}

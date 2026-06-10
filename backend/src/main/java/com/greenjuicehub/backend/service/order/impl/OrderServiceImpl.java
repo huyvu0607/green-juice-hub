@@ -341,7 +341,7 @@ public class OrderServiceImpl implements IOrderService {
     // ─────────────────────────────────────────────────────────────────────────
     @Override
     @Transactional
-    public OrderResponse cancelOrder(Long userId, Long orderId) {
+    public OrderResponse cancelOrder(Long userId, Long orderId, String reason) {
         Order order = orderRepository.findByIdAndUserId(orderId, userId)
                 .orElseThrow(() -> new AppException(HttpStatus.NOT_FOUND, "Không tìm thấy đơn hàng"));
 
@@ -350,6 +350,10 @@ public class OrderServiceImpl implements IOrderService {
                     "Chỉ có thể huỷ đơn hàng đang ở trạng thái chờ xác nhận");
         }
 
+        if (order.getPaymentStatus() == Order.PaymentStatus.PAID) {
+            throw new AppException(HttpStatus.BAD_REQUEST,
+                    "Đơn hàng đã thanh toán, vui lòng liên hệ hỗ trợ để được hoàn tiền");
+        }
         // Hoàn lại tồn kho
         List<OrderItem> items = orderItemRepository.findAllByOrderIdWithDetails(orderId);
         items.forEach(item -> {
@@ -364,6 +368,7 @@ public class OrderServiceImpl implements IOrderService {
             promotionRepository.save(promo);
         }
 
+        order.setCancelReason(reason != null ? reason.trim() : null);
         order.setStatus(Order.OrderStatus.CANCELLED);
         order = orderRepository.save(order);
 

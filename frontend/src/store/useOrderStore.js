@@ -97,11 +97,10 @@ const useOrderStore = create((set, get) => ({
   },
 
   // ── Huỷ đơn ─────────────────────────────────────────────
-  cancelOrder: async (orderId) => {
+  cancelOrder: async (orderId, reason) => {
     set({ loading: true, error: null })
     try {
-      const res = await orderApi.cancelOrder(orderId)
-      // Cập nhật lại trong danh sách nếu đang có
+      const res = await orderApi.cancelOrder(orderId, reason)
       set((s) => ({
         orders: s.orders.map((o) => o.id === orderId ? res.data : o),
         currentOrder: s.currentOrder?.id === orderId ? res.data : s.currentOrder,

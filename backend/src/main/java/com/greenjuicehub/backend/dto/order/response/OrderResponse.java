@@ -30,6 +30,8 @@ public class OrderResponse {
     private ShippingAddressResponse shippingAddress;
     private List<OrderItemResponse> items;
 
+    private String cancelReason;
+
     private LocalDateTime createdAt;
     private LocalDateTime updatedAt;
 }

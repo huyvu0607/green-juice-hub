@@ -12,3 +12,9 @@ jwt:
 google:
   client-id: 249529136685-3rfj6v3n0gl1aqjotch0lk1pgi9r7abp.apps.googleusercontent.com
   recaptcha-secret: 6LeIxAcTAAAAAGG-vFI1TnRWxMZNFuojJ4WifJWe
+
+app:
+  sepay:
+    merchant-id: SP-TEST-DH935BAB
+    secret-key: spsk_test_P3MqB47zBgcesmcZNsFZRFrV1XzCm7KD
+    api-key: a7f3c9e2b4d81f6a0e5c7b2d9f4a3e8c1b6d0f2a5e7c9b3d4f8a1e6c2b7d0f3

@@ -248,6 +248,7 @@ CREATE TABLE orders (
   payment_status   ENUM('PENDING','PAID','REFUNDED') NOT NULL DEFAULT 'PENDING',  -- ✅ uppercase
   shipping_address JSON          NOT NULL,
   note             TEXT          NULL,
+  cancel_reason    VARCHAR(500)  NULL,
   created_at       TIMESTAMP     NOT NULL DEFAULT CURRENT_TIMESTAMP,
   updated_at       TIMESTAMP     NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
   CONSTRAINT fk_order_user      FOREIGN KEY (user_id)      REFERENCES users(id),

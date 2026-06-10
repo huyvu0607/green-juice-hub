@@ -48,3 +48,10 @@ otp:
 google:
   client-id: ${GOOGLE_CLIENT_ID}
   recaptcha-secret: ${RECAPTCHA_SECRET}
+
+app:
+  bank:
+    bank-name: Vietcombank
+    bank-bin: "970436"
+    account-number: "1234567890"
+    account-name: NGUYEN VAN A

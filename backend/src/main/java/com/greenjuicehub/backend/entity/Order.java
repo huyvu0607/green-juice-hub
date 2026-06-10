@@ -53,6 +53,9 @@ public class Order {
     @Column(columnDefinition = "TEXT")
     private String note;
 
+    @Column(name = "cancel_reason")
+    private String cancelReason;
+
     @Column(name = "created_at", updatable = false)
     private LocalDateTime createdAt;
 
