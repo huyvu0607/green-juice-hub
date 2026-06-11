@@ -18,6 +18,8 @@ public class AddressMapper {
                 .province(request.getProvince())
                 .district(request.getDistrict())
                 .ward(request.getWard())
+                .districtId(request.getDistrictId())
+                .wardCode(request.getWardCode())
                 .detail(request.getDetail())
                 .isDefault(isDefault)
                 .build();
@@ -32,6 +34,8 @@ public class AddressMapper {
                 .province(address.getProvince())
                 .district(address.getDistrict())
                 .ward(address.getWard())
+                .districtId(address.getDistrictId())
+                .wardCode(address.getWardCode())
                 .detail(address.getDetail())
                 .isDefault(address.getIsDefault())
                 .build();

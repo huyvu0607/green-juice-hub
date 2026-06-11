@@ -32,4 +32,7 @@ public class UpdateAddressRequest {
     private String detail;
 
     private Boolean isDefault = false;
+    // GHN location IDs
+    private Integer districtId;
+    private String wardCode;
 }

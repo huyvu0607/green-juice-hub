@@ -18,3 +18,11 @@ app:
     merchant-id: SP-TEST-DH935BAB
     secret-key: spsk_test_P3MqB47zBgcesmcZNsFZRFrV1XzCm7KD
     api-key: a7f3c9e2b4d81f6a0e5c7b2d9f4a3e8c1b6d0f2a5e7c9b3d4f8a1e6c2b7d0f3
+
+ghn:
+  token: bf423246-64f6-11f1-9753-025d30e7fa67
+  shop-id: 6483687
+  base-url: https://online-gateway.ghn.vn
+  from-district-id: 1454
+  from-ward-code: "21201"
+  service-type-id: 2

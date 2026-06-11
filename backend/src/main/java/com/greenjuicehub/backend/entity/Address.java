@@ -38,4 +38,10 @@ public class Address {
 
     @Column(name = "is_default", nullable = false)
     private Boolean isDefault = false;
+
+    @Column(name = "district_id")
+    private Integer districtId;
+
+    @Column(name = "ward_code", length = 10)
+    private String wardCode;
 }

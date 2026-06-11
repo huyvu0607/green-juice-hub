@@ -45,7 +45,8 @@ public class SecurityConfig {
                                 "/api/auth/refresh",
                                 "/api/auth/logout",
                                 "/api/products/**",
-                                "/api/webhooks/**"
+                                "/api/webhooks/**",
+                                "/api/shipping/**"
                         ).permitAll()
                         // Tất cả còn lại phải authenticated
                         .anyRequest().authenticated()
