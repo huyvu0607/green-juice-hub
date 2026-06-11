@@ -35,7 +35,11 @@ const orderApi = {
 
   /** Tính phí vận chuyển */
   calculateShippingFee: (data) =>
-  api.post('/orders/shipping-fee', data),
+    api.post('/orders/shipping-fee', data),
+
+  /** Xác nhận đã nhận hàng */
+  confirmDelivered: (orderId) =>
+    api.patch(`/orders/${orderId}/confirm-delivered`),
 }
 
 

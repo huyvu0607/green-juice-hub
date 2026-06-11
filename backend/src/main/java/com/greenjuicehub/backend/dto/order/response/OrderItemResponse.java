@@ -13,6 +13,7 @@ public class OrderItemResponse {
 
     private Long id;
     private Long productId;
+    private String productSlug;
     private Long variantId;
     private String productName;
     private String variantName;
@@ -20,4 +21,6 @@ public class OrderItemResponse {
     private BigDecimal unitPrice;
     private Integer quantity;
     private BigDecimal subtotal;
+    private Boolean hasReviewed;
+
 }

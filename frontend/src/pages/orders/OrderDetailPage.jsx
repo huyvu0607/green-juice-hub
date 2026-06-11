@@ -8,12 +8,16 @@ import {
   StatusBadge, Icon,
   BANK_NAME, ACCOUNT_NUMBER, ACCOUNT_NAME, getQrUrl,
 } from './orderHelpers'
+import useCartStore from '@/store/useCartStore'
+
+
+import ReviewFormPopup from '@/components/product/ReviewFormPopup'
 
 // ── Order Status Stepper ───────────────────────────────────────────
 const STATUS_STEPS = [
-  { key: 'PENDING',   label: 'Đã đặt hàng' },
+  { key: 'PENDING', label: 'Đã đặt hàng' },
   { key: 'CONFIRMED', label: 'Đã xác nhận' },
-  { key: 'SHIPPING',  label: 'Đang giao' },
+  { key: 'SHIPPING', label: 'Đang giao' },
   { key: 'DELIVERED', label: 'Hoàn tất' },
 ]
 
@@ -35,7 +39,7 @@ function OrderStepper({ status }) {
   return (
     <div className="flex items-start gap-0 w-full">
       {STATUS_STEPS.map((step, idx) => {
-        const done   = idx <= currentIdx
+        const done = idx <= currentIdx
         const active = idx === currentIdx
         const isLast = idx === STATUS_STEPS.length - 1
 
@@ -77,14 +81,14 @@ function OrderStepper({ status }) {
 
 // ── Payment Modal ──────────────────────────────────────────────────
 function PaymentModal({ order, onClose }) {
-  const [copied, setCopied]     = useState(false)
+  const [copied, setCopied] = useState(false)
   const [qrLoaded, setQrLoaded] = useState(false)
-  const [qrError, setQrError]   = useState(false)
-  const [showQr, setShowQr]     = useState(true)
-  const [paid, setPaid]         = useState(false)
-  const [closing, setClosing]   = useState(false)
-  const { fetchOrderDetail }    = useOrderStore()
-  const paidRef                 = useRef(false)
+  const [qrError, setQrError] = useState(false)
+  const [showQr, setShowQr] = useState(true)
+  const [paid, setPaid] = useState(false)
+  const [closing, setClosing] = useState(false)
+  const { fetchOrderDetail } = useOrderStore()
+  const paidRef = useRef(false)
 
   useEffect(() => {
     const handler = (e) => { if (e.key === 'Escape' && !paid) onClose() }
@@ -288,10 +292,10 @@ function PaymentModal({ order, onClose }) {
               ) : (
                 <div className="flex flex-col gap-2.5">
                   {[
-                    { label: 'Ngân hàng',     value: BANK_NAME },
-                    { label: 'Số tài khoản',  value: ACCOUNT_NUMBER, mono: true },
+                    { label: 'Ngân hàng', value: BANK_NAME },
+                    { label: 'Số tài khoản', value: ACCOUNT_NUMBER, mono: true },
                     { label: 'Chủ tài khoản', value: ACCOUNT_NAME },
-                    { label: 'Số tiền',       value: fmt(order.totalAmount), highlight: true },
+                    { label: 'Số tiền', value: fmt(order.totalAmount), highlight: true },
                   ].map(({ label, value, mono, highlight }) => (
                     <div key={label} className="flex justify-between items-center py-1.5"
                       style={{ borderBottom: '0.5px solid var(--color-border-subtle)' }}>
@@ -370,7 +374,7 @@ const CANCEL_REASONS = [
 
 function CancelModal({ onConfirm, onClose, cancelling, isBankTransfer }) {
   const [selected, setSelected] = useState(null)
-  const [custom, setCustom]     = useState('')
+  const [custom, setCustom] = useState('')
 
   useEffect(() => {
     const handler = (e) => { if (e.key === 'Escape') onClose() }
@@ -383,8 +387,8 @@ function CancelModal({ onConfirm, onClose, cancelling, isBankTransfer }) {
     return () => { document.body.style.overflow = '' }
   }, [])
 
-  const isOther   = selected === 'Lý do khác'
-  const reason    = isOther ? custom.trim() : selected
+  const isOther = selected === 'Lý do khác'
+  const reason = isOther ? custom.trim() : selected
   const canSubmit = selected && (!isOther || custom.trim().length > 0)
 
   return (
@@ -533,10 +537,10 @@ function CancelModal({ onConfirm, onClose, cancelling, isBankTransfer }) {
 }
 
 // ── Sidebar tóm tắt ────────────────────────────────────────────────
-function OrderSummary({ o, onCancel, cancelling }) {
+function OrderSummary({ o, onCancel, cancelling, onConfirmDelivered, confirming }) {
   const navigate = useNavigate()
   const [showPaymentModal, setShowPaymentModal] = useState(false)
-  const [showCancelModal, setShowCancelModal]   = useState(false)
+  const [showCancelModal, setShowCancelModal] = useState(false)
 
   const canPay = ['BANK_TRANSFER', 'MOMO', 'VNPAY'].includes(o.paymentMethod)
     && o.paymentStatus === 'PENDING'
@@ -625,6 +629,16 @@ function OrderSummary({ o, onCancel, cancelling }) {
             >
               Tiếp tục mua sắm
             </button>
+            {o.status === 'SHIPPING' && (
+              <button
+                onClick={onConfirmDelivered}
+                disabled={confirming}
+                className="w-full py-2.5 rounded-[var(--radius-md)] text-sm font-semibold text-white cursor-pointer disabled:opacity-50 transition-all active:scale-[0.98]"
+                style={{ background: '#16a34a' }}
+              >
+                {confirming ? 'Đang xác nhận...' : '✓ Đã nhận được hàng'}
+              </button>
+            )}
             {o.status === 'PENDING' && (
               <button
                 onClick={() => setShowCancelModal(true)}
@@ -671,13 +685,17 @@ function OrderSummary({ o, onCancel, cancelling }) {
 
 // ── Page ───────────────────────────────────────────────────────────
 export default function OrderDetailPage() {
-  const { orderId }  = useParams()
-  const navigate     = useNavigate()
-  const location     = useLocation()
+  const { orderId } = useParams()
+  const navigate = useNavigate()
+  const location = useLocation()
+  const [reviewItem, setReviewItem] = useState(null)
   const fromCheckout = location.state?.fromCheckout
 
   const { currentOrder, loading, error, fetchOrderDetail, cancelOrder } = useOrderStore()
   const [cancelling, setCancelling] = useState(false)
+  const [confirming, setConfirming] = useState(false)
+  const { addItem } = useCartStore()
+
 
   useEffect(() => { fetchOrderDetail(orderId) }, [orderId])
 
@@ -700,7 +718,7 @@ export default function OrderDetailPage() {
     )
   }
 
-  const o    = currentOrder
+  const o = currentOrder
   const addr = o.shippingAddress
 
   const handleCancel = async (reason) => {
@@ -714,6 +732,18 @@ export default function OrderDetailPage() {
     }
   }
 
+  const handleConfirmDelivered = async () => {
+    if (!window.confirm('Xác nhận bạn đã nhận được hàng?')) return
+    setConfirming(true)
+    try {
+      await orderApi.confirmDelivered(o.id)
+      await fetchOrderDetail(orderId)
+    } catch (e) {
+      alert(e?.response?.data?.message ?? 'Có lỗi xảy ra')
+    } finally {
+      setConfirming(false)
+    }
+  }
   return (
     <div className="min-h-screen" style={{ background: 'var(--color-bg-surface)' }}>
       <div className="max-w-6xl mx-auto px-6 py-8">
@@ -777,9 +807,58 @@ export default function OrderDetailPage() {
                         {fmt(item.unitPrice)} × {item.quantity}
                       </p>
                     </div>
-                    <p className="text-sm font-semibold flex-shrink-0" style={{ color: 'var(--color-text-primary)' }}>
-                      {fmt(item.subtotal)}
-                    </p>
+                    <div className="flex flex-col items-end gap-1.5">
+                      <p className="text-sm font-semibold" style={{ color: 'var(--color-text-primary)' }}>
+                        {fmt(item.subtotal)}
+                      </p>
+
+                      {o.status === 'DELIVERED' && (
+                        <div className="flex flex-col gap-1">
+                          {/* Mua lại */}
+                          <button
+                            onClick={async () => {
+                              try {
+                                await addItem(item.productId, item.variantId, item.quantity ?? 1)
+                                window.dispatchEvent(new CustomEvent('cart:item-added', {
+                                  detail: { imageUrl: item.imageUrl ?? null }
+                                }))
+                              } catch { }
+                            }}
+                            className="text-xs font-medium px-2.5 py-1 rounded-[var(--radius-md)] cursor-pointer transition-all"
+                            style={{
+                              background: 'var(--color-bg-muted)',
+                              color: 'var(--color-text-secondary)',
+                              border: '1px solid var(--color-border-subtle)',
+                            }}
+                          >
+                            Mua lại
+                          </button>
+
+                          {/* Đánh giá — ẩn nếu đã review */}
+                          {!item.hasReviewed && item.productSlug && (
+                            <button
+                              onClick={() => setReviewItem({
+                                productId: item.productId,
+                                variantId: item.variantId,
+                                orderId: o.id,
+                                productName: item.productName,
+                                variantName: item.variantName,
+                                imageUrl: item.imageUrl,
+                                quantity: item.quantity,
+                              })}
+                              className="text-xs font-medium px-2.5 py-1 rounded-[var(--radius-md)] cursor-pointer transition-all"
+                              style={{
+                                background: 'var(--color-primary-subtle)',
+                                color: 'var(--color-primary)',
+                                border: '1px solid var(--color-primary)',
+                              }}
+                            >
+                              Đánh giá
+                            </button>
+                          )}
+                        </div>
+                      )}
+                    </div>
                   </div>
                 ))}
               </div>
@@ -805,10 +884,48 @@ export default function OrderDetailPage() {
           </div>
 
           <div className="w-80 flex-shrink-0">
-            <OrderSummary o={o} onCancel={handleCancel} cancelling={cancelling} />
+            <OrderSummary
+              o={o}
+              onCancel={handleCancel}
+              cancelling={cancelling}
+              onConfirmDelivered={handleConfirmDelivered}
+              confirming={confirming}
+            />
           </div>
         </div>
       </div>
+      {reviewItem && (
+        <ReviewFormPopup
+          item={reviewItem}
+          onClose={() => setReviewItem(null)}
+          onSuccess={async () => {
+            // Refresh data để cập nhật hasReviewed
+            await fetchOrderDetail(orderId)
+
+            // Tìm item chưa review tiếp theo (khác item vừa review)
+            const updatedOrder = useOrderStore.getState().currentOrder
+            const nextUnreviewed = updatedOrder?.items?.find(
+              i => !i.hasReviewed && i.productId !== reviewItem.productId
+            )
+
+            if (nextUnreviewed) {
+              // Còn item chưa review → chuyển sang item đó
+              setReviewItem({
+                productId: nextUnreviewed.productId,
+                variantId: nextUnreviewed.variantId,
+                orderId: o.id,
+                productName: nextUnreviewed.productName,
+                variantName: nextUnreviewed.variantName,
+                imageUrl: nextUnreviewed.imageUrl,
+                quantity: nextUnreviewed.quantity,
+              })
+            } else {
+              // Hết rồi → đóng popup
+              setReviewItem(null)
+            }
+          }}
+        />
+      )}
     </div>
   )
 }

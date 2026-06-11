@@ -32,5 +32,8 @@ public interface IOrderService {
 
     /** Đếm số lượng của Status **/
     Map<String, Long> getStatusCounts(Long userId);
+    /** User confirm orders **/
+    OrderResponse confirmDelivered(Long userId, Long orderId);
+
 
 }

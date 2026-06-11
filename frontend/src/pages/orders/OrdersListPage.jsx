@@ -2,12 +2,14 @@ import { useEffect, useState, useRef } from 'react'
 import { useNavigate, Link } from 'react-router-dom'
 import useOrderStore from '@/store/useOrderStore'
 import { fmt, formatDate, StatusBadge, Icon } from './orderHelpers'
+import ReviewFormPopup from '@/components/product/ReviewFormPopup'
+import useCartStore from '@/store/useCartStore'
 
 const TABS = [
-  { key: 'ALL',       label: 'Tất cả' },
-  { key: 'PENDING',   label: 'Chờ xác nhận' },
+  { key: 'ALL', label: 'Tất cả' },
+  { key: 'PENDING', label: 'Chờ xác nhận' },
   { key: 'CONFIRMED', label: 'Đã xác nhận' },
-  { key: 'SHIPPING',  label: 'Đang giao' },
+  { key: 'SHIPPING', label: 'Đang giao' },
   { key: 'DELIVERED', label: 'Đã giao' },
   { key: 'CANCELLED', label: 'Đã huỷ' },
 ]
@@ -44,18 +46,19 @@ export default function OrdersListPage() {
     fetchMyOrders, fetchStatusCounts,
   } = useOrderStore()
 
-  const [activeTab, setActiveTab]   = useState('ALL')
+  const [activeTab, setActiveTab] = useState('ALL')
   const [searchQuery, setSearchQuery] = useState('')
-  const tabRef     = useRef(null)
+  const tabRef = useRef(null)
   const debounceRef = useRef(null)
-  const searchRef  = useRef(null)
+  const searchRef = useRef(null)
+  const [reviewItem, setReviewItem] = useState(null)
+  const { addItem } = useCartStore()
 
   useEffect(() => {
     fetchMyOrders(0)
     fetchStatusCounts()
   }, [])
 
-  // Scroll tab active vào giữa khi đổi tab
   useEffect(() => {
     if (!tabRef.current) return
     const activeEl = tabRef.current.querySelector('[data-active="true"]')
@@ -64,11 +67,10 @@ export default function OrdersListPage() {
     }
   }, [activeTab])
 
-  // Filter client-side theo mã đơn
   const filtered = searchQuery.trim()
     ? orders.filter(o =>
-        o.orderCode?.toLowerCase().includes(searchQuery.trim().toLowerCase())
-      )
+      o.orderCode?.toLowerCase().includes(searchQuery.trim().toLowerCase())
+    )
     : orders
 
   const handleTabChange = (key) => {
@@ -80,11 +82,7 @@ export default function OrdersListPage() {
     }, 300)
   }
 
-  const handleSearch = (e) => {
-    const val = e.target.value
-    setSearchQuery(val)
-  }
-
+  const handleSearch = (e) => setSearchQuery(e.target.value)
   const handleClearSearch = () => {
     setSearchQuery('')
     searchRef.current?.focus()
@@ -96,6 +94,11 @@ export default function OrdersListPage() {
 
   const isSearching = searchQuery.trim().length > 0
 
+  // Kiểm tra đơn DELIVERED còn item chưa review không
+  const hasUnreviewed = (order) =>
+    order.status === 'DELIVERED' &&
+    order.items?.some(item => !item.hasReviewed)
+
   return (
     <div className="min-h-screen" style={{ background: 'var(--color-bg-surface)' }}>
 
@@ -106,14 +109,12 @@ export default function OrdersListPage() {
       >
         <div className="max-w-6xl mx-auto px-6 pt-5 pb-3">
 
-          {/* Breadcrumb */}
           <nav className="flex items-center gap-1.5 text-sm mb-3" style={{ color: 'var(--color-text-muted)' }}>
             <Link to="/" className="hover:text-[var(--color-primary)] transition-colors">Trang chủ</Link>
             <span className="opacity-50">/</span>
             <span className="font-medium" style={{ color: 'var(--color-text-primary)' }}>Đơn hàng của tôi</span>
           </nav>
 
-          {/* Title + Search hàng ngang */}
           <div className="flex items-end justify-between gap-4 mb-4">
             <div>
               <h1
@@ -133,7 +134,6 @@ export default function OrdersListPage() {
               </p>
             </div>
 
-            {/* ── Search box ── */}
             <div
               className="flex items-center gap-2 px-3 py-2 rounded-[var(--radius-lg)] transition-all flex-shrink-0"
               style={{
@@ -144,9 +144,7 @@ export default function OrdersListPage() {
               onFocusCapture={e => e.currentTarget.style.borderColor = 'var(--color-primary)'}
               onBlurCapture={e => e.currentTarget.style.borderColor = 'var(--color-border-subtle)'}
             >
-              <span style={{ color: 'var(--color-text-muted)', flexShrink: 0 }}>
-                <SearchIcon />
-              </span>
+              <span style={{ color: 'var(--color-text-muted)', flexShrink: 0 }}><SearchIcon /></span>
               <input
                 ref={searchRef}
                 type="text"
@@ -170,7 +168,6 @@ export default function OrdersListPage() {
             </div>
           </div>
 
-          {/* Tab bar — ẩn khi đang search */}
           {!isSearching && (
             <div
               ref={tabRef}
@@ -205,11 +202,8 @@ export default function OrdersListPage() {
                         className="text-xs px-1.5 rounded-full"
                         style={{
                           background: isActive ? 'var(--color-primary)' : '#ef4444',
-                          color: '#fff',
-                          fontWeight: 600,
-                          lineHeight: '1.6',
-                          minWidth: 18,
-                          textAlign: 'center',
+                          color: '#fff', fontWeight: 600, lineHeight: '1.6',
+                          minWidth: 18, textAlign: 'center',
                         }}
                       >
                         {count}
@@ -220,11 +214,8 @@ export default function OrdersListPage() {
                         className="text-xs px-1.5 rounded-full"
                         style={{
                           background: 'var(--color-primary)',
-                          color: '#fff',
-                          fontWeight: 600,
-                          lineHeight: '1.6',
-                          minWidth: 18,
-                          textAlign: 'center',
+                          color: '#fff', fontWeight: 600, lineHeight: '1.6',
+                          minWidth: 18, textAlign: 'center',
                         }}
                       >
                         {count}
@@ -247,7 +238,6 @@ export default function OrdersListPage() {
           </div>
         )}
 
-        {/* Kết quả tìm kiếm */}
         {isSearching && (
           <p className="text-xs mb-3" style={{ color: 'var(--color-text-muted)' }}>
             {filtered.length > 0
@@ -299,11 +289,9 @@ export default function OrdersListPage() {
 
         <div className="flex flex-col gap-3">
           {filtered.map((order) => {
-            const previewNames = order.items
-              ?.slice(0, 2)
-              .map((i) => i.productName)
-              .join(', ')
+            const previewNames = order.items?.slice(0, 2).map(i => i.productName).join(', ')
             const extraItems = (order.items?.length ?? 0) - 2
+            const unreviewedCount = order.items?.filter(i => !i.hasReviewed).length ?? 0
 
             return (
               <button
@@ -314,8 +302,8 @@ export default function OrdersListPage() {
                   background: 'var(--color-bg-elevated)',
                   border: '0.5px solid var(--color-border-subtle)',
                 }}
-                onMouseEnter={(e) => e.currentTarget.style.borderColor = 'var(--color-primary)'}
-                onMouseLeave={(e) => e.currentTarget.style.borderColor = 'var(--color-border-subtle)'}
+                onMouseEnter={e => e.currentTarget.style.borderColor = 'var(--color-primary)'}
+                onMouseLeave={e => e.currentTarget.style.borderColor = 'var(--color-border-subtle)'}
               >
                 {/* Top: mã đơn + status */}
                 <div
@@ -336,9 +324,7 @@ export default function OrdersListPage() {
                       </svg>
                     </div>
                     <div className="flex flex-col">
-                      <span className="text-xs" style={{ color: 'var(--color-text-muted)', lineHeight: 1 }}>
-                        Mã đơn hàng
-                      </span>
+                      <span className="text-xs" style={{ color: 'var(--color-text-muted)', lineHeight: 1 }}>Mã đơn hàng</span>
                       <span
                         className="font-bold"
                         style={{
@@ -367,9 +353,10 @@ export default function OrdersListPage() {
                   </div>
                 </div>
 
-                {/* Middle: thumbnails + product names */}
+                {/* Middle: thumbnails + tên SP + action buttons */}
                 <div className="flex items-center gap-3 px-4 py-3">
-                  <div className="flex items-center -space-x-2">
+                  {/* Thumbnails */}
+                  <div className="flex items-center -space-x-2 flex-shrink-0">
                     {order.items?.slice(0, 3).map((item, idx) => (
                       <img
                         key={item.id}
@@ -394,6 +381,7 @@ export default function OrdersListPage() {
                     )}
                   </div>
 
+                  {/* Tên sản phẩm */}
                   <div className="flex-1 min-w-0">
                     <p
                       className="text-sm font-medium"
@@ -407,13 +395,90 @@ export default function OrdersListPage() {
                       {previewNames}
                       {extraItems > 0 && (
                         <span style={{ color: 'var(--color-text-muted)', fontWeight: 400 }}>
-                          {' '}+{extraItems} sản phẩm khác
+                          {' '}· {extraItems} sản phẩm khác
                         </span>
                       )}
                     </p>
                     <p className="text-xs mt-0.5" style={{ color: 'var(--color-text-muted)' }}>
                       {order.items?.length} sản phẩm
                     </p>
+                  </div>
+
+                  {/* Action buttons — gọn 1 cột, tối đa 2 nút */}
+                  <div className="flex flex-col gap-1.5 flex-shrink-0" onClick={e => e.stopPropagation()}>
+
+                    {/* Nút "Đánh giá" — chỉ khi DELIVERED còn item chưa review */}
+                    {order.status === 'DELIVERED' && unreviewedCount > 0 && (
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation()
+                          // Mở popup cho item chưa review đầu tiên
+                          const firstUnreviewed = order.items.find(i => !i.hasReviewed)
+                          if (firstUnreviewed) {
+                            setReviewItem({
+                              productId: firstUnreviewed.productId,
+                              variantId: firstUnreviewed.variantId,
+                              orderId: order.id,
+                              productName: firstUnreviewed.productName,
+                              variantName: firstUnreviewed.variantName,
+                                imageUrl: firstUnreviewed.imageUrl,
+                              quantity: firstUnreviewed.quantity,
+                            })
+                          }
+                        }}
+                        className="text-xs font-semibold px-3 py-1.5 rounded-[var(--radius-md)] cursor-pointer transition-all whitespace-nowrap"
+                        style={{
+                          background: 'var(--color-primary-subtle)',
+                          color: 'var(--color-primary)',
+                          border: '1px solid var(--color-primary)',
+                        }}
+                      >
+                        ✏️ Đánh giá{unreviewedCount > 1 ? ` (${unreviewedCount})` : ''}
+                      </button>
+                    )}
+
+                    {/* Nút "Mua lại" — chỉ 1 nút cho cả đơn, mua lại item đầu tiên */}
+                    {(order.status === 'DELIVERED' || order.status === 'CANCELLED') && (
+                      <button
+                        onClick={async (e) => {
+                          e.stopPropagation()
+                          const firstItem = order.items?.[0]
+                          if (!firstItem) return
+                          try {
+                            await addItem(firstItem.productId, firstItem.variantId, firstItem.quantity ?? 1)
+                            window.dispatchEvent(new CustomEvent('cart:item-added', {
+                              detail: { imageUrl: firstItem.imageUrl ?? null }
+                            }))
+                          } catch { }
+                        }}
+                        className="text-xs font-medium px-3 py-1.5 rounded-[var(--radius-md)] cursor-pointer transition-all whitespace-nowrap"
+                        style={{
+                          background: 'var(--color-bg-muted)',
+                          color: 'var(--color-text-secondary)',
+                          border: '1px solid var(--color-border-subtle)',
+                        }}
+                      >
+                        🛒 Mua lại
+                      </button>
+                    )}
+
+                    {/* Nút "Xem chi tiết" cho các trạng thái khác */}
+                    {!['DELIVERED', 'CANCELLED'].includes(order.status) && (
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation()
+                          navigate(`/orders/${order.id}`)
+                        }}
+                        className="text-xs font-medium px-3 py-1.5 rounded-[var(--radius-md)] cursor-pointer transition-all whitespace-nowrap"
+                        style={{
+                          background: 'var(--color-bg-muted)',
+                          color: 'var(--color-text-secondary)',
+                          border: '1px solid var(--color-border-subtle)',
+                        }}
+                      >
+                        Xem chi tiết →
+                      </button>
+                    )}
                   </div>
                 </div>
 
@@ -438,7 +503,6 @@ export default function OrdersListPage() {
           })}
         </div>
 
-        {/* Load more — ẩn khi đang search */}
         {!isSearching && currentPage + 1 < totalPages && (
           <div className="flex justify-center mt-6 pb-6">
             <button
@@ -457,6 +521,14 @@ export default function OrdersListPage() {
         )}
 
       </div>
+
+      {reviewItem && (
+        <ReviewFormPopup
+          item={reviewItem}
+          onClose={() => setReviewItem(null)}
+          onSuccess={() => fetchMyOrders(0, 10, activeTab === 'ALL' ? null : activeTab)}
+        />
+      )}
     </div>
   )
 }

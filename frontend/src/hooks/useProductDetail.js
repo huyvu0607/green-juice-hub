@@ -2,9 +2,9 @@ import { useState, useEffect, useCallback } from "react";
 import { getProductBySlug } from "@/api/productApi";
 
 export function useProductDetail(slug) {
-  const [product, setProduct]   = useState(null);
-  const [loading, setLoading]   = useState(false);
-  const [error, setError]       = useState(null);
+  const [product, setProduct] = useState(null);
+  const [loading, setLoading] = useState(true);  // ← true ngay từ đầu
+  const [error, setError]     = useState(null);
 
   const fetchDetail = useCallback(() => {
     if (!slug) return;
