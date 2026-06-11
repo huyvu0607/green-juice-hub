@@ -45,6 +45,7 @@ public class SecurityConfig {
                                 "/api/auth/refresh",
                                 "/api/auth/logout",
                                 "/api/products/**",
+                                "/api/reviews/product/**",
                                 "/api/webhooks/**",
                                 "/api/shipping/**"
                         ).permitAll()

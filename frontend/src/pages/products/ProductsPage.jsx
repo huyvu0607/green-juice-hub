@@ -286,7 +286,7 @@ export default function ProductsPage() {
 
           {/* ── Loading skeleton ── */}
           {loading ? (
-            <div className={`grid gap-4 grid-cols-${cols}`}>
+            <div className={`grid gap-4 ${sidebarOpen ? "grid-cols-3" : "grid-cols-4"}`}>
               {Array.from({ length: 12 }).map((_, i) => (
                 <ProductCardSkeleton key={i} />
               ))}

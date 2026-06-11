@@ -11,6 +11,7 @@ import com.greenjuicehub.backend.entity.ProductImage;
 import org.springframework.stereotype.Component;
 
 import java.util.List;
+import java.util.Set;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -18,7 +19,7 @@ import java.util.regex.Pattern;
 public class OrderMapper {
 
     // ==================== OrderItem → OrderItemResponse ====================
-    public OrderItemResponse toOrderItemResponse(OrderItem item) {
+    public OrderItemResponse toOrderItemResponse(OrderItem item, boolean hasReviewed) {
         String imageUrl = item.getProduct().getImages().stream()
                 .filter(ProductImage::getIsPrimary)
                 .map(ProductImage::getImageUrl)
@@ -28,6 +29,7 @@ public class OrderMapper {
         return OrderItemResponse.builder()
                 .id(item.getId())
                 .productId(item.getProduct().getId())
+                .productSlug(item.getProduct().getSlug())
                 .variantId(item.getVariant().getId())
                 .productName(item.getProductName())
                 .variantName(item.getVariantName())
@@ -35,17 +37,19 @@ public class OrderMapper {
                 .unitPrice(item.getUnitPrice())
                 .quantity(item.getQuantity())
                 .subtotal(item.getSubtotal())
+                .hasReviewed(hasReviewed)
                 .build();
     }
 
     // ==================== Order + items + payment → OrderResponse ====================
-    public OrderResponse toOrderResponse(Order order, List<OrderItem> items, Payment latestPayment) {
+    public OrderResponse toOrderResponse(Order order, List<OrderItem> items,
+                                         Payment latestPayment, Set<Long> reviewedIds) {
         List<OrderItemResponse> itemResponses = items.stream()
-                .map(this::toOrderItemResponse)
+                .map(item -> toOrderItemResponse(item,
+                        reviewedIds.contains(item.getProduct().getId())))
                 .toList();
 
         ShippingAddressResponse shippingAddress = parseShippingAddress(order.getShippingAddress());
-
         String promoCode = order.getPromotion() != null ? order.getPromotion().getCode() : null;
         String paymentMethod = latestPayment != null ? latestPayment.getMethod().name() : null;
 
@@ -68,7 +72,9 @@ public class OrderMapper {
                 .updatedAt(order.getUpdatedAt())
                 .build();
     }
-
+    public OrderResponse toOrderResponse(Order order, List<OrderItem> items, Payment latestPayment) {
+        return toOrderResponse(order, items, latestPayment, Set.of());
+    }
     // ==================== Helper: Address → JSON string (snapshot) ====================
     public String toShippingAddressJson(Address address) {
         return String.format(

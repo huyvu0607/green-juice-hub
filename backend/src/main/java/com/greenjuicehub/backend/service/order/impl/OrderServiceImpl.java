@@ -21,10 +21,7 @@ import org.springframework.transaction.annotation.Transactional;
 import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.time.LocalDateTime;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.UUID;
+import java.util.*;
 
 @Service
 @RequiredArgsConstructor
@@ -42,6 +39,7 @@ public class OrderServiceImpl implements IOrderService {
     private final OrderMapper orderMapper;
     private final ProductVariantRepository productVariantRepository;
     private final GhnService ghnService;
+    private final ReviewRepository reviewRepository;
 
 
 
@@ -333,10 +331,14 @@ public class OrderServiceImpl implements IOrderService {
         return page.map(order -> {
             List<OrderItem> items = orderItemRepository.findAllByOrderIdWithDetails(order.getId());
             Payment payment = paymentRepository.findTopByOrderIdOrderByCreatedAtDesc(order.getId()).orElse(null);
-            return orderMapper.toOrderResponse(order, items, payment);
+
+            Set<Long> reviewedIds = order.getStatus() == Order.OrderStatus.DELIVERED
+                    ? new HashSet<>(reviewRepository.findReviewedProductIdsByOrderIdAndUserId(order.getId(), userId))
+                    : Set.of();
+
+            return orderMapper.toOrderResponse(order, items, payment, reviewedIds);
         });
     }
-
     // ─────────────────────────────────────────────────────────────────────────
     // CHI TIẾT ĐƠN HÀNG
     // ─────────────────────────────────────────────────────────────────────────
@@ -349,7 +351,11 @@ public class OrderServiceImpl implements IOrderService {
         List<OrderItem> items = orderItemRepository.findAllByOrderIdWithDetails(orderId);
         Payment payment = paymentRepository.findTopByOrderIdOrderByCreatedAtDesc(orderId).orElse(null);
 
-        return orderMapper.toOrderResponse(order, items, payment);
+        Set<Long> reviewedIds = order.getStatus() == Order.OrderStatus.DELIVERED
+                ? new HashSet<>(reviewRepository.findReviewedProductIdsByOrderIdAndUserId(orderId, userId))
+                : Set.of();
+
+        return orderMapper.toOrderResponse(order, items, payment, reviewedIds);
     }
 
     // ─────────────────────────────────────────────────────────────────────────
@@ -459,6 +465,26 @@ public class OrderServiceImpl implements IOrderService {
             counts.put(status.name(), orderRepository.countByUserIdAndStatus(userId, status));
         }
         return counts;
+    }
+
+    @Override
+    @Transactional
+    public OrderResponse confirmDelivered(Long userId, Long orderId) {
+        Order order = orderRepository.findByIdAndUserId(orderId, userId)
+                .orElseThrow(() -> new AppException(HttpStatus.NOT_FOUND, "Không tìm thấy đơn hàng"));
+
+        if (order.getStatus() != Order.OrderStatus.SHIPPING) {
+            throw new AppException(HttpStatus.BAD_REQUEST,
+                    "Chỉ có thể xác nhận đã nhận khi đơn đang được giao");
+        }
+
+        order.setStatus(Order.OrderStatus.DELIVERED);
+        order = orderRepository.save(order);
+
+        List<OrderItem> items = orderItemRepository.findAllByOrderIdWithDetails(orderId);
+        Payment payment = paymentRepository.findTopByOrderIdOrderByCreatedAtDesc(orderId).orElse(null);
+
+        return orderMapper.toOrderResponse(order, items, payment);
     }
     // ─────────────────────────────────────────────────────────────────────────
     // HELPERS

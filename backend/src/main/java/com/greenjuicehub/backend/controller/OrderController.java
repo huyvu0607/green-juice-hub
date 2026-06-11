@@ -104,4 +104,18 @@ public class OrderController {
     ) {
         return ResponseEntity.ok(orderService.applyPromo(userId, request));
     }
+
+    /**
+     * PATCH /api/orders/{orderId}/confirm-delivered
+     * User xác nhận đã nhận hàng (chỉ khi status = SHIPPING)
+     */
+    @PatchMapping("/{orderId}/confirm-delivered")
+    public ResponseEntity<OrderResponse> confirmDelivered(
+            @AuthenticationPrincipal Long userId,
+            @PathVariable Long orderId
+    ) {
+        return ResponseEntity.ok(orderService.confirmDelivered(userId, orderId));
+    }
+
+
 }

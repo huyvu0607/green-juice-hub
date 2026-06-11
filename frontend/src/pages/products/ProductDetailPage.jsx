@@ -4,9 +4,10 @@ import ProductCard from "@/components/product/ProductCard";
 import { sharedObserver } from "@/utils/sharedObserver";
 import useCartStore from '@/store/useCartStore'
 import RichText from '@/components/common/RichText';
-import { useParams, Link, useNavigate } from "react-router-dom";  // thêm useNavigate
+import { useParams, Link, useNavigate, useLocation } from "react-router-dom";
 import useAuthStore from "@/store/authStore";
 import { usePageReady } from '@/hooks/usePageReady'
+import ReviewList from "@/components/product/ReviewList";
 
 
 
@@ -354,31 +355,17 @@ function TrustBadges() {
 // Chỉ còn 2 tab: Mô tả + Đánh giá, căn giữa
 const TABS = ["Mô tả", "Đánh giá"];
 
-function TabSection({ product }) {
+function TabSection({ product, deliveredOrderId }) {
   const [tab, setTab] = useState(0);
 
   const content = [
-    // Tab 0 — Mô tả
     <RichText key="desc" content={product.description} />,
 
-    // Tab 1 — Đánh giá
-    <div key="rev">
-      {product.reviews?.length ? (
-        <div className="flex flex-col gap-4">
-          {product.reviews.map((r, i) => (
-            <div key={i} className="p-4 rounded-[var(--radius-md)] bg-surface border border-subtle">
-              <div className="flex items-center gap-2 mb-2">
-                <StarRating value={r.rating} count={0} />
-                <span className="text-sm font-medium text-primary">{r.userName}</span>
-              </div>
-              <p className="text-sm text-secondary">{r.comment}</p>
-            </div>
-          ))}
-        </div>
-      ) : (
-        <p className="text-sm text-secondary">Chưa có đánh giá nào.</p>
-      )}
-    </div>,
+    <ReviewList
+      key="reviews"
+      productId={product.id}
+      deliveredOrderId={deliveredOrderId}
+    />,
   ];
 
   return (
@@ -448,6 +435,8 @@ export default function ProductDetailPage() {
   const { addItem, loading: cartLoading } = useCartStore()
   const { isLoggedIn } = useAuthStore();
   const navigate = useNavigate();
+  const location = useLocation(); // thêm useLocation vào import
+  const deliveredOrderId = location.state?.deliveredOrderId ?? null;
 
 
   // Chọn variant mặc định khi data load xong
@@ -502,6 +491,8 @@ export default function ProductDetailPage() {
       },
     });
   };
+
+
   /* ── Loading ── */
   if (loading) return <DetailSkeleton />;
 
@@ -692,7 +683,7 @@ export default function ProductDetailPage() {
       </div>
 
       {/* ── Tab section (Mô tả + Đánh giá, căn giữa) ── */}
-      <TabSection product={product} />
+      <TabSection product={product} deliveredOrderId={deliveredOrderId} />
 
       {/* ── Sản phẩm liên quan ── */}
       {relatedCards.length > 0 && (

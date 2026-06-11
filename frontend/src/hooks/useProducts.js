@@ -77,7 +77,7 @@ export function useProducts() {
   const [products, setProducts]       = useState([]);
   const [totalElements, setTotal]     = useState(0);
   const [hasMore, setHasMore]         = useState(false);
-  const [loading, setLoading]         = useState(false);
+  const [loading, setLoading]         = useState(true);
   const [loadingMore, setLoadingMore] = useState(false);
 
   const [categories, setCategories] = useState([]);

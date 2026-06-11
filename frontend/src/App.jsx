@@ -79,7 +79,6 @@ function AppRoutes() {
       return
     }
 
-    // Logic cũ chỉ chạy cho '/'
     setPageReady(false)
     setIsLoading(true)
 
