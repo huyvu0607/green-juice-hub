@@ -10,6 +10,7 @@ import com.greenjuicehub.backend.exception.AppException;
 import com.greenjuicehub.backend.mapper.OrderMapper;
 import com.greenjuicehub.backend.repository.*;
 import com.greenjuicehub.backend.service.order.IOrderService;
+import com.greenjuicehub.backend.service.shipping.GhnService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
@@ -40,6 +41,8 @@ public class OrderServiceImpl implements IOrderService {
     private final UserRepository userRepository;
     private final OrderMapper orderMapper;
     private final ProductVariantRepository productVariantRepository;
+    private final GhnService ghnService;
+
 
 
     // ─────────────────────────────────────────────────────────────────────────
@@ -105,8 +108,17 @@ public class OrderServiceImpl implements IOrderService {
             discountAmount = calculateDiscount(promotion, subtotal);
         }
 
+        // Tính tổng weight
+        int totalWeight = selectedItems.stream()
+                .mapToInt(i -> {
+                    int w = i.getVariant().getWeightGram() != null
+                            ? i.getVariant().getWeightGram() : 500;
+                    return w * i.getQuantity();
+                })
+                .sum();
+
         // 6. Tính phí ship (logic đơn giản, có thể mở rộng sau)
-        BigDecimal shippingFee = calculateShippingFee(subtotal, discountAmount);
+        BigDecimal shippingFee = calculateShippingFee(address, totalWeight, promotion);
         BigDecimal totalAmount = subtotal.subtract(discountAmount).add(shippingFee);
 
         // 7. Tạo Order
@@ -233,8 +245,12 @@ public class OrderServiceImpl implements IOrderService {
             discountAmount = calculateDiscount(promotion, subtotal);
         }
 
+        //Tính tổng Weight
+        int totalWeight = variant.getWeightGram() != null
+                ? variant.getWeightGram() * request.getQuantity()
+                : 500 * request.getQuantity();
         // 6. Phí ship
-        BigDecimal shippingFee = calculateShippingFee(subtotal, discountAmount);
+        BigDecimal shippingFee = calculateShippingFee(address, totalWeight, promotion);
         BigDecimal totalAmount = subtotal.subtract(discountAmount).add(shippingFee);
 
         // 7. Tạo Order
@@ -430,6 +446,8 @@ public class OrderServiceImpl implements IOrderService {
                 .discountAmount(discount)
                 .totalAfterDiscount(subtotal.subtract(discount))
                 .message("Áp dụng mã thành công! Giảm " + formatDiscount(promo))
+                .promoType(promo.getType().name())
+                .freeShipping(promo.getFreeShipping())
                 .build();
     }
     @Override
@@ -460,7 +478,7 @@ public class OrderServiceImpl implements IOrderService {
             throw new AppException(HttpStatus.BAD_REQUEST, "Mã khuyến mãi đã hết hạn hoặc chưa đến thời gian áp dụng");
         }
 
-        if (promo.getUsedCount() >= promo.getMaxUses()) {
+        if (promo.getMaxUses() != null && promo.getUsedCount() >= promo.getMaxUses()) {
             throw new AppException(HttpStatus.BAD_REQUEST, "Mã khuyến mãi đã hết lượt sử dụng");
         }
 
@@ -493,16 +511,24 @@ public class OrderServiceImpl implements IOrderService {
             return subtotal.multiply(promo.getValue())
                     .divide(BigDecimal.valueOf(100), 0, RoundingMode.FLOOR);
         }
-        // FIXED — không được giảm nhiều hơn subtotal
+        // FIXED
         return promo.getValue().min(subtotal);
     }
 
-    /** Tính phí ship đơn giản: miễn ship nếu đơn >= 200k sau giảm */
-    private BigDecimal calculateShippingFee(BigDecimal subtotal, BigDecimal discount) {
-        BigDecimal afterDiscount = subtotal.subtract(discount);
-        return afterDiscount.compareTo(BigDecimal.valueOf(200_000)) >= 0
-                ? BigDecimal.ZERO
-                : BigDecimal.valueOf(30_000);
+    /** Tính phí ship đơn dựa theo địa chỉ người đặt vì sử dụng API GHN */
+    private BigDecimal calculateShippingFee(Address address, int totalWeightGram, Promotion promotion) {
+        // Nếu mã có freeShipping → miễn ship
+        if (promotion != null && Boolean.TRUE.equals(promotion.getFreeShipping())) {
+            return BigDecimal.ZERO;
+        }
+        if (address.getDistrictId() == null || address.getWardCode() == null) {
+            return BigDecimal.valueOf(30_000);
+        }
+        return ghnService.calculateShippingFee(
+                address.getDistrictId(),
+                address.getWardCode(),
+                totalWeightGram
+        );
     }
 
     /** Parse paymentMethod string → enum */
@@ -534,8 +560,16 @@ public class OrderServiceImpl implements IOrderService {
 
     private String formatDiscount(Promotion promo) {
         if (promo.getType() == Promotion.PromotionType.PERCENT) {
-            return promo.getValue().toPlainString() + "%";
+            String msg = promo.getValue().toPlainString() + "%";
+            if (Boolean.TRUE.equals(promo.getFreeShipping())) msg += " + miễn phí vận chuyển";
+            return msg;
         }
-        return promo.getValue().toPlainString() + "đ";
+        if (Boolean.TRUE.equals(promo.getFreeShipping()) && promo.getValue().compareTo(BigDecimal.ZERO) == 0) {
+            return "miễn phí vận chuyển";
+        }
+        String msg = promo.getValue().toPlainString() + "đ";
+        if (Boolean.TRUE.equals(promo.getFreeShipping())) msg += " + miễn phí vận chuyển";
+        return msg;
     }
+
 }

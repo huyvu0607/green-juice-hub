@@ -32,6 +32,11 @@ const orderApi = {
   // Lấy danh sách mã khuyến mãi có thể áp dụng cho giỏ hàng hiện tại
   getAvailablePromos: (payload) =>
     api.post('/promos/available', payload),
+
+  /** Tính phí vận chuyển */
+  calculateShippingFee: (data) =>
+  api.post('/orders/shipping-fee', data),
 }
+
 
 export default orderApi

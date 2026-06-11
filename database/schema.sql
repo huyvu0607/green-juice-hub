@@ -75,6 +75,8 @@ CREATE TABLE addresses (
   ward       VARCHAR(100) NOT NULL,
   detail     TEXT         NOT NULL,
   is_default BOOLEAN      NOT NULL DEFAULT FALSE,
+  district_id INT         NULL COMMENT 'GHN district_id',      -- ✅ THÊM
+  ward_code   VARCHAR(10) NULL COMMENT 'GHN ward_code',     -- ✅ THÊM
   CONSTRAINT fk_addr_user FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
 ) ENGINE=InnoDB;
 
@@ -162,6 +164,7 @@ CREATE TABLE product_variants (
   stock_qty        INT            NOT NULL DEFAULT 0,
   is_active        BOOLEAN        NOT NULL DEFAULT TRUE,
   sort_order       INT            NOT NULL DEFAULT 0,
+  weight_gram      INT            NOT NULL DEFAULT 500 COMMENT 'Trọng lượng gram',
   CONSTRAINT fk_var_product FOREIGN KEY (product_id) REFERENCES products(id) ON DELETE CASCADE,
   CONSTRAINT fk_var_flavor  FOREIGN KEY (flavor_id)  REFERENCES flavors(id),
   CONSTRAINT fk_var_size    FOREIGN KEY (size_id)    REFERENCES sizes(id)
@@ -202,12 +205,13 @@ CREATE TABLE promotions (
   id                BIGINT AUTO_INCREMENT PRIMARY KEY,
   code              VARCHAR(50)   NOT NULL UNIQUE,
   name              VARCHAR(200)  NOT NULL,
-  type              ENUM('PERCENT','FIXED') NOT NULL,      -- ✅ uppercase
+  type              ENUM('PERCENT','FIXED') NOT NULL,                        -- ✅ bỏ FREESHIP
   value             DECIMAL(12,2) NOT NULL,
   min_order_value   DECIMAL(12,2) NOT NULL DEFAULT 0,
-  target            ENUM('PUBLIC','PERSONAL') NOT NULL DEFAULT 'PUBLIC',  -- ✅ uppercase
+  free_shipping     BOOLEAN       NOT NULL DEFAULT FALSE,                    -- ✅ thêm mới
+  target            ENUM('PUBLIC','PERSONAL') NOT NULL DEFAULT 'PUBLIC',
   user_id           BIGINT        NULL,
-  max_uses          INT           NOT NULL DEFAULT 1,
+  max_uses          INT           NULL,                                      -- ✅ NULL = không giới hạn
   max_uses_per_user INT           NULL,
   used_count        INT           NOT NULL DEFAULT 0,
   starts_at         DATETIME      NOT NULL,

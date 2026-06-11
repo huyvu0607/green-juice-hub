@@ -36,7 +36,7 @@ server:
 
 jwt:
   secret: ${JWT_SECRET:}
-  access-token-expiration: 60000
+  access-token-expiration: 900000
   refresh-token-expiration: 604800000
 
 otp:
@@ -55,3 +55,11 @@ app:
     bank-bin: "970436"
     account-number: "1234567890"
     account-name: NGUYEN VAN A
+
+ghn:
+  token: ${GHN_TOKEN:}
+  shop-id: ${GHN_SHOP_ID:0}
+  base-url: https://online-gateway.ghn.vn
+  from-district-id: 1454
+  from-ward-code: "21201"
+  service-type-id: 2

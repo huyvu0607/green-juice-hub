@@ -86,6 +86,8 @@ public class AddressServiceImpl implements IAddressService {
         address.setProvince(request.getProvince());
         address.setDistrict(request.getDistrict());
         address.setWard(request.getWard());
+        address.setDistrictId(request.getDistrictId());
+        address.setWardCode(request.getWardCode());
         address.setDetail(request.getDetail());
 
         return addressMapper.toResponse(addressRepository.save(address));

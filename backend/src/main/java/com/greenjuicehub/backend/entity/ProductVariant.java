@@ -44,4 +44,7 @@ public class ProductVariant {
 
     @Column(name = "sort_order", nullable = false)
     private Integer sortOrder = 0;
+
+    @Column(name = "weight_gram", nullable = false)
+    private Integer weightGram = 500;
 }

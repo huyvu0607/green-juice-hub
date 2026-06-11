@@ -9,6 +9,8 @@ import vnpayLogo from '@/assets/payment-vnpay.png'
 import { usePageReady } from '@/hooks/usePageReady'
 import BankTransferModal from '@/components/order/BankTransferModal'
 import OrderSuccessModal from '@/components/order/OrderSuccessModal'
+import orderApi from '@/api/orderApi'
+
 
 
 // ── Helpers ────────────────────────────────────────────────────────────────
@@ -715,7 +717,7 @@ function PromoInput({ promoPayload, onApplied, onCleared, subtotal }) {
 }
 
 // ── Order summary ───────────────────────────────────────────────────────────
-function OrderSummary({ items, subtotal, discount, shipping, total }) {
+function OrderSummary({ items, subtotal, discount, shipping, shippingLoading, total }) {
   return (
     <div className="flex flex-col gap-3">
       <div className="flex flex-col gap-2 pb-3" style={{ borderBottom: '1px solid var(--color-border-subtle)' }}>
@@ -766,9 +768,16 @@ function OrderSummary({ items, subtotal, discount, shipping, total }) {
         )}
         <div className="flex justify-between">
           <span style={{ color: 'var(--color-text-secondary)' }}>Phí vận chuyển</span>
-          <span style={{ color: shipping === 0 ? '#16a34a' : 'var(--color-text-primary)' }}>
-            {shipping === 0 ? 'Miễn phí' : fmt(shipping)}
-          </span>
+          {shippingLoading ? (
+            <span className="flex items-center gap-1" style={{ color: 'var(--color-text-muted)' }}>
+              <div className="w-3 h-3 rounded-full border-2 border-[var(--color-primary)] border-t-transparent animate-spin" />
+              Đang tính...
+            </span>
+          ) : (
+            <span style={{ color: shipping === 0 ? '#16a34a' : 'var(--color-text-primary)' }}>
+              {shipping === 0 ? 'Miễn phí' : fmt(shipping)}
+            </span>
+          )}
         </div>
         <div
           className="flex justify-between pt-2 font-semibold text-base"
@@ -794,6 +803,10 @@ export default function CheckoutPage() {
   // ── FIX: frozenItems lưu snapshot items + snapshot các giá trị tính tiền ──
   const [frozenItems, setFrozenItems] = useState(null)
   const [frozenPrices, setFrozenPrices] = useState(null)
+  // ── Shipping fee từ GHN ──────────────────────────────────────────
+  const [shipping, setShipping] = useState(30000)
+  const [shippingLoading, setShippingLoading] = useState(false)
+
 
   const selectedIds = useMemo(
     () => new Set(location.state?.selectedIds || []),
@@ -832,8 +845,30 @@ export default function CheckoutPage() {
 
   // ── Dùng frozenPrices nếu có (sau khi đặt hàng thành công) ──
   const discount = frozenPrices?.discount ?? promoResult?.discountAmount ?? 0
-  const shipping = frozenPrices?.shipping ?? (subtotal - discount >= 200000 ? 0 : 30000)
-  const total = frozenPrices?.total ?? (subtotal - discount + shipping)
+  const displayShipping = frozenPrices?.shipping ?? shipping
+  const total = frozenPrices?.total ?? (subtotal - discount + displayShipping)
+
+  useEffect(() => {
+    if (!addressId) return
+
+    const fetchShipping = async () => {
+      setShippingLoading(true)
+      try {
+        const payload = buyNowItem
+          ? { addressId, variantId: buyNowItem.variantId, quantity: buyNowItem.quantity }
+          : { addressId, cartItemIds: [...selectedIds] }
+
+        const res = await orderApi.calculateShippingFee(payload)
+        setShipping(res.data.shippingFee)
+      } catch {
+        setShipping(30000) // fallback
+      } finally {
+        setShippingLoading(false)
+      }
+    }
+
+    fetchShipping()
+  }, [addressId])
 
   useEffect(() => {
     if (buyNowItem) return
@@ -847,11 +882,33 @@ export default function CheckoutPage() {
 
   const handlePromoApplied = (result) => {
     setPromoCode(result.promoCode)
-  }
+    if (result.freeShipping) {
+        setShipping(0)
+    }
+}
+
 
   const handlePromoCleared = () => {
     setPromoCode('')
-  }
+    // Fetch lại shipping thực tế khi bỏ mã
+    if (addressId) {
+        const refetchShipping = async () => {
+            setShippingLoading(true)
+            try {
+                const payload = buyNowItem
+                    ? { addressId, variantId: buyNowItem.variantId, quantity: buyNowItem.quantity }
+                    : { addressId, cartItemIds: [...selectedIds] }
+                const res = await orderApi.calculateShippingFee(payload)
+                setShipping(res.data.shippingFee)
+            } catch {
+                setShipping(30000)
+            } finally {
+                setShippingLoading(false)
+            }
+        }
+        refetchShipping()
+    }
+}
 
   const handleSubmit = async () => {
     if (!addressId) {
@@ -870,7 +927,7 @@ export default function CheckoutPage() {
       const price = i.salePrice ?? i.originalPrice
       return sum + price * i.quantity
     }, 0)
-    const snapshotShipping = snapshotSubtotal - snapshotDiscount >= 200000 ? 0 : 30000
+    const snapshotShipping = shipping
     const snapshotTotal = snapshotSubtotal - snapshotDiscount + snapshotShipping
 
     setFrozenItems(snapshotItems)
@@ -925,25 +982,16 @@ export default function CheckoutPage() {
           onClose={() => navigate('/orders/' + bankTransferOrder.id, { state: { fromCheckout: true } })}
         />
       )}
-
       {successOrder && (
-        <OrderSuccessModal
-          order={successOrder}
-          onClose={() => setSuccessOrder(null)}
-        />
+        <OrderSuccessModal order={successOrder} onClose={() => setSuccessOrder(null)} />
       )}
 
-      <div
-        className="min-h-screen py-8 px-4"
-        style={{ background: 'var(--color-bg-surface)' }}
-      >
+      <div className="min-h-screen py-8 px-4" style={{ background: 'var(--color-bg-surface)' }}>
         <div className="max-w-5xl mx-auto">
-
           <Breadcrumb isBuyNow={!!buyNowItem} />
 
           <div className="flex items-center gap-3 mb-8">
-            <button
-              onClick={() => navigate(-1)}
+            <button onClick={() => navigate(-1)}
               className="p-2 rounded-[var(--radius-md)] cursor-pointer transition-colors"
               style={{ background: 'var(--color-bg-elevated)', border: '1px solid var(--color-border-subtle)', color: 'var(--color-text-secondary)' }}
               onMouseEnter={(e) => e.currentTarget.style.background = 'var(--color-bg-muted)'}
@@ -952,16 +1000,7 @@ export default function CheckoutPage() {
               <Icon.ArrowLeft />
             </button>
             <div>
-              <h1
-                style={{
-                  fontSize: '1.5rem',
-                  fontWeight: 800,
-                  letterSpacing: '-0.03em',
-                  lineHeight: 1.15,
-                  color: 'var(--color-text-primary)',
-                  fontFamily: '"Be Vietnam Pro", "Inter", system-ui, sans-serif',
-                }}
-              >
+              <h1 style={{ fontSize: '1.5rem', fontWeight: 800, letterSpacing: '-0.03em', lineHeight: 1.15, color: 'var(--color-text-primary)', fontFamily: '"Be Vietnam Pro", "Inter", system-ui, sans-serif' }}>
                 Thanh toán
               </h1>
               <p className="text-xs mt-1" style={{ color: 'var(--color-text-muted)' }}>
@@ -971,18 +1010,15 @@ export default function CheckoutPage() {
           </div>
 
           {error && (
-            <div
-              className="mb-4 px-4 py-3 rounded-[var(--radius-md)] text-sm flex items-center justify-between"
-              style={{ background: '#ef444415', color: '#ef4444', border: '1px solid #ef444430' }}
-            >
+            <div className="mb-4 px-4 py-3 rounded-[var(--radius-md)] text-sm flex items-center justify-between"
+              style={{ background: '#ef444415', color: '#ef4444', border: '1px solid #ef444430' }}>
               <span>{error}</span>
               <button onClick={clearError} className="cursor-pointer"><Icon.X /></button>
             </div>
           )}
 
           <div className="grid grid-cols-1 lg:grid-cols-[1fr_380px] gap-6">
-
-            {/* ── Cột trái ── */}
+            {/* Cột trái */}
             <div className="flex flex-col gap-5">
               <Card>
                 <SectionTitle icon={<Icon.MapPin />} title="Địa chỉ giao hàng" />
@@ -993,23 +1029,16 @@ export default function CheckoutPage() {
                 <SectionTitle icon={<Icon.Wallet />} title="Phương thức thanh toán" />
                 <div className="flex flex-col gap-2">
                   {PAYMENT_METHODS.map((method) => (
-                    <label
-                      key={method.id}
+                    <label key={method.id}
                       className="flex items-center gap-3 p-3 rounded-[var(--radius-md)] cursor-pointer transition-all"
                       style={{
-                        border: paymentMethod === method.id
-                          ? '1.5px solid var(--color-primary)'
-                          : '1.5px solid var(--color-border-subtle)',
-                        background: paymentMethod === method.id
-                          ? 'var(--color-primary-subtle)'
-                          : 'var(--color-bg-muted)',
+                        border: paymentMethod === method.id ? '1.5px solid var(--color-primary)' : '1.5px solid var(--color-border-subtle)',
+                        background: paymentMethod === method.id ? 'var(--color-primary-subtle)' : 'var(--color-bg-muted)',
                       }}
                       onClick={() => setPaymentMethod(method.id)}
                     >
-                      <div
-                        className="w-4 h-4 rounded-full border-2 flex items-center justify-center flex-shrink-0"
-                        style={{ borderColor: paymentMethod === method.id ? 'var(--color-primary)' : 'var(--color-border-default)' }}
-                      >
+                      <div className="w-4 h-4 rounded-full border-2 flex items-center justify-center flex-shrink-0"
+                        style={{ borderColor: paymentMethod === method.id ? 'var(--color-primary)' : 'var(--color-border-default)' }}>
                         {paymentMethod === method.id && (
                           <div className="w-2 h-2 rounded-full" style={{ background: 'var(--color-primary)' }} />
                         )}
@@ -1026,34 +1055,23 @@ export default function CheckoutPage() {
 
               <Card>
                 <SectionTitle icon={<Icon.Tag />} title="Mã khuyến mãi" />
-                <PromoInput
-                  promoPayload={promoPayload}
-                  onApplied={handlePromoApplied}
-                  onCleared={handlePromoCleared}
-                  subtotal={subtotal}
-                />
+                <PromoInput promoPayload={promoPayload} onApplied={handlePromoApplied}
+                  onCleared={handlePromoCleared} subtotal={subtotal} />
               </Card>
 
               <Card>
                 <SectionTitle icon={<Icon.Truck />} title="Ghi chú đơn hàng" />
-                <textarea
-                  value={note}
-                  onChange={(e) => setNote(e.target.value)}
-                  placeholder="Ghi chú cho người giao hàng (tuỳ chọn)..."
-                  rows={3}
+                <textarea value={note} onChange={(e) => setNote(e.target.value)}
+                  placeholder="Ghi chú cho người giao hàng (tuỳ chọn)..." rows={3}
                   className="w-full px-3 py-2 rounded-[var(--radius-md)] text-sm outline-none transition-all resize-none"
-                  style={{
-                    background: 'var(--color-bg-muted)',
-                    border: '1.5px solid var(--color-border-subtle)',
-                    color: 'var(--color-text-primary)',
-                  }}
+                  style={{ background: 'var(--color-bg-muted)', border: '1.5px solid var(--color-border-subtle)', color: 'var(--color-text-primary)' }}
                   onFocus={(e) => { e.target.style.borderColor = 'var(--color-primary)' }}
                   onBlur={(e) => { e.target.style.borderColor = 'var(--color-border-subtle)' }}
                 />
               </Card>
             </div>
 
-            {/* ── Cột phải ── */}
+            {/* Cột phải */}
             <div className="flex flex-col gap-4 lg:sticky lg:top-20 lg:self-start">
               <Card>
                 <SectionTitle icon="🛒" title="Đơn hàng của bạn" />
@@ -1061,37 +1079,29 @@ export default function CheckoutPage() {
                   items={displayItems}
                   subtotal={subtotal}
                   discount={discount}
-                  shipping={shipping}
+                  shipping={displayShipping}
+                  shippingLoading={shippingLoading}
                   total={total}
                 />
               </Card>
 
-              <button
-                onClick={handleSubmit}
-                disabled={placing || !addressId || displayItems.length === 0}
+              <button onClick={handleSubmit}
+                disabled={placing || !addressId || displayItems.length === 0 || shippingLoading}
                 className="w-full py-3.5 rounded-[var(--radius-md)] font-semibold text-sm text-white flex items-center justify-center gap-2 transition-colors cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
                 style={{ background: 'var(--color-primary)' }}
                 onMouseEnter={(e) => { if (!placing) e.currentTarget.style.background = 'var(--color-primary-hover)' }}
                 onMouseLeave={(e) => { e.currentTarget.style.background = 'var(--color-primary)' }}
               >
                 {placing ? (
-                  <>
-                    <div className="w-4 h-4 rounded-full border-2 border-white border-t-transparent animate-spin" />
-                    Đang xử lý...
-                  </>
+                  <><div className="w-4 h-4 rounded-full border-2 border-white border-t-transparent animate-spin" />Đang xử lý...</>
                 ) : (
-                  <>
-                    Đặt hàng · {fmt(total)}
-                    <Icon.ChevronRight />
-                  </>
+                  <>Đặt hàng · {fmt(total)}<Icon.ChevronRight /></>
                 )}
               </button>
 
               <p className="text-xs text-center" style={{ color: 'var(--color-text-muted)' }}>
                 Bằng cách đặt hàng, bạn đồng ý với{' '}
-                <a href="/policies/terms" className="underline" style={{ color: 'var(--color-primary)' }}>
-                  điều khoản sử dụng
-                </a>
+                <a href="/policies/terms" className="underline" style={{ color: 'var(--color-primary)' }}>điều khoản sử dụng</a>
               </p>
             </div>
           </div>

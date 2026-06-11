@@ -58,6 +58,9 @@ public class Promotion {
     @Column(name = "is_active", nullable = false)
     private Boolean isActive = true;
 
+    @Column(name = "free_shipping", nullable = false)
+    private Boolean freeShipping = false;
+
     public enum PromotionType {
         PERCENT, FIXED
     }

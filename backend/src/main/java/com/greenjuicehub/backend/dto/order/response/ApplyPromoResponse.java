@@ -17,4 +17,6 @@ public class ApplyPromoResponse {
     private BigDecimal discountAmount;
     private BigDecimal totalAfterDiscount;
     private String message;
+    private String promoType;
+    private Boolean freeShipping;
 }

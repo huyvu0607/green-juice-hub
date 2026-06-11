@@ -265,7 +265,7 @@ function ProfileTab({ user, onUserUpdate }) {
             const payload = hasPassword
                 ? { currentPassword: pw.currentPassword, newPassword: pw.newPassword, confirmPassword: pw.confirmPassword }
                 : { newPassword: pw.newPassword, confirmPassword: pw.confirmPassword }
-            await userApi.changePassword(pw)
+            await userApi.changePassword(payload)
             setPwMsg({ type: 'ok', text: hasPassword ? 'Đổi mật khẩu thành công' : 'Đã thiết lập mật khẩu' })
             setPw({ currentPassword: '', newPassword: '', confirmPassword: '' })
             // cập nhật hasPassword = true trong store
@@ -455,6 +455,12 @@ function AddressTab() {
     const [errors, setErrors] = useState({})
     const [msg, setMsg] = useState(null)
 
+    const EMPTY_ADDR = {
+        fullName: '', phone: '',
+        province: '', district: '', ward: '',
+        districtId: null, wardCode: null,
+        detail: '', isDefault: false
+    }
     useEffect(() => { fetchAddresses() }, [])
 
     const fetchAddresses = async () => {
@@ -559,9 +565,18 @@ function AddressTab() {
                 </Field>
 
                 <LocationSelect
-                    value={{ province: d.province, district: d.district, ward: d.ward }}
-                    onChange={({ province, district, ward }) => {
-                        setForm((f) => ({ ...f, data: { ...f.data, province, district, ward } }))
+                    value={{
+                        province: d.province,
+                        district: d.district,
+                        ward: d.ward,
+                        districtId: d.districtId,
+                        wardCode: d.wardCode,
+                    }}
+                    onChange={({ province, district, ward, districtId, wardCode }) => {
+                        setForm((f) => ({
+                            ...f,
+                            data: { ...f.data, province, district, ward, districtId, wardCode }
+                        }))
                     }}
                     errors={{ province: errors.province, district: errors.district, ward: errors.ward }}
                 />

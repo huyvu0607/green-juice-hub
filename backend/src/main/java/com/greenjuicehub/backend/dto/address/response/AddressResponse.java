@@ -12,6 +12,8 @@ public class AddressResponse {
     private String province;
     private String district;
     private String ward;
+    private Integer districtId;
+    private String wardCode;
     private String detail;
     private Boolean isDefault;
 
