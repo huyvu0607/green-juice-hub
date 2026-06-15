@@ -49,16 +49,37 @@ const icons = {
       <path d="M12 2l3 6 6 1-4.5 4.5L17.5 20 12 17l-5.5 3 1-6.5L3 9l6-1 3-6Z" />
     </svg>
   ),
+  chevronRight: (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <polyline points="9 18 15 12 9 6" />
+    </svg>
+  ),
 };
 
-function findCurrentNavItem(pathname) {
-  // Sắp xếp theo độ dài path giảm dần để match path con trước (ví dụ /admin/products/123)
-  const sorted = [...NAV_ITEMS].sort((a, b) => b.to.length - a.to.length);
-  return sorted.find((item) =>
-    item.end ? pathname === item.to : pathname.startsWith(item.to)
-  );
+// ==================== BREADCRUMB HOOK ====================
+function useBreadcrumb(pathname) {
+  // Match /admin/orders/:id
+  const orderDetailMatch = pathname.match(/^\/admin\/orders\/(.+)$/)
+  if (orderDetailMatch) {
+    return {
+      pageTitle: 'Chi tiết đơn hàng',
+      crumbs: [
+        { label: 'Đơn hàng', to: '/admin/orders' },
+        { label: `#${orderDetailMatch[1]}`, to: null },
+      ],
+    }
+  }
+
+  // Fallback: dùng NAV_ITEMS
+  const sorted = [...NAV_ITEMS].sort((a, b) => b.to.length - a.to.length)
+  const item   = sorted.find(i => i.end ? pathname === i.to : pathname.startsWith(i.to))
+  return {
+    pageTitle: item?.label || 'Trang quản trị',
+    crumbs: [],
+  }
 }
 
+// ==================== COMPONENT ====================
 export default function AdminTopbar({ onToggleSidebar }) {
   const { user, logout } = useAuthStore();
   const navigate = useNavigate();
@@ -67,8 +88,7 @@ export default function AdminTopbar({ onToggleSidebar }) {
   const [notifOpen, setNotifOpen] = useState(false);
   const [notif, setNotif] = useState({ newOrdersCount: 0, pendingReviewsCount: 0 });
 
-  const currentItem = findCurrentNavItem(location.pathname);
-  const pageTitle = currentItem?.label || "Trang quản trị";
+  const { pageTitle, crumbs } = useBreadcrumb(location.pathname);
 
   useEffect(() => {
     let mounted = true;
@@ -87,15 +107,14 @@ export default function AdminTopbar({ onToggleSidebar }) {
         .catch(() => {});
     };
 
-    fetchNotif(); // Gọi ngay lần đầu
-
-    const interval = setInterval(fetchNotif, 60_000); // Sau đó mỗi 60 giây
+    fetchNotif();
+    const interval = setInterval(fetchNotif, 60_000);
 
     return () => {
       mounted = false;
       clearInterval(interval);
     };
-  }, []); // Chỉ chạy 1 lần khi mount AdminLayout
+  }, []);
 
   const totalNotif = notif.newOrdersCount + notif.pendingReviewsCount;
 
@@ -107,7 +126,7 @@ export default function AdminTopbar({ onToggleSidebar }) {
   return (
     <header className="flex h-16 items-center justify-between border-b border-gray-200 bg-white px-4 sm:px-6">
       <div className="flex items-center gap-3">
-        {/* Toggle sidebar - chỉ hiện trên mobile */}
+        {/* Toggle sidebar - mobile only */}
         <button
           onClick={onToggleSidebar}
           className="rounded-lg p-2 text-gray-600 hover:bg-gray-100 md:hidden"
@@ -116,12 +135,33 @@ export default function AdminTopbar({ onToggleSidebar }) {
           <span className="h-5 w-5 block">{icons.menu}</span>
         </button>
 
-        {/* Breadcrumb / page title */}
-        <div className="flex items-center gap-2 text-sm">
+        {/* Breadcrumb */}
+        <nav className="flex items-center gap-1.5 text-sm">
           <span className="text-gray-400">Admin</span>
-          <span className="text-gray-300">/</span>
-          <span className="font-medium text-gray-900">{pageTitle}</span>
-        </div>
+
+          {crumbs.length > 0 ? (
+            crumbs.map((crumb, i) => (
+              <span key={i} className="flex items-center gap-1.5">
+                <span className="h-3 w-3 text-gray-300 flex-shrink-0">{icons.chevronRight}</span>
+                {crumb.to ? (
+                  <Link
+                    to={crumb.to}
+                    className="text-gray-400 hover:text-gray-700 transition-colors"
+                  >
+                    {crumb.label}
+                  </Link>
+                ) : (
+                  <span className="font-medium text-gray-900">{crumb.label}</span>
+                )}
+              </span>
+            ))
+          ) : (
+            <>
+              <span className="h-3 w-3 text-gray-300 flex-shrink-0">{icons.chevronRight}</span>
+              <span className="font-medium text-gray-900">{pageTitle}</span>
+            </>
+          )}
+        </nav>
       </div>
 
       <div className="flex items-center gap-2 sm:gap-3">
@@ -135,13 +175,13 @@ export default function AdminTopbar({ onToggleSidebar }) {
           <span className="h-4 w-4">{icons.externalLink}</span>
           <span>Xem trang web</span>
         </a>
+        
         <a
           href="/"
           target="_blank"
           rel="noopener noreferrer"
           className="rounded-lg p-2 text-gray-500 hover:bg-gray-100 hover:text-gray-700 sm:hidden"
-          aria-label="Xem trang web"
-        >
+          aria-label="Xem trang web">
           <span className="h-5 w-5 block">{icons.externalLink}</span>
         </a>
 

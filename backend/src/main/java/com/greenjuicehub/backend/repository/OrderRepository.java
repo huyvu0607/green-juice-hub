@@ -79,4 +79,19 @@ public interface OrderRepository extends JpaRepository<Order, Long> {
             """, nativeQuery = true)
     List<Object[]> sumRevenueGroupByMonth(@Param("from") LocalDateTime from, @Param("to") LocalDateTime to);
 
+    /** Admin: lấy tất cả đơn, mới nhất trước */
+    Page<Order> findAllByOrderByCreatedAtDesc(Pageable pageable);
+
+    /** Admin: lọc theo status */
+    Page<Order> findByStatusOrderByCreatedAtDesc(Order.OrderStatus status, Pageable pageable);
+
+    /** Admin: tìm theo orderCode (LIKE) */
+    Page<Order> findByOrderCodeContainingIgnoreCaseOrderByCreatedAtDesc(
+            String orderCode, Pageable pageable);
+
+    /** Admin: tìm theo orderCode + status */
+    Page<Order> findByOrderCodeContainingIgnoreCaseAndStatusOrderByCreatedAtDesc(
+            String orderCode, Order.OrderStatus status, Pageable pageable);
+    /** Tìm đơn SHIPPING đã quá hạn — dùng cho scheduled job */
+    List<Order> findByStatusAndUpdatedAtBefore(Order.OrderStatus status, LocalDateTime before);
 }

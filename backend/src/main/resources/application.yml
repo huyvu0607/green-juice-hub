@@ -2,6 +2,9 @@ spring:
   application:
     name: green-juice-hub
 
+  task:
+    scheduling:
+      enabled: true
   datasource:
     url: jdbc:mysql://localhost:3306/green_juice_hub?useSSL=false&serverTimezone=Asia/Ho_Chi_Minh&allowPublicKeyRetrieval=true&characterEncoding=UTF-8
     username: root

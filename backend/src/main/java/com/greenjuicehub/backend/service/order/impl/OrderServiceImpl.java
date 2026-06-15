@@ -12,6 +12,7 @@ import com.greenjuicehub.backend.repository.*;
 import com.greenjuicehub.backend.service.order.IOrderService;
 import com.greenjuicehub.backend.service.shipping.GhnService;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.http.HttpStatus;
@@ -23,6 +24,7 @@ import java.math.RoundingMode;
 import java.time.LocalDateTime;
 import java.util.*;
 
+@Slf4j
 @Service
 @RequiredArgsConstructor
 public class OrderServiceImpl implements IOrderService {
@@ -146,9 +148,6 @@ public class OrderServiceImpl implements IOrderService {
                     ? variant.getSalePrice()
                     : variant.getOriginalPrice();
 
-            // Trừ tồn kho
-            variant.setStockQty(variant.getStockQty() - cartItem.getQuantity());
-
             String variantLabel = buildVariantLabel(
                     variant.getFlavor() != null ? variant.getFlavor().getName() : null,
                     variant.getSize() != null ? variant.getSize().getName() : null
@@ -167,6 +166,16 @@ public class OrderServiceImpl implements IOrderService {
         }).toList();
 
         orderItemRepository.saveAll(orderItems);
+
+// Trừ tồn kho + explicit save
+        List<ProductVariant> variantsToUpdate = selectedItems.stream()
+                .map(cartItem -> {
+                    ProductVariant v = cartItem.getVariant();
+                    v.setStockQty(v.getStockQty() - cartItem.getQuantity());
+                    return v;
+                })
+                .toList();
+        productVariantRepository.saveAll(variantsToUpdate);
 
         // 9. Tạo Payment record
         Payment payment = Payment.builder()
@@ -289,6 +298,7 @@ public class OrderServiceImpl implements IOrderService {
 
         orderItemRepository.save(orderItem);
         variant.setStockQty(variant.getStockQty() - request.getQuantity());
+        productVariantRepository.save(variant);
 
         // 9. Tạo Payment record
         Payment payment = Payment.builder()
@@ -378,10 +388,14 @@ public class OrderServiceImpl implements IOrderService {
         }
         // Hoàn lại tồn kho
         List<OrderItem> items = orderItemRepository.findAllByOrderIdWithDetails(orderId);
-        items.forEach(item -> {
-            ProductVariant variant = item.getVariant();
-            variant.setStockQty(variant.getStockQty() + item.getQuantity());
-        });
+        List<ProductVariant> variantsToUpdate = items.stream()
+                .map(item -> {
+                    ProductVariant v = item.getVariant();
+                    v.setStockQty(v.getStockQty() + item.getQuantity());
+                    return v;
+                })
+                .toList();
+        productVariantRepository.saveAll(variantsToUpdate);
 
         // Hoàn lại lượt dùng mã
         if (order.getPromotion() != null) {
@@ -479,11 +493,14 @@ public class OrderServiceImpl implements IOrderService {
         }
 
         order.setStatus(Order.OrderStatus.DELIVERED);
+
+        // ── Nếu COD → tự động đánh dấu đã thanh toán ──
+        markPaidIfCod(order);
+
         order = orderRepository.save(order);
 
         List<OrderItem> items = orderItemRepository.findAllByOrderIdWithDetails(orderId);
         Payment payment = paymentRepository.findTopByOrderIdOrderByCreatedAtDesc(orderId).orElse(null);
-
         return orderMapper.toOrderResponse(order, items, payment);
     }
     // ─────────────────────────────────────────────────────────────────────────
@@ -569,12 +586,16 @@ public class OrderServiceImpl implements IOrderService {
 
     /** Tạo mã đơn hàng unique dạng GJH-XXXXXXXX */
     private String generateOrderCode() {
-        String code;
-        do {
+        for (int i = 0; i < 10; i++) {
             String random = UUID.randomUUID().toString().replace("-", "").substring(0, 8).toUpperCase();
-            code = "GJH-" + random;
-        } while (orderRepository.existsByOrderCode(code));
-        return code;
+            String code = "GJH-" + random;
+            if (!orderRepository.existsByOrderCode(code)) {
+                return code;
+            }
+            log.warn("[OrderCode] Trùng mã lần {}: {}", i + 1, code);
+        }
+        throw new AppException(HttpStatus.INTERNAL_SERVER_ERROR,
+                "Không thể tạo mã đơn hàng, vui lòng thử lại");
     }
 
     private String buildVariantLabel(String flavor, String size) {
@@ -598,4 +619,20 @@ public class OrderServiceImpl implements IOrderService {
         return msg;
     }
 
+    /**
+     * Nếu phương thức thanh toán là COD và chưa PAID → cập nhật PAID.
+     * Gọi sau khi đơn chuyển sang DELIVERED.
+     */
+    private void markPaidIfCod(Order order) {
+        paymentRepository.findTopByOrderIdOrderByCreatedAtDesc(order.getId())
+                .ifPresent(payment -> {
+                    if (payment.getMethod() == Payment.PaymentMethod.COD
+                            && payment.getStatus() != Payment.PaymentStatus.SUCCESS) {
+                        payment.setStatus(Payment.PaymentStatus.SUCCESS);
+                        payment.setPaidAt(LocalDateTime.now());
+                        paymentRepository.save(payment);
+                        order.setPaymentStatus(Order.PaymentStatus.PAID);
+                    }
+                });
+    }
 }

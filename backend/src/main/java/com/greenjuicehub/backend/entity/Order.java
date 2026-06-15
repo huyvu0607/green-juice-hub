@@ -78,6 +78,6 @@ public class Order {
     }
 
     public enum PaymentStatus {
-        PENDING, PAID, REFUNDED
+        PENDING, PAID, REFUND_PENDING, REFUNDED
     }
 }
