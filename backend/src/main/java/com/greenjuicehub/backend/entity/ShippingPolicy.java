@@ -5,7 +5,10 @@
     import java.time.LocalDateTime;
     
     @Entity
-    @Table(name = "shipping_policies")
+    @Table(
+            name = "shipping_policies",
+            uniqueConstraints = @UniqueConstraint(columnNames = {"type"})
+    )
     @Getter @Setter
     @NoArgsConstructor @AllArgsConstructor
     @Builder

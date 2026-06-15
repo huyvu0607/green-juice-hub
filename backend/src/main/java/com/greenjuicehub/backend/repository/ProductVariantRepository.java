@@ -6,4 +6,7 @@ import java.util.List;
 
 public interface ProductVariantRepository extends JpaRepository<ProductVariant, Long> {
     List<ProductVariant> findAllByProductIdAndIsActiveTrueOrderBySortOrderAsc(Long productId);
+
+    // ==================== DASHBOARD: Đếm variant sắp hết hàng (active, stock <= threshold) ====================
+    long countByIsActiveTrueAndStockQtyLessThanEqual(Integer threshold);
 }
