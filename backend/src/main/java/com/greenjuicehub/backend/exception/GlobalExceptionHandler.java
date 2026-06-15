@@ -38,4 +38,5 @@ public class GlobalExceptionHandler {
         body.put("timestamp", LocalDateTime.now().toString());
         return body;
     }
+
 }

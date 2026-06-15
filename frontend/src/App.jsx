@@ -26,6 +26,8 @@ import ContactPage from '@/pages/contact/ContactPage'
 import PolicyPage from '@/pages/policies/PolicyPage'
 import AdminLayout from '@/components/layout/AdminLayout'
 import AdminDashboardPage from '@/pages/admin/AdminDashboardPage'
+import AdminOrdersPage from '@/pages/admin/order/AdminOrdersPage'
+import AdminOrderDetailPage from '@/pages/admin/order/AdminOrderDetailPage'
 
 
 function ScrollToTop() {
@@ -166,9 +168,10 @@ function AppRoutes() {
           </ProtectedRoute>
         }>
           <Route index element={<AdminDashboardPage />} />
+          <Route path="orders" element={<AdminOrdersPage />} />
+          <Route path="orders/:orderId" element={<AdminOrderDetailPage />} />
           {/* Các route admin tiếp theo sẽ thêm ở đây:
           <Route path="products" element={<AdminProductsPage />} />
-          <Route path="orders" element={<AdminOrdersPage />} />
           <Route path="promotions" element={<AdminPromotionsPage />} />
           <Route path="users" element={<AdminUsersPage />} />
           <Route path="reviews" element={<AdminReviewsPage />} />

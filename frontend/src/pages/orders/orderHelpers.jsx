@@ -10,32 +10,33 @@ export const formatDate = (iso) => {
 }
 
 export const STATUS = {
-  PENDING:   { label: 'Chờ xác nhận', color: '#f59e0b', bg: '#fef3c7' },
-  CONFIRMED: { label: 'Đã xác nhận',  color: '#3b82f6', bg: '#dbeafe' },
-  SHIPPING:  { label: 'Đang giao',    color: '#8b5cf6', bg: '#ede9fe' },
-  DELIVERED: { label: 'Đã giao',      color: '#16a34a', bg: '#dcfce7' },
-  CANCELLED: { label: 'Đã huỷ',      color: '#ef4444', bg: '#fee2e2' },
+  PENDING: { label: 'Chờ xác nhận', color: '#f59e0b', bg: '#fef3c7' },
+  CONFIRMED: { label: 'Đã xác nhận', color: '#3b82f6', bg: '#dbeafe' },
+  SHIPPING: { label: 'Đang giao', color: '#8b5cf6', bg: '#ede9fe' },
+  DELIVERED: { label: 'Đã giao', color: '#16a34a', bg: '#dcfce7' },
+  CANCELLED: { label: 'Đã huỷ', color: '#ef4444', bg: '#fee2e2' },
 }
 
 export const PAYMENT_STATUS = {
-  PENDING:  { label: 'Chưa thanh toán', color: '#f59e0b' },
-  PAID:     { label: 'Đã thanh toán',   color: '#16a34a' },
-  REFUNDED: { label: 'Đã hoàn tiền',    color: '#8b5cf6' },
+  PENDING: { label: 'Chưa thanh toán', color: '#f59e0b' },
+  PAID: { label: 'Đã thanh toán', color: '#16a34a' },
+  REFUND_PENDING: { label: 'Đang hoàn tiền', color: '#f97316' },
+  REFUNDED: { label: 'Đã hoàn tiền', color: '#8b5cf6' },
 }
 
 export const PAYMENT_METHOD = {
-  COD:           'Tiền mặt khi nhận hàng',
-  VNPAY:         'VNPay',
-  MOMO:          'MoMo',
+  COD: 'Tiền mặt khi nhận hàng',
+  VNPAY: 'VNPay',
+  MOMO: 'MoMo',
   BANK_TRANSFER: 'Chuyển khoản ngân hàng',
 }
 
 // ── Thông tin ngân hàng — single source of truth ─────────────────────────────
 // BankTransferModal và PaymentModal đều import từ đây, không tự khai báo lại
-export const BANK_BIN        = '970436'
-export const ACCOUNT_NUMBER  = '1234567890'
-export const ACCOUNT_NAME    = 'NGUYEN VAN A'
-export const BANK_NAME       = 'Vietcombank'
+export const BANK_BIN = '970436'
+export const ACCOUNT_NUMBER = '1234567890'
+export const ACCOUNT_NAME = 'NGUYEN VAN A'
+export const BANK_NAME = 'Vietcombank'
 
 export const getQrUrl = (amount, content) =>
   `https://img.vietqr.io/image/${BANK_BIN}-${ACCOUNT_NUMBER}-compact2.png` +
