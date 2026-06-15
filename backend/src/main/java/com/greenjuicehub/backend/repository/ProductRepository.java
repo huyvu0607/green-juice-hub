@@ -6,6 +6,7 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.JpaSpecificationExecutor;
 import org.springframework.data.jpa.repository.Query;
+import org.springframework.data.repository.query.Param;
 
 import java.util.List;
 import java.util.Optional;
@@ -61,4 +62,25 @@ public interface ProductRepository extends JpaRepository<Product, Long>,
             Long excludeId,
             Pageable pageable
     );
+
+    // ── Admin-side (thêm mới) ──────────────────────────────────────────────────
+
+    // Tìm tất cả sản phẩm (cả active lẫn inactive) theo keyword + category
+    @Query("""
+            SELECT p FROM Product p
+            WHERE (:keyword IS NULL OR LOWER(p.name) LIKE LOWER(CONCAT('%', :keyword, '%')))
+              AND (:categoryId IS NULL OR p.category.id = :categoryId)
+            ORDER BY p.createdAt DESC
+            """)
+    Page<Product> findAllForAdmin(
+            @Param("keyword") String keyword,
+            @Param("categoryId") Long categoryId,
+            Pageable pageable);
+
+    // Kiểm tra slug trùng khi tạo/sửa (loại trừ chính nó khi update)
+    boolean existsBySlugAndIdNot(String slug, Long id);
+
+    boolean existsBySlug(String slug);
+
+    Optional<Product> findById(Long id);
 }

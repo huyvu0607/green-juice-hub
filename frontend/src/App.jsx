@@ -22,6 +22,11 @@ import ProductDetailPage from '@/pages/products/ProductDetailPage'
 import CheckoutPage from '@/pages/checkout/CheckoutPage'                      // ← thêm
 import OrderDetailPage from '@/pages/orders/OrderDetailPage'
 import OrdersListPage from '@/pages/orders/OrdersListPage'
+import ContactPage from '@/pages/contact/ContactPage'
+import PolicyPage from '@/pages/policies/PolicyPage'
+import AdminLayout from '@/components/layout/AdminLayout'
+import AdminDashboardPage from '@/pages/admin/AdminDashboardPage'
+
 
 function ScrollToTop() {
   const { pathname, search } = useLocation()
@@ -123,8 +128,8 @@ function AppRoutes() {
         <Route path="/" element={<MainLayout><HomePage /></MainLayout>} />
         <Route path="/products" element={<MainLayout><ProductsPage /></MainLayout>} />
         <Route path="/products/:slug" element={<MainLayout><ProductDetailPage /></MainLayout>} />
-        <Route path="/contact" element={<MainLayout><div>Liên hệ</div></MainLayout>} />
-        <Route path="/policies/:type" element={<MainLayout><div>Chính sách</div></MainLayout>} />
+        <Route path="/contact" element={<MainLayout><ContactPage /></MainLayout>} />
+        <Route path="/policies/:type" element={<MainLayout><PolicyPage /></MainLayout>} />
 
         {/* ── Customer only ── */}
         <Route path="/cart" element={
@@ -155,11 +160,23 @@ function AppRoutes() {
         } />
 
         {/* ── Admin + Staff ── */}
-        <Route path="/admin/*" element={
+        <Route path="/admin" element={
           <ProtectedRoute allowedRoles={['ADMIN', 'STAFF']}>
-            <div>Trang Admin</div>
+            <AdminLayout />
           </ProtectedRoute>
-        } />
+        }>
+          <Route index element={<AdminDashboardPage />} />
+          {/* Các route admin tiếp theo sẽ thêm ở đây:
+          <Route path="products" element={<AdminProductsPage />} />
+          <Route path="orders" element={<AdminOrdersPage />} />
+          <Route path="promotions" element={<AdminPromotionsPage />} />
+          <Route path="users" element={<AdminUsersPage />} />
+          <Route path="reviews" element={<AdminReviewsPage />} />
+          <Route path="contacts" element={<AdminContactsPage />} />
+          <Route path="banners" element={<AdminBannersPage />} />
+          <Route path="policies" element={<AdminPoliciesPage />} />
+          */}
+        </Route>
       </Routes>
     </>
   )

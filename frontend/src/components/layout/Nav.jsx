@@ -4,7 +4,7 @@ import { useRef, useState, useEffect, useLayoutEffect } from "react";
 const NAV_LINKS = [
   { label: "Trang chủ", to: "/" },
   { label: "Sản phẩm", to: "/products" },
-  { label: "Blog", to: "/blog" },
+  { label: "Chính sách", to: "/policies/privacy" },
   { label: "Liên hệ", to: "/contact" },
 ];
 

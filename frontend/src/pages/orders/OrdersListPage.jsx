@@ -433,7 +433,7 @@ export default function OrdersListPage() {
                           border: '1px solid var(--color-primary)',
                         }}
                       >
-                        ✏️ Đánh giá{unreviewedCount > 1 ? ` (${unreviewedCount})` : ''}
+                        Đánh giá{unreviewedCount > 1 ? ` (${unreviewedCount})` : ''}
                       </button>
                     )}
 
@@ -458,7 +458,7 @@ export default function OrdersListPage() {
                           border: '1px solid var(--color-border-subtle)',
                         }}
                       >
-                        🛒 Mua lại
+                        Mua lại
                       </button>
                     )}
 

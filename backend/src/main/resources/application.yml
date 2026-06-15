@@ -25,7 +25,17 @@ spring:
       port: ${REDIS_PORT:6379}
 
   mandatory-file-encoding: UTF-8
-
+  mail:
+    host: smtp.gmail.com
+    port: 587
+    username: ${MAIL_USERNAME:}
+    password: ${MAIL_PASSWORD:}
+    properties:
+      mail:
+        smtp:
+          auth: true
+          starttls:
+            enable: true
 server:
   port: 8081
   servlet:
@@ -55,6 +65,8 @@ app:
     bank-bin: "970436"
     account-number: "1234567890"
     account-name: NGUYEN VAN A
+  mail:
+    shop-email: ${SHOP_EMAIL:}
 
 ghn:
   token: ${GHN_TOKEN:}
@@ -63,3 +75,5 @@ ghn:
   from-district-id: 1454
   from-ward-code: "21201"
   service-type-id: 2
+
+

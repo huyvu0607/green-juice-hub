@@ -47,6 +47,8 @@ public class SecurityConfig {
                                 "/api/products/**",
                                 "/api/reviews/product/**",
                                 "/api/webhooks/**",
+                                "/api/contacts",
+                                "/api/policies/**",
                                 "/api/shipping/**"
                         ).permitAll()
                         // Tất cả còn lại phải authenticated

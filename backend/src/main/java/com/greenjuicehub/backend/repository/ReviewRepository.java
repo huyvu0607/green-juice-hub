@@ -50,4 +50,7 @@ public interface ReviewRepository extends JpaRepository<Review, Long> {
             @Param("productId") Long productId,
             @Param("rating") Integer rating,
             Pageable pageable);
+
+    // ==================== DASHBOARD: Đếm review chờ duyệt ====================
+    long countByIsApprovedFalse();
 }

@@ -10,9 +10,8 @@ import { useCartAnimation } from '@/hooks/useCartAnimation'
 const NAV_LINKS = [
   { label: "Trang chủ", to: "/" },
   { label: "Sản phẩm", to: "/products" },
-  { label: "Blog", to: "/blog" },
+  { label: "Chính sách", to: "/policies" },
   { label: "Liên hệ", to: "/contact" },
-  { label: "Khuyến mãi", to: "/deals" },
 ];
 
 const OPEN_DURATION = 440;
@@ -365,6 +364,7 @@ export default function Header() {
   const cartBtnRef = useRef(null)
   useCartAnimation(cartBtnRef)
 
+  const location = useLocation();
 
   const { isLoggedIn, user, logout } = useAuthStore();
   const navigate = useNavigate();
@@ -531,21 +531,32 @@ export default function Header() {
             }} />
           </div>
 
-          {NAV_LINKS.map(({ label, to }) => (
-            <NavLink key={to} to={to} end
-              ref={(el) => { if (el) itemRefs.current[to] = el; }}
-              className={({ isActive }) =>
-                `relative z-10 shrink-0 px-5 h-9 flex items-center rounded-[var(--radius-pill)]
-                text-[var(--text-sm)] font-medium transition-colors duration-[var(--duration-base)]
-                ${isActive
-                  ? "text-white"
-                  : "text-[var(--color-text-secondary)] hover:text-[var(--color-text-primary)] hover:bg-[var(--color-bg-muted)]"
-                }`
-              }
-            >
-              {label}
-            </NavLink>
-          ))}
+          {NAV_LINKS.map(({ label, to }) => {
+            const isActive = to === "/"
+              ? location.pathname === "/"
+              : location.pathname.startsWith(to);
+
+            return (
+              <NavLink
+                key={to}
+                to={to === "/policies" ? "/policies/shipping" : to}
+                end={to === "/"}
+                ref={(el) => {
+                  if (el) itemRefs.current[to] = el;
+                }}
+                className={
+                  `relative z-10 shrink-0 px-5 h-9 flex items-center rounded-[var(--radius-pill)]
+        text-[var(--text-sm)] font-medium transition-colors duration-[var(--duration-base)]
+        ${isActive
+                    ? "text-white"
+                    : "text-[var(--color-text-secondary)] hover:text-[var(--color-text-primary)] hover:bg-[var(--color-bg-muted)]"
+                  }`
+                }
+              >
+                {label}
+              </NavLink>
+            );
+          })}
         </nav>
       </div>
 
