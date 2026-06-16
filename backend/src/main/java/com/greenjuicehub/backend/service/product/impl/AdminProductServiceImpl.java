@@ -25,6 +25,7 @@ import java.util.regex.Pattern;
 
 @Service
 @RequiredArgsConstructor
+@Transactional
 public class AdminProductServiceImpl implements IAdminProductService {
 
     private final ProductRepository productRepository;

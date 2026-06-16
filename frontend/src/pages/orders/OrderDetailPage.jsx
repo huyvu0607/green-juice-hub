@@ -9,16 +9,14 @@ import {
   BANK_NAME, ACCOUNT_NUMBER, ACCOUNT_NAME, getQrUrl,
 } from './orderHelpers'
 import useCartStore from '@/store/useCartStore'
-
-
 import ReviewFormPopup from '@/components/product/ReviewFormPopup'
 
 // ── Order Status Stepper ───────────────────────────────────────────
 const STATUS_STEPS = [
-  { key: 'PENDING', label: 'Đã đặt hàng' },
+  { key: 'PENDING',   label: 'Đã đặt hàng' },
   { key: 'CONFIRMED', label: 'Đã xác nhận' },
-  { key: 'SHIPPING', label: 'Đang giao' },
-  { key: 'DELIVERED', label: 'Hoàn tất' },
+  { key: 'SHIPPING',  label: 'Đang giao'   },
+  { key: 'DELIVERED', label: 'Hoàn tất'    },
 ]
 
 function OrderStepper({ status }) {
@@ -39,10 +37,9 @@ function OrderStepper({ status }) {
   return (
     <div className="flex items-start gap-0 w-full">
       {STATUS_STEPS.map((step, idx) => {
-        const done = idx <= currentIdx
+        const done   = idx <= currentIdx
         const active = idx === currentIdx
         const isLast = idx === STATUS_STEPS.length - 1
-
         return (
           <div key={step.key} className="flex flex-col items-center flex-1">
             <div className="flex items-center w-full">
@@ -50,16 +47,16 @@ function OrderStepper({ status }) {
                 background: idx === 0 ? 'transparent' : done ? 'var(--color-primary)' : 'var(--color-border-subtle)',
               }} />
               <div className="flex-shrink-0 w-8 h-8 rounded-full flex items-center justify-center transition-all" style={{
-                background: done ? 'var(--color-primary)' : 'var(--color-bg-muted)',
-                border: active ? '2.5px solid var(--color-primary)' : done ? 'none' : '1.5px solid var(--color-border-subtle)',
-                boxShadow: active ? '0 0 0 3px var(--color-primary-subtle)' : 'none',
+                background:  done ? 'var(--color-primary)' : 'var(--color-bg-muted)',
+                border:      active ? '2.5px solid var(--color-primary)' : done ? 'none' : '1.5px solid var(--color-border-subtle)',
+                boxShadow:   active ? '0 0 0 3px var(--color-primary-subtle)' : 'none',
               }}>
                 {done && !active && (
                   <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="3" strokeLinecap="round">
                     <polyline points="20 6 9 17 4 12" />
                   </svg>
                 )}
-                {active && <div className="w-2.5 h-2.5 rounded-full" style={{ background: '#fff' }} />}
+                {active  && <div className="w-2.5 h-2.5 rounded-full" style={{ background: '#fff' }} />}
                 {!done && !active && <div className="w-2 h-2 rounded-full" style={{ background: 'var(--color-border-subtle)' }} />}
               </div>
               <div className="flex-1 h-0.5 transition-all" style={{
@@ -67,7 +64,7 @@ function OrderStepper({ status }) {
               }} />
             </div>
             <p className="text-xs mt-2 text-center" style={{
-              color: done ? 'var(--color-primary)' : 'var(--color-text-muted)',
+              color:      done ? 'var(--color-primary)' : 'var(--color-text-muted)',
               fontWeight: active ? 600 : done ? 500 : 400,
             }}>
               {step.label}
@@ -81,13 +78,13 @@ function OrderStepper({ status }) {
 
 // ── Payment Modal ──────────────────────────────────────────────────
 function PaymentModal({ order, onClose }) {
-  const [copied, setCopied] = useState(false)
+  const [copied, setCopied]   = useState(false)
   const [qrLoaded, setQrLoaded] = useState(false)
-  const [qrError, setQrError] = useState(false)
-  const [showQr, setShowQr] = useState(true)
-  const [paid, setPaid] = useState(false)
-  const [closing, setClosing] = useState(false)
-  const { fetchOrderDetail } = useOrderStore()
+  const [qrError, setQrError]   = useState(false)
+  const [showQr, setShowQr]     = useState(true)
+  const [paid, setPaid]         = useState(false)
+  const [closing, setClosing]   = useState(false)
+  const { fetchOrderDetail }    = useOrderStore()
   const paidRef = useRef(false)
 
   useEffect(() => {
@@ -248,7 +245,7 @@ function PaymentModal({ order, onClose }) {
                     className="flex-1 py-2 text-xs font-medium cursor-pointer transition-all"
                     style={{
                       background: showQr === key ? 'var(--color-primary)' : 'transparent',
-                      color: showQr === key ? '#fff' : 'var(--color-text-secondary)',
+                      color:      showQr === key ? '#fff' : 'var(--color-text-secondary)',
                     }}
                   >
                     {label}
@@ -292,10 +289,10 @@ function PaymentModal({ order, onClose }) {
               ) : (
                 <div className="flex flex-col gap-2.5">
                   {[
-                    { label: 'Ngân hàng', value: BANK_NAME },
-                    { label: 'Số tài khoản', value: ACCOUNT_NUMBER, mono: true },
-                    { label: 'Chủ tài khoản', value: ACCOUNT_NAME },
-                    { label: 'Số tiền', value: fmt(order.totalAmount), highlight: true },
+                    { label: 'Ngân hàng',        value: BANK_NAME },
+                    { label: 'Số tài khoản',     value: ACCOUNT_NUMBER, mono: true },
+                    { label: 'Chủ tài khoản',    value: ACCOUNT_NAME },
+                    { label: 'Số tiền',           value: fmt(order.totalAmount), highlight: true },
                   ].map(({ label, value, mono, highlight }) => (
                     <div key={label} className="flex justify-between items-center py-1.5"
                       style={{ borderBottom: '0.5px solid var(--color-border-subtle)' }}>
@@ -372,9 +369,9 @@ const CANCEL_REASONS = [
   'Lý do khác',
 ]
 
-function CancelModal({ onConfirm, onClose, cancelling, isBankTransfer }) {
+function CancelModal({ onConfirm, onClose, cancelling, isPaid }) {
   const [selected, setSelected] = useState(null)
-  const [custom, setCustom] = useState('')
+  const [custom, setCustom]     = useState('')
 
   useEffect(() => {
     const handler = (e) => { if (e.key === 'Escape') onClose() }
@@ -387,8 +384,8 @@ function CancelModal({ onConfirm, onClose, cancelling, isBankTransfer }) {
     return () => { document.body.style.overflow = '' }
   }, [])
 
-  const isOther = selected === 'Lý do khác'
-  const reason = isOther ? custom.trim() : selected
+  const isOther   = selected === 'Lý do khác'
+  const reason    = isOther ? custom.trim() : selected
   const canSubmit = selected && (!isOther || custom.trim().length > 0)
 
   return (
@@ -408,10 +405,7 @@ function CancelModal({ onConfirm, onClose, cancelling, isBankTransfer }) {
           style={{ borderBottom: '1px solid var(--color-border-subtle)', background: '#fef2f2' }}
         >
           <div className="flex items-center gap-2">
-            <div
-              className="w-7 h-7 rounded-full flex items-center justify-center flex-shrink-0"
-              style={{ background: '#fee2e2' }}
-            >
+            <div className="w-7 h-7 rounded-full flex items-center justify-center flex-shrink-0" style={{ background: '#fee2e2' }}>
               <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#dc2626" strokeWidth="2.5" strokeLinecap="round">
                 <polyline points="3 6 5 6 21 6" />
                 <path d="M19 6l-1 14a2 2 0 01-2 2H8a2 2 0 01-2-2L5 6" />
@@ -437,20 +431,26 @@ function CancelModal({ onConfirm, onClose, cancelling, isBankTransfer }) {
         {/* Body */}
         <div className="px-5 py-4 flex flex-col gap-3">
 
-          {/* Warning banner cho chuyển khoản */}
-          {isBankTransfer && (
+          {/* Banner hoàn tiền — chỉ hiện khi đã PAID */}
+          {isPaid && (
             <div
-              className="flex gap-2 px-3 py-2.5 rounded-[var(--radius-md)]"
-              style={{ background: '#fefce8', border: '1px solid #fde047' }}
+              className="flex gap-2.5 px-3 py-3 rounded-[var(--radius-md)]"
+              style={{ background: '#fff7ed', border: '1px solid #fed7aa' }}
             >
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#854d0e" strokeWidth="2.5" strokeLinecap="round" className="flex-shrink-0 mt-0.5">
+              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#c2410c" strokeWidth="2.5" strokeLinecap="round" className="flex-shrink-0 mt-0.5">
                 <path d="M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z" />
-                <line x1="12" y1="9" x2="12" y2="13" />
+                <line x1="12" y1="9"  x2="12"   y2="13" />
                 <line x1="12" y1="17" x2="12.01" y2="17" />
               </svg>
-              <p className="text-xs leading-relaxed" style={{ color: '#854d0e' }}>
-                Nếu bạn đã chuyển khoản, vui lòng liên hệ hỗ trợ sau khi huỷ để được hoàn tiền thủ công.
-              </p>
+              <div>
+                <p className="text-xs font-semibold mb-0.5" style={{ color: '#c2410c' }}>
+                  Bạn đã thanh toán đơn này
+                </p>
+                <p className="text-xs leading-relaxed" style={{ color: '#92400e' }}>
+                  Sau khi huỷ, đơn sẽ chuyển sang trạng thái <strong>chờ hoàn tiền</strong>.
+                  Đội ngũ hỗ trợ sẽ liên hệ và hoàn tiền cho bạn trong vòng 1–3 ngày làm việc.
+                </p>
+              </div>
             </div>
           )}
 
@@ -465,15 +465,15 @@ function CancelModal({ onConfirm, onClose, cancelling, isBankTransfer }) {
                 onClick={() => { setSelected(r); setCustom('') }}
                 className="flex items-center gap-2.5 px-3 py-2.5 rounded-[var(--radius-md)] text-left text-sm cursor-pointer transition-all"
                 style={{
-                  border: selected === r ? '1.5px solid #ef4444' : '1px solid var(--color-border-subtle)',
+                  border:     selected === r ? '1.5px solid #ef4444' : '1px solid var(--color-border-subtle)',
                   background: selected === r ? '#fef2f2' : 'transparent',
-                  color: selected === r ? '#dc2626' : 'var(--color-text-primary)',
+                  color:      selected === r ? '#dc2626' : 'var(--color-text-primary)',
                 }}
               >
                 <div
                   className="w-4 h-4 rounded-full flex-shrink-0 flex items-center justify-center transition-all"
                   style={{
-                    border: selected === r ? '2px solid #ef4444' : '1.5px solid var(--color-border-subtle)',
+                    border:     selected === r ? '2px solid #ef4444' : '1.5px solid var(--color-border-subtle)',
                     background: selected === r ? '#ef4444' : 'transparent',
                   }}
                 >
@@ -493,13 +493,13 @@ function CancelModal({ onConfirm, onClose, cancelling, isBankTransfer }) {
               onChange={e => setCustom(e.target.value)}
               className="w-full px-3 py-2 text-sm rounded-[var(--radius-md)] resize-none transition-colors"
               style={{
-                border: '1px solid var(--color-border-subtle)',
+                border:     '1px solid var(--color-border-subtle)',
                 background: 'var(--color-bg-muted)',
-                color: 'var(--color-text-primary)',
-                outline: 'none',
+                color:      'var(--color-text-primary)',
+                outline:    'none',
               }}
               onFocus={e => e.currentTarget.style.borderColor = '#ef4444'}
-              onBlur={e => e.currentTarget.style.borderColor = 'var(--color-border-subtle)'}
+              onBlur={e  => e.currentTarget.style.borderColor = 'var(--color-border-subtle)'}
             />
           )}
         </div>
@@ -511,8 +511,8 @@ function CancelModal({ onConfirm, onClose, cancelling, isBankTransfer }) {
             className="flex-1 py-2.5 rounded-[var(--radius-md)] text-sm font-medium cursor-pointer transition-colors"
             style={{
               background: 'var(--color-bg-muted)',
-              border: '1px solid var(--color-border-subtle)',
-              color: 'var(--color-text-secondary)',
+              border:     '1px solid var(--color-border-subtle)',
+              color:      'var(--color-text-secondary)',
             }}
           >
             Giữ đơn
@@ -523,7 +523,7 @@ function CancelModal({ onConfirm, onClose, cancelling, isBankTransfer }) {
             className="flex-1 py-2.5 rounded-[var(--radius-md)] text-sm font-semibold text-white cursor-pointer disabled:opacity-40 transition-opacity"
             style={{ background: '#ef4444' }}
           >
-            {cancelling ? 'Đang huỷ...' : 'Xác nhận huỷ'}
+            {cancelling ? 'Đang huỷ...' : isPaid ? 'Huỷ & yêu cầu hoàn tiền' : 'Xác nhận huỷ'}
           </button>
         </div>
       </div>
@@ -536,15 +536,40 @@ function CancelModal({ onConfirm, onClose, cancelling, isBankTransfer }) {
   )
 }
 
+// ── Refund Pending Info Banner ─────────────────────────────────────
+// Hiển thị bên dưới trạng thái thanh toán khi đơn đã huỷ + chờ hoàn tiền
+function RefundPendingBanner() {
+  return (
+    <div
+      className="mt-3 flex gap-2.5 px-3 py-3 rounded-[var(--radius-md)]"
+      style={{ background: '#fff7ed', border: '1px solid #fed7aa' }}
+    >
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#c2410c" strokeWidth="2.5" strokeLinecap="round" className="flex-shrink-0 mt-0.5">
+        <circle cx="12" cy="12" r="10" />
+        <polyline points="12 6 12 12 16 14" />
+      </svg>
+      <p className="text-xs leading-relaxed" style={{ color: '#92400e' }}>
+        Chúng tôi đang xử lý hoàn tiền cho bạn.
+        Vui lòng chờ <strong>1–3 ngày làm việc</strong> để nhận lại tiền.
+        Nếu cần hỗ trợ, hãy liên hệ chúng tôi.
+      </p>
+    </div>
+  )
+}
+
 // ── Sidebar tóm tắt ────────────────────────────────────────────────
 function OrderSummary({ o, onCancel, cancelling, onConfirmDelivered, confirming }) {
   const navigate = useNavigate()
   const [showPaymentModal, setShowPaymentModal] = useState(false)
-  const [showCancelModal, setShowCancelModal] = useState(false)
+  const [showCancelModal,  setShowCancelModal]  = useState(false)
 
+  // Cho phép thanh toán khi chưa PAID và chưa huỷ
   const canPay = ['BANK_TRANSFER', 'MOMO', 'VNPAY'].includes(o.paymentMethod)
     && o.paymentStatus === 'PENDING'
     && o.status !== 'CANCELLED'
+
+  // Cho phép huỷ khi PENDING (bất kể đã PAID hay chưa)
+  const canCancel = o.status === 'PENDING'
 
   return (
     <>
@@ -553,6 +578,7 @@ function OrderSummary({ o, onCancel, cancelling, onConfirmDelivered, confirming 
           className="rounded-[var(--radius-lg)] overflow-hidden"
           style={{ background: 'var(--color-bg-elevated)', border: '1px solid var(--color-border-subtle)' }}
         >
+          {/* Tóm tắt giá */}
           <div className="px-5 py-4" style={{ borderBottom: '1px solid var(--color-border-subtle)' }}>
             <p className="text-sm font-semibold" style={{ color: 'var(--color-text-primary)' }}>Tóm tắt</p>
           </div>
@@ -585,6 +611,7 @@ function OrderSummary({ o, onCancel, cancelling, onConfirmDelivered, confirming 
             </div>
           </div>
 
+          {/* Thanh toán */}
           <div className="px-5 pb-4 flex flex-col gap-1.5">
             <p className="text-xs" style={{ color: 'var(--color-text-muted)' }}>Phương thức thanh toán</p>
             <p className="text-sm font-medium" style={{ color: 'var(--color-text-primary)' }}>
@@ -610,8 +637,12 @@ function OrderSummary({ o, onCancel, cancelling, onConfirmDelivered, confirming 
                 </button>
               )}
             </div>
+
+            {/* Banner chờ hoàn tiền */}
+            {o.paymentStatus === 'REFUND_PENDING' && <RefundPendingBanner />}
           </div>
 
+          {/* Actions */}
           <div className="px-5 pb-5 flex flex-col gap-2">
             <button
               onClick={() => navigate('/orders')}
@@ -629,6 +660,8 @@ function OrderSummary({ o, onCancel, cancelling, onConfirmDelivered, confirming 
             >
               Tiếp tục mua sắm
             </button>
+
+            {/* Xác nhận đã nhận hàng */}
             {o.status === 'SHIPPING' && (
               <button
                 onClick={onConfirmDelivered}
@@ -639,7 +672,9 @@ function OrderSummary({ o, onCancel, cancelling, onConfirmDelivered, confirming 
                 {confirming ? 'Đang xác nhận...' : '✓ Đã nhận được hàng'}
               </button>
             )}
-            {o.status === 'PENDING' && (
+
+            {/* Huỷ đơn — hiện khi PENDING, bất kể đã PAID hay chưa */}
+            {canCancel && (
               <button
                 onClick={() => setShowCancelModal(true)}
                 disabled={cancelling}
@@ -651,7 +686,7 @@ function OrderSummary({ o, onCancel, cancelling, onConfirmDelivered, confirming 
             )}
           </div>
 
-          {/* Lý do huỷ — hiện khi đã CANCELLED và có cancelReason */}
+          {/* Lý do huỷ */}
           {o.status === 'CANCELLED' && o.cancelReason && (
             <div
               className="mx-5 mb-5 px-3 py-2.5 rounded-[var(--radius-md)]"
@@ -671,7 +706,7 @@ function OrderSummary({ o, onCancel, cancelling, onConfirmDelivered, confirming 
       {showCancelModal && (
         <CancelModal
           cancelling={cancelling}
-          isBankTransfer={o.paymentMethod === 'BANK_TRANSFER'}
+          isPaid={o.paymentStatus === 'PAID'}
           onClose={() => setShowCancelModal(false)}
           onConfirm={async (reason) => {
             await onCancel(reason)
@@ -685,17 +720,16 @@ function OrderSummary({ o, onCancel, cancelling, onConfirmDelivered, confirming 
 
 // ── Page ───────────────────────────────────────────────────────────
 export default function OrderDetailPage() {
-  const { orderId } = useParams()
-  const navigate = useNavigate()
-  const location = useLocation()
+  const { orderId }   = useParams()
+  const navigate      = useNavigate()
+  const location      = useLocation()
   const [reviewItem, setReviewItem] = useState(null)
-  const fromCheckout = location.state?.fromCheckout
+  const fromCheckout  = location.state?.fromCheckout
 
   const { currentOrder, loading, error, fetchOrderDetail, cancelOrder } = useOrderStore()
   const [cancelling, setCancelling] = useState(false)
   const [confirming, setConfirming] = useState(false)
   const { addItem } = useCartStore()
-
 
   useEffect(() => { fetchOrderDetail(orderId) }, [orderId])
 
@@ -718,7 +752,7 @@ export default function OrderDetailPage() {
     )
   }
 
-  const o = currentOrder
+  const o    = currentOrder
   const addr = o.shippingAddress
 
   const handleCancel = async (reason) => {
@@ -726,7 +760,8 @@ export default function OrderDetailPage() {
     try {
       await cancelOrder(o.id, reason)
     } catch (e) {
-      alert(e.message)
+      // Không dùng alert — lỗi thầm lặng hoặc có thể thêm toast sau
+      console.error(e)
     } finally {
       setCancelling(false)
     }
@@ -739,17 +774,18 @@ export default function OrderDetailPage() {
       await orderApi.confirmDelivered(o.id)
       await fetchOrderDetail(orderId)
     } catch (e) {
-      alert(e?.response?.data?.message ?? 'Có lỗi xảy ra')
+      console.error(e?.response?.data?.message ?? 'Có lỗi xảy ra')
     } finally {
       setConfirming(false)
     }
   }
+
   return (
     <div className="min-h-screen" style={{ background: 'var(--color-bg-surface)' }}>
       <div className="max-w-6xl mx-auto px-6 py-8">
 
         <nav className="flex items-center gap-1.5 text-sm mb-5" style={{ color: 'var(--color-text-muted)' }}>
-          <Link to="/" className="hover:text-[var(--color-primary)] transition-colors">Trang chủ</Link>
+          <Link to="/"       className="hover:text-[var(--color-primary)] transition-colors">Trang chủ</Link>
           <span className="opacity-50">/</span>
           <Link to="/orders" className="hover:text-[var(--color-primary)] transition-colors">Đơn hàng của tôi</Link>
           <span className="opacity-50">/</span>
@@ -781,12 +817,14 @@ export default function OrderDetailPage() {
         <div className="flex gap-6 items-start">
           <div className="flex-1 min-w-0 flex flex-col gap-5">
 
+            {/* Stepper */}
             <div className="rounded-[var(--radius-lg)] p-5"
               style={{ background: 'var(--color-bg-elevated)', border: '1px solid var(--color-border-subtle)' }}>
               <p className="text-sm font-semibold mb-5" style={{ color: 'var(--color-text-primary)' }}>Trạng thái đơn hàng</p>
               <OrderStepper status={o.status} />
             </div>
 
+            {/* Sản phẩm */}
             <div className="rounded-[var(--radius-lg)] overflow-hidden"
               style={{ background: 'var(--color-bg-elevated)', border: '1px solid var(--color-border-subtle)' }}>
               <div className="px-5 py-4" style={{ borderBottom: '1px solid var(--color-border-subtle)' }}>
@@ -811,10 +849,8 @@ export default function OrderDetailPage() {
                       <p className="text-sm font-semibold" style={{ color: 'var(--color-text-primary)' }}>
                         {fmt(item.subtotal)}
                       </p>
-
                       {o.status === 'DELIVERED' && (
                         <div className="flex flex-col gap-1">
-                          {/* Mua lại */}
                           <button
                             onClick={async () => {
                               try {
@@ -827,30 +863,28 @@ export default function OrderDetailPage() {
                             className="text-xs font-medium px-2.5 py-1 rounded-[var(--radius-md)] cursor-pointer transition-all"
                             style={{
                               background: 'var(--color-bg-muted)',
-                              color: 'var(--color-text-secondary)',
-                              border: '1px solid var(--color-border-subtle)',
+                              color:      'var(--color-text-secondary)',
+                              border:     '1px solid var(--color-border-subtle)',
                             }}
                           >
                             Mua lại
                           </button>
-
-                          {/* Đánh giá — ẩn nếu đã review */}
                           {!item.hasReviewed && item.productSlug && (
                             <button
                               onClick={() => setReviewItem({
-                                productId: item.productId,
-                                variantId: item.variantId,
-                                orderId: o.id,
+                                productId:   item.productId,
+                                variantId:   item.variantId,
+                                orderId:     o.id,
                                 productName: item.productName,
                                 variantName: item.variantName,
-                                imageUrl: item.imageUrl,
-                                quantity: item.quantity,
+                                imageUrl:    item.imageUrl,
+                                quantity:    item.quantity,
                               })}
                               className="text-xs font-medium px-2.5 py-1 rounded-[var(--radius-md)] cursor-pointer transition-all"
                               style={{
                                 background: 'var(--color-primary-subtle)',
-                                color: 'var(--color-primary)',
-                                border: '1px solid var(--color-primary)',
+                                color:      'var(--color-primary)',
+                                border:     '1px solid var(--color-primary)',
                               }}
                             >
                               Đánh giá
@@ -864,6 +898,7 @@ export default function OrderDetailPage() {
               </div>
             </div>
 
+            {/* Địa chỉ */}
             <div className="rounded-[var(--radius-lg)] p-5"
               style={{ background: 'var(--color-bg-elevated)', border: '1px solid var(--color-border-subtle)' }}>
               <p className="text-xs font-semibold uppercase tracking-wider mb-3" style={{ color: 'var(--color-text-muted)' }}>
@@ -883,6 +918,7 @@ export default function OrderDetailPage() {
 
           </div>
 
+          {/* Sidebar */}
           <div className="w-80 flex-shrink-0">
             <OrderSummary
               o={o}
@@ -894,33 +930,28 @@ export default function OrderDetailPage() {
           </div>
         </div>
       </div>
+
       {reviewItem && (
         <ReviewFormPopup
           item={reviewItem}
           onClose={() => setReviewItem(null)}
           onSuccess={async () => {
-            // Refresh data để cập nhật hasReviewed
             await fetchOrderDetail(orderId)
-
-            // Tìm item chưa review tiếp theo (khác item vừa review)
-            const updatedOrder = useOrderStore.getState().currentOrder
-            const nextUnreviewed = updatedOrder?.items?.find(
+            const updatedOrder    = useOrderStore.getState().currentOrder
+            const nextUnreviewed  = updatedOrder?.items?.find(
               i => !i.hasReviewed && i.productId !== reviewItem.productId
             )
-
             if (nextUnreviewed) {
-              // Còn item chưa review → chuyển sang item đó
               setReviewItem({
-                productId: nextUnreviewed.productId,
-                variantId: nextUnreviewed.variantId,
-                orderId: o.id,
+                productId:   nextUnreviewed.productId,
+                variantId:   nextUnreviewed.variantId,
+                orderId:     o.id,
                 productName: nextUnreviewed.productName,
                 variantName: nextUnreviewed.variantName,
-                imageUrl: nextUnreviewed.imageUrl,
-                quantity: nextUnreviewed.quantity,
+                imageUrl:    nextUnreviewed.imageUrl,
+                quantity:    nextUnreviewed.quantity,
               })
             } else {
-              // Hết rồi → đóng popup
               setReviewItem(null)
             }
           }}

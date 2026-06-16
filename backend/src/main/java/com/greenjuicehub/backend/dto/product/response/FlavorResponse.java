@@ -8,4 +8,5 @@ import lombok.Getter;
 public class FlavorResponse {
     private Long id;
     private String name;
+    private Boolean isActive;
 }

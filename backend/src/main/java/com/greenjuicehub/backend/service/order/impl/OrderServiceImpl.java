@@ -382,10 +382,6 @@ public class OrderServiceImpl implements IOrderService {
                     "Chỉ có thể huỷ đơn hàng đang ở trạng thái chờ xác nhận");
         }
 
-        if (order.getPaymentStatus() == Order.PaymentStatus.PAID) {
-            throw new AppException(HttpStatus.BAD_REQUEST,
-                    "Đơn hàng đã thanh toán, vui lòng liên hệ hỗ trợ để được hoàn tiền");
-        }
         // Hoàn lại tồn kho
         List<OrderItem> items = orderItemRepository.findAllByOrderIdWithDetails(orderId);
         List<ProductVariant> variantsToUpdate = items.stream()
@@ -406,6 +402,18 @@ public class OrderServiceImpl implements IOrderService {
 
         order.setCancelReason(reason != null ? reason.trim() : null);
         order.setStatus(Order.OrderStatus.CANCELLED);
+
+        // Nếu đã thanh toán → chuyển sang chờ hoàn tiền thay vì block
+        if (order.getPaymentStatus() == Order.PaymentStatus.PAID) {
+            order.setPaymentStatus(Order.PaymentStatus.REFUND_PENDING);
+            paymentRepository.findTopByOrderIdOrderByCreatedAtDesc(orderId)
+                    .ifPresent(payment -> {
+                        payment.setNote("Chờ hoàn tiền do khách huỷ đơn: "
+                                + (reason != null ? reason.trim() : "Không có lý do"));
+                        paymentRepository.save(payment);
+                    });
+        }
+
         order = orderRepository.save(order);
 
         Payment payment = paymentRepository.findTopByOrderIdOrderByCreatedAtDesc(orderId).orElse(null);
