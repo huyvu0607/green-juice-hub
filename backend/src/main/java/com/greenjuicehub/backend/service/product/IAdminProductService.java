@@ -12,8 +12,7 @@ import java.util.List;
 public interface IAdminProductService {
 
     // ── Products ──────────────────────────────────────────────────────────────
-    Page<AdminProductRowResponse> getProductsForAdmin(String keyword, Long categoryId, int page, int size);
-    AdminProductDetailResponse getProductById(Long id);
+    Page<AdminProductRowResponse> getProductsForAdmin(String keyword, Long categoryId, Boolean isActive, String stock, String tag, int page, int size);    AdminProductDetailResponse getProductById(Long id);
     AdminProductDetailResponse createProduct(SaveProductRequest request);
     AdminProductDetailResponse updateProduct(Long id, SaveProductRequest request);
     void toggleProductActive(Long id);

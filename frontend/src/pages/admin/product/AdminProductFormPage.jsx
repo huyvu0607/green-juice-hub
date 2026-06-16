@@ -2,19 +2,20 @@ import { useEffect, useState, useRef, useCallback } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { adminProductApi } from "@/api/adminProductApi";
 import { uploadImage } from "@/api/cloudinaryApi";
+import RichTextEditor from "@/components/common/RichTextEditor";
 
 // ── Icons ─────────────────────────────────────────────────────────────────────
 const icons = {
   arrowLeft: <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M19 12H5M12 19l-7-7 7-7" /></svg>,
-  upload:    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" /><path d="M17 8l-5-5-5 5" /><path d="M12 3v12" /></svg>,
-  trash:     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M3 6h18M8 6V4h8v2M19 6l-1 14H6L5 6" /></svg>,
-  plus:      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M12 5v14M5 12h14" /></svg>,
-  edit:      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7" /><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5Z" /></svg>,
-  check:     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M20 6L9 17l-5-5" /></svg>,
-  x:         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M18 6L6 18M6 6l12 12" /></svg>,
-  star:      <svg viewBox="0 0 24 24" fill="currentColor" stroke="none"><path d="M12 2l3 6 6 1-4.5 4.5L17.5 20 12 17l-5.5 3 1-6.5L3 9l6-1 3-6Z" /></svg>,
-  starOut:   <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M12 2l3 6 6 1-4.5 4.5L17.5 20 12 17l-5.5 3 1-6.5L3 9l6-1 3-6Z" /></svg>,
-  image:     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="3" width="18" height="18" rx="2" /><circle cx="8.5" cy="8.5" r="1.5" /><path d="M21 15l-5-5L5 21" /></svg>,
+  upload: <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" /><path d="M17 8l-5-5-5 5" /><path d="M12 3v12" /></svg>,
+  trash: <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M3 6h18M8 6V4h8v2M19 6l-1 14H6L5 6" /></svg>,
+  plus: <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M12 5v14M5 12h14" /></svg>,
+  edit: <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7" /><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5Z" /></svg>,
+  check: <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M20 6L9 17l-5-5" /></svg>,
+  x: <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M18 6L6 18M6 6l12 12" /></svg>,
+  star: <svg viewBox="0 0 24 24" fill="currentColor" stroke="none"><path d="M12 2l3 6 6 1-4.5 4.5L17.5 20 12 17l-5.5 3 1-6.5L3 9l6-1 3-6Z" /></svg>,
+  starOut: <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M12 2l3 6 6 1-4.5 4.5L17.5 20 12 17l-5.5 3 1-6.5L3 9l6-1 3-6Z" /></svg>,
+  image: <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="3" width="18" height="18" rx="2" /><circle cx="8.5" cy="8.5" r="1.5" /><path d="M21 15l-5-5L5 21" /></svg>,
 };
 
 const TAGS = ["bestseller", "organic", "new", "sugar-free"];
@@ -222,9 +223,8 @@ function ImageDropZone({ images, onFiles, onSetPrimary, onDelete, uploading }) {
         onDrop={handleDrop}
         onDragOver={handleDragOver}
         onDragLeave={handleDragLeave}
-        className={`flex cursor-pointer flex-col items-center justify-center gap-2 rounded-xl border-2 border-dashed py-8 transition ${
-          dragging ? "border-green-500 bg-green-50" : "border-gray-200 hover:border-green-400 hover:bg-gray-50"
-        } ${uploading ? "pointer-events-none opacity-60" : ""}`}
+        className={`flex cursor-pointer flex-col items-center justify-center gap-2 rounded-xl border-2 border-dashed py-8 transition ${dragging ? "border-green-500 bg-green-50" : "border-gray-200 hover:border-green-400 hover:bg-gray-50"
+          } ${uploading ? "pointer-events-none opacity-60" : ""}`}
       >
         <span className={`h-8 w-8 ${dragging ? "text-green-500" : "text-gray-300"}`}>{icons.image}</span>
         <p className="text-sm font-medium text-gray-500">
@@ -321,6 +321,10 @@ export default function AdminProductFormPage() {
   const [flavors, setFlavors] = useState([]);
   const [sizes, setSizes] = useState([]);
   const [loadingMeta, setLoadingMeta] = useState(true);
+  const [availableTags, setAvailableTags] = useState([]);
+  const [newTagName, setNewTagName] = useState("");
+
+
 
   // Form
   const [form, setForm] = useState({ name: "", categoryId: "", description: "", tags: [] });
@@ -330,19 +334,24 @@ export default function AdminProductFormPage() {
   const [saving, setSaving] = useState(false);
   const [uploading, setUploading] = useState(false);
 
+
   // ── Load meta ──────────────────────────────────────────────────────────────
   const reloadFlavors = () => adminProductApi.getFlavors().then((r) => setFlavors(r.data));
-  const reloadSizes  = () => adminProductApi.getSizes().then((r) => setSizes(r.data));
+  const reloadSizes = () => adminProductApi.getSizes().then((r) => setSizes(r.data));
+  const reloadTags = () => adminProductApi.getTags().then((r) => setAvailableTags(r.data));
+
 
   useEffect(() => {
     Promise.all([
       adminProductApi.getCategories(),
       adminProductApi.getFlavors(),
       adminProductApi.getSizes(),
-    ]).then(([c, f, s]) => {
+      adminProductApi.getTags(),        // ← thêm
+    ]).then(([c, f, s, t]) => {
       setCategories(c.data);
       setFlavors(f.data);
       setSizes(s.data);
+      setAvailableTags(t.data);         // ← thêm
     }).finally(() => setLoadingMeta(false));
   }, []);
 
@@ -350,7 +359,12 @@ export default function AdminProductFormPage() {
     if (!isEdit) return;
     adminProductApi.getProduct(id).then((res) => {
       const p = res.data;
-      setForm({ name: p.name || "", categoryId: p.category?.id || "", description: p.description || "", tags: p.tags || [] });
+      setForm({
+        name: p.name || "",
+        categoryId: p.category?.id || "",
+        description: p.description || "",
+        tags: [...new Set(p.tags || [])],   // ← deduplicate tags cũ bị duplicate
+      });
       setImages((p.images || []).map((img) => ({ imageUrl: img.imageUrl, isPrimary: img.isPrimary, sortOrder: img.sortOrder })));
       setVariants((p.variants || []).map((v) => ({
         id: v.id,
@@ -518,9 +532,10 @@ export default function AdminProductFormPage() {
               </FormField>
 
               <FormField label="Mô tả sản phẩm">
-                <textarea rows={4} value={form.description}
-                  onChange={(e) => setForm((f) => ({ ...f, description: e.target.value }))}
-                  className={inputCls} placeholder="Mô tả nguyên liệu, công dụng, lợi ích..." />
+                <RichTextEditor
+                  value={form.description}
+                  onChange={(html) => setForm((f) => ({ ...f, description: html }))}
+                />
               </FormField>
             </div>
           </SectionCard>
@@ -560,16 +575,87 @@ export default function AdminProductFormPage() {
 
           {/* Tags */}
           <SectionCard title="Tags">
-            <div className="flex flex-wrap gap-2">
-              {TAGS.map((tag) => (
-                <button key={tag} type="button"
+            {/* Danh sách tag để chọn */}
+            <div className="flex flex-wrap gap-2 mb-3">
+              {availableTags.filter(t => t.isActive).map((tag) => (
+                <button key={tag.id} type="button"
                   onClick={() => setForm((f) => ({
-                    ...f, tags: f.tags.includes(tag) ? f.tags.filter((t) => t !== tag) : [...f.tags, tag],
+                    ...f,
+                    tags: f.tags.includes(tag.name)
+                      ? f.tags.filter((t) => t !== tag.name)
+                      : [...f.tags, tag.name],
                   }))}
-                  className={`rounded-full px-3 py-1 text-sm font-medium transition ${form.tags.includes(tag) ? "bg-green-600 text-white" : "bg-gray-100 text-gray-600 hover:bg-gray-200"}`}>
-                  {tag}
+                  className={`rounded-full px-3 py-1 text-sm font-medium transition
+          ${form.tags.includes(tag.name)
+                      ? "bg-green-600 text-white"
+                      : "bg-gray-100 text-gray-600 hover:bg-gray-200"
+                    }`}
+                >
+                  {tag.name}
                 </button>
               ))}
+              {availableTags.filter(t => t.isActive).length === 0 && (
+                <p className="text-xs text-gray-400">Chưa có tag nào.</p>
+              )}
+            </div>
+
+            {/* Quản lý tag — thêm/xóa */}
+            <div className="border-t border-gray-100 pt-3 space-y-2">
+              <p className="text-xs font-semibold uppercase tracking-wide text-gray-400">Quản lý tag</p>
+
+              <div className="space-y-1 max-h-36 overflow-y-auto">
+                {availableTags.map((tag) => (
+                  <div key={tag.id} className="flex items-center gap-2 rounded-lg border border-gray-100 bg-gray-50 px-3 py-1.5">
+                    <span className={`flex-1 text-xs ${!tag.isActive ? "text-gray-300 line-through" : "text-gray-700"}`}>
+                      {tag.name}
+                    </span>
+                    <button type="button"
+                      onClick={async () => { await adminProductApi.toggleTag(tag.id); reloadTags(); }}
+                      className={`rounded-full px-2 py-0.5 text-[10px] font-medium
+              ${tag.isActive ? "bg-green-100 text-green-700" : "bg-gray-100 text-gray-400"}`}
+                    >
+                      {tag.isActive ? "ON" : "OFF"}
+                    </button>
+                    <button type="button"
+                      onClick={async () => {
+                        if (!window.confirm(`Xoá tag "${tag.name}"?`)) return;
+                        await adminProductApi.deleteTag(tag.id);
+                        reloadTags();
+                      }}
+                      className="h-6 w-6 flex items-center justify-center rounded text-gray-400 hover:bg-red-50 hover:text-red-600"
+                    >
+                      <span className="h-3.5 w-3.5 block">{icons.trash}</span>
+                    </button>
+                  </div>
+                ))}
+              </div>
+
+              {/* Thêm tag mới */}
+              <div className="flex gap-2">
+                <input
+                  type="text"
+                  value={newTagName}
+                  onChange={(e) => setNewTagName(e.target.value)}
+                  onKeyDown={(e) => e.key === "Enter" && e.preventDefault()}
+                  placeholder="Tên tag mới..."
+                  className="flex-1 rounded-lg border border-gray-200 px-3 py-1.5 text-xs focus:border-green-500 focus:outline-none"
+                />
+                <button type="button"
+                  disabled={!newTagName.trim()}
+                  onClick={async () => {
+                    try {
+                      await adminProductApi.createTag(newTagName.trim());
+                      setNewTagName("");
+                      reloadTags();
+                    } catch (err) {
+                      alert(err?.response?.data?.message || "Tag đã tồn tại");
+                    }
+                  }}
+                  className="rounded-lg bg-green-600 px-3 py-1.5 text-xs font-medium text-white hover:bg-green-700 disabled:opacity-40"
+                >
+                  Thêm
+                </button>
+              </div>
             </div>
           </SectionCard>
 

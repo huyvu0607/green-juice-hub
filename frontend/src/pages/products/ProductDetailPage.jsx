@@ -71,7 +71,7 @@ function mapToProductCardShape(p) {
   return {
     slug: p.slug,
     name: p.name,
-    primaryImage: p.primaryImage ?? null,
+    primaryImage: p.primaryImage ?? p.images?.[0]?.imageUrl ?? p.images?.[0]?.url ?? null,
     avgRating: p.avgRating ?? 0,
     reviewCount: p.reviewCount ?? 0,
     minSalePrice: p.minSalePrice ?? 0,
@@ -173,7 +173,12 @@ function StarRating({ value = 0, count = 0 }) {
 function ImageGallery({ images = [] }) {
   const [active, setActive] = useState(0);
 
-  if (!images.length) {
+  // Chuẩn hoá: string → object
+  const imgs = images.map((img) =>
+    typeof img === "string" ? { url: img } : img
+  );
+
+  if (!imgs.length) {
     return (
       <div className="aspect-square rounded-[var(--radius-lg)] bg-muted flex items-center justify-center text-muted-fg">
         <svg className="w-16 h-16 opacity-30" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -186,26 +191,19 @@ function ImageGallery({ images = [] }) {
 
   return (
     <div className="flex flex-col gap-3">
-      {/* Main image */}
       <div className="relative aspect-square rounded-[var(--radius-lg)] overflow-hidden bg-muted shadow-[var(--shadow-md)]">
         <img
-          src={images[active]?.url}
-          alt={images[active]?.alt ?? "Ảnh sản phẩm"}
+          src={imgs[active]?.imageUrl ?? imgs[active]?.url}
+          alt="Ảnh sản phẩm"
           className="w-full h-full object-cover transition-opacity duration-300"
         />
-        {images[active]?.isPrimary && (
-          <span className="absolute top-3 left-3 text-xs font-medium px-2 py-0.5 rounded-pill bg-brand-600 text-white">
-            Ảnh chính
-          </span>
-        )}
       </div>
 
-      {/* Thumbnails */}
-      {images.length > 1 && (
+      {imgs.length > 1 && (
         <div className="flex gap-2 overflow-x-auto pb-1 scrollbar-thin">
-          {images.map((img, idx) => (
+          {imgs.map((img, idx) => (
             <button
-              key={img.id ?? idx}
+              key={idx}
               onClick={() => setActive(idx)}
               className={`
                 flex-shrink-0 w-16 h-16 rounded-[var(--radius-md)] overflow-hidden border-2 transition-all duration-200
@@ -214,7 +212,7 @@ function ImageGallery({ images = [] }) {
                   : "border-transparent opacity-60 hover:opacity-90"}
               `}
             >
-              <img src={img.url} alt={img.alt ?? ""} className="w-full h-full object-cover" />
+              <img src={img.imageUrl ?? img.url} alt="" className="w-full h-full object-cover" />
             </button>
           ))}
         </div>
@@ -462,7 +460,7 @@ export default function ProductDetailPage() {
       setAddedToCart(true);
       setTimeout(() => setAddedToCart(false), 2000);
       window.dispatchEvent(new CustomEvent('cart:item-added', {
-        detail: { imageUrl: product.images?.[0]?.url ?? product.primaryImage ?? null }
+        detail: { imageUrl: product.images?.[0] }
       }))
     } catch {
       // error đã được set trong store
@@ -480,7 +478,7 @@ export default function ProductDetailPage() {
         buyNowItem: {
           cartItemId: `buynow-${selectedVariant.id}`,
           productName: product.name,
-          imageUrl: product.images?.[0]?.url ?? null,
+          imageUrl: product.images?.[0],
           variantId: selectedVariant.id,
           variantLabel: [selectedVariant.flavor?.name, selectedVariant.size?.name]
             .filter(Boolean).join(" / "),

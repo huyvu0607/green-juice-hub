@@ -19,7 +19,7 @@ api.interceptors.request.use((config) => {
   return config
 })
 
-// Tự động refresh token khi hết hạn
+// Tự động refresh token khi hết hận
 api.interceptors.response.use(
   (response) => response,
   async (error) => {
