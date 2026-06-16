@@ -24,7 +24,7 @@ public class AdminOrderController {
     private final IAdminOrderService adminOrderService;
 
     /**
-     * GET /api/admin/orders?page=0&size=15&status=PENDING&search=GJH-xxx
+     * GET /api/admin/orders?page=0&size=15&status=PENDING&paymentStatus=REFUND_PENDING&search=GJH-xxx
      * Danh sách đơn hàng — lọc + tìm kiếm + phân trang
      */
     @GetMapping
@@ -32,15 +32,33 @@ public class AdminOrderController {
             @RequestParam(defaultValue = "0")  int page,
             @RequestParam(defaultValue = "15") int size,
             @RequestParam(required = false) String status,
-            @RequestParam(required = false) String search
+            @RequestParam(required = false) String paymentStatus,
+            @RequestParam(required = false) String search,
+            @RequestParam(required = false) String dateFrom,  // ← thêm "2026-06-16"
+            @RequestParam(required = false) String dateTo     // ← thêm "2026-06-16"
     ) {
         Pageable pageable = PageRequest.of(page, size);
-        return ResponseEntity.ok(adminOrderService.getOrders(status, search, pageable));
+        return ResponseEntity.ok(
+                adminOrderService.getOrders(status, paymentStatus, search, dateFrom, dateTo, pageable)
+        );
+    }
+
+
+    /**
+     * GET /api/admin/orders/counts-by-date?year=2026&month=6
+     * Trả về map { "2026-06-01": 3, "2026-06-05": 7, ... } — dùng cho mini calendar
+     */
+    @GetMapping("/counts-by-date")
+    public ResponseEntity<Map<String, Long>> getCountsByDate(
+            @RequestParam int year,
+            @RequestParam int month
+    ) {
+        return ResponseEntity.ok(adminOrderService.getOrderCountsByDate(year, month));
     }
 
     /**
      * GET /api/admin/orders/status-counts
-     * Số đơn theo từng trạng thái — dùng cho tab badge
+     * Số đơn theo từng trạng thái đơn hàng + trạng thái thanh toán — dùng cho tab badge
      */
     @GetMapping("/status-counts")
     public ResponseEntity<Map<String, Long>> getStatusCounts() {
@@ -58,7 +76,6 @@ public class AdminOrderController {
 
     /**
      * PATCH /api/admin/orders/{orderId}/status
-     * Cập nhật trạng thái đơn hàng
      * Body: { "status": "CONFIRMED", "cancelReason": "..." }
      */
     @PatchMapping("/{orderId}/status")
@@ -71,7 +88,6 @@ public class AdminOrderController {
 
     /**
      * PATCH /api/admin/orders/{orderId}/refund
-     * Xử lý hoàn tiền
      * Body: { "note": "Hoàn tiền do..." }
      */
     @PatchMapping("/{orderId}/refund")

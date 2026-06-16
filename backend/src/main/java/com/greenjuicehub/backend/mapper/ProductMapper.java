@@ -28,6 +28,7 @@ public class ProductMapper {
         return FlavorResponse.builder()
                 .id(f.getId())
                 .name(f.getName())
+                .isActive(f.getIsActive())
                 .build();
     }
 
@@ -36,6 +37,7 @@ public class ProductMapper {
         return SizeResponse.builder()
                 .id(s.getId())
                 .name(s.getName())
+                .isActive(s.getIsActive())
                 .build();
     }
 

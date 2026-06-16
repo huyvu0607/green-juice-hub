@@ -28,7 +28,8 @@ import AdminLayout from '@/components/layout/AdminLayout'
 import AdminDashboardPage from '@/pages/admin/AdminDashboardPage'
 import AdminOrdersPage from '@/pages/admin/order/AdminOrdersPage'
 import AdminOrderDetailPage from '@/pages/admin/order/AdminOrderDetailPage'
-
+import AdminProductsPage from '@/pages/admin/product/AdminProductsPage'
+import AdminProductFormPage from '@/pages/admin/product/AdminProductFormPage'
 
 function ScrollToTop() {
   const { pathname, search } = useLocation()
@@ -170,15 +171,11 @@ function AppRoutes() {
           <Route index element={<AdminDashboardPage />} />
           <Route path="orders" element={<AdminOrdersPage />} />
           <Route path="orders/:orderId" element={<AdminOrderDetailPage />} />
-          {/* Các route admin tiếp theo sẽ thêm ở đây:
           <Route path="products" element={<AdminProductsPage />} />
-          <Route path="promotions" element={<AdminPromotionsPage />} />
-          <Route path="users" element={<AdminUsersPage />} />
-          <Route path="reviews" element={<AdminReviewsPage />} />
-          <Route path="contacts" element={<AdminContactsPage />} />
-          <Route path="banners" element={<AdminBannersPage />} />
-          <Route path="policies" element={<AdminPoliciesPage />} />
-          */}
+          <Route path="products/new" element={<AdminProductFormPage />} />
+          <Route path="products/:id/edit" element={<AdminProductFormPage />} />
+
+
         </Route>
       </Routes>
     </>

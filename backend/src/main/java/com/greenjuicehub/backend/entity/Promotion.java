@@ -40,8 +40,8 @@ public class Promotion {
     @JoinColumn(name = "user_id")
     private User user;
 
-    @Column(name = "max_uses", nullable = false)
-    private Integer maxUses = 1;
+    @Column(name = "max_uses")
+    private Integer maxUses;
 
     @Column(name = "max_uses_per_user")
     private Integer maxUsesPerUser;

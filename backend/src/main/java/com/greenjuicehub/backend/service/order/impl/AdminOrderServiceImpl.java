@@ -16,6 +16,8 @@ import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -24,64 +26,80 @@ import java.util.Map;
 @RequiredArgsConstructor
 public class AdminOrderServiceImpl implements IAdminOrderService {
 
-    private final OrderRepository         orderRepository;
-    private final OrderItemRepository     orderItemRepository;
-    private final PaymentRepository       paymentRepository;
-    private final PromotionRepository     promotionRepository;
-    private final OrderMapper             orderMapper;
+    private final OrderRepository          orderRepository;
+    private final OrderItemRepository      orderItemRepository;
+    private final PaymentRepository        paymentRepository;
+    private final PromotionRepository      promotionRepository;
+    private final OrderMapper              orderMapper;
     private final ProductVariantRepository productVariantRepository;
 
     // ─────────────────────────────────────────────────────────────────────────
     // DANH SÁCH ĐƠN HÀNG
     // ─────────────────────────────────────────────────────────────────────────
+
     @Override
     @Transactional(readOnly = true)
-    public Page<OrderResponse> getOrders(String status, String search, Pageable pageable) {
+    public Page<OrderResponse> getOrders(
+            String status,
+            String paymentStatus,
+            String search,
+            String dateFrom,
+            String dateTo,
+            Pageable pageable
+    ) {
+        Order.OrderStatus   orderStatus   = (status        != null && !status.isBlank())
+                ? parseOrderStatus(status)          : null;
+        Order.PaymentStatus payStatus     = (paymentStatus != null && !paymentStatus.isBlank())
+                ? parsePaymentStatus(paymentStatus) : null;
+        String              searchTrimmed = (search        != null && !search.isBlank())
+                ? search.trim()                     : null;
 
-        boolean hasStatus = status != null && !status.isBlank();
-        boolean hasSearch = search != null && !search.isBlank();
+        LocalDateTime from = parseDate(dateFrom, false);
+        LocalDateTime to   = parseDate(dateTo,   true);   // dateTo exclusive (+1 ngày)
 
-        Page<Order> page;
-
-        if (hasSearch && hasStatus) {
-            Order.OrderStatus orderStatus = parseStatus(status);
-            page = orderRepository
-                    .findByOrderCodeContainingIgnoreCaseAndStatusOrderByCreatedAtDesc(
-                            search, orderStatus, pageable);
-
-        } else if (hasSearch) {
-            page = orderRepository
-                    .findByOrderCodeContainingIgnoreCaseOrderByCreatedAtDesc(search, pageable);
-
-        } else if (hasStatus) {
-            Order.OrderStatus orderStatus = parseStatus(status);
-            page = orderRepository.findByStatusOrderByCreatedAtDesc(orderStatus, pageable);
-
-        } else {
-            page = orderRepository.findAllByOrderByCreatedAtDesc(pageable);
-        }
+        Page<Order> page = orderRepository.findWithFilters(
+                orderStatus, payStatus, searchTrimmed, from, to, pageable
+        );
 
         return page.map(this::mapToResponse);
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public Map<String, Long> getOrderCountsByDate(int year, int month) {
+        LocalDateTime from = LocalDate.of(year, month, 1).atStartOfDay();
+        LocalDateTime to   = from.plusMonths(1);
+
+        List<Object[]> rows = orderRepository.countGroupByDate(from, to);
+
+        Map<String, Long> result = new HashMap<>();
+        for (Object[] row : rows) {
+            String day   = row[0].toString(); // "2026-06-16"
+            Long   count = ((Number) row[1]).longValue();
+            result.put(day, count);
+        }
+        return result;
     }
 
     // ─────────────────────────────────────────────────────────────────────────
     // CHI TIẾT ĐƠN HÀNG
     // ─────────────────────────────────────────────────────────────────────────
+
     @Override
     @Transactional(readOnly = true)
     public OrderResponse getOrderDetail(Long orderId) {
-        Order order = findOrderOrThrow(orderId);
-        return mapToResponse(order);
+        return mapToResponse(findOrderOrThrow(orderId));
     }
 
     // ─────────────────────────────────────────────────────────────────────────
     // CẬP NHẬT TRẠNG THÁI
     // ─────────────────────────────────────────────────────────────────────────
+
     @Override
     @Transactional
     public OrderResponse updateStatus(Long orderId, AdminUpdateOrderStatusRequest request) {
         Order order = findOrderOrThrow(orderId);
-        Order.OrderStatus targetStatus = parseStatus(request.getStatus());
+        Order.OrderStatus targetStatus = parseOrderStatus(request.getStatus());
 
         validateTransition(order.getStatus(), targetStatus);
 
@@ -109,6 +127,7 @@ public class AdminOrderServiceImpl implements IAdminOrderService {
                     : "Admin huỷ đơn";
             order.setCancelReason(reason);
 
+            // Nếu đã thanh toán → chuyển sang chờ hoàn tiền
             if (order.getPaymentStatus() == Order.PaymentStatus.PAID) {
                 paymentRepository.findTopByOrderIdOrderByCreatedAtDesc(order.getId())
                         .ifPresent(payment -> {
@@ -119,7 +138,6 @@ public class AdminOrderServiceImpl implements IAdminOrderService {
             }
         }
 
-
         order.setStatus(targetStatus);
         order = orderRepository.save(order);
         return mapToResponse(order);
@@ -128,6 +146,7 @@ public class AdminOrderServiceImpl implements IAdminOrderService {
     // ─────────────────────────────────────────────────────────────────────────
     // HOÀN TIỀN
     // ─────────────────────────────────────────────────────────────────────────
+
     @Override
     @Transactional
     public OrderResponse refund(Long orderId, AdminRefundRequest request) {
@@ -139,7 +158,6 @@ public class AdminOrderServiceImpl implements IAdminOrderService {
                     "Chỉ có thể hoàn tiền đơn hàng đã giao hoặc đã huỷ");
         }
 
-        // Chấp nhận cả PAID (hoàn từ DELIVERED) lẫn REFUND_PENDING (xác nhận đã chuyển tiền)
         if (order.getPaymentStatus() != Order.PaymentStatus.PAID
                 && order.getPaymentStatus() != Order.PaymentStatus.REFUND_PENDING) {
             throw new AppException(HttpStatus.BAD_REQUEST,
@@ -148,7 +166,9 @@ public class AdminOrderServiceImpl implements IAdminOrderService {
 
         paymentRepository.findTopByOrderIdOrderByCreatedAtDesc(orderId).ifPresent(payment -> {
             payment.setStatus(Payment.PaymentStatus.REFUNDED);
-            payment.setNote(request.getNote() != null ? request.getNote() : "Đã hoàn tiền cho khách");
+            payment.setNote(request.getNote() != null && !request.getNote().isBlank()
+                    ? request.getNote()
+                    : "Đã hoàn tiền cho khách");
             paymentRepository.save(payment);
         });
 
@@ -160,14 +180,28 @@ public class AdminOrderServiceImpl implements IAdminOrderService {
     // ─────────────────────────────────────────────────────────────────────────
     // ĐẾM SỐ ĐƠN THEO STATUS
     // ─────────────────────────────────────────────────────────────────────────
+
     @Override
     @Transactional(readOnly = true)
     public Map<String, Long> getStatusCounts() {
         Map<String, Long> counts = new HashMap<>();
+
+        // Tổng tất cả đơn
         counts.put("ALL", orderRepository.count());
+
+        // Đếm theo order status
         for (Order.OrderStatus s : Order.OrderStatus.values()) {
             counts.put(s.name(), orderRepository.countByStatus(s));
         }
+
+        // Tổng tất cả theo payment status
+        counts.put("PAY_ALL", orderRepository.count());
+
+        // Đếm theo payment status — prefix PAY_ để tránh trùng key với order status
+        for (Order.PaymentStatus ps : Order.PaymentStatus.values()) {
+            counts.put("PAY_" + ps.name(), orderRepository.countByPaymentStatus(ps));
+        }
+
         return counts;
     }
 
@@ -175,6 +209,15 @@ public class AdminOrderServiceImpl implements IAdminOrderService {
     // HELPERS
     // ─────────────────────────────────────────────────────────────────────────
 
+    private LocalDateTime parseDate(String date, boolean nextDay) {
+        if (date == null || date.isBlank()) return null;
+        try {
+            LocalDate d = LocalDate.parse(date); // expect "yyyy-MM-dd"
+            return nextDay ? d.plusDays(1).atStartOfDay() : d.atStartOfDay();
+        } catch (Exception e) {
+            throw new AppException(HttpStatus.BAD_REQUEST, "Định dạng ngày không hợp lệ: " + date);
+        }
+    }
     private Order findOrderOrThrow(Long orderId) {
         return orderRepository.findById(orderId)
                 .orElseThrow(() -> new AppException(HttpStatus.NOT_FOUND,
@@ -189,37 +232,43 @@ public class AdminOrderServiceImpl implements IAdminOrderService {
         return orderMapper.toOrderResponse(order, items, payment);
     }
 
-    private Order.OrderStatus parseStatus(String status) {
+    private Order.OrderStatus parseOrderStatus(String status) {
         try {
             return Order.OrderStatus.valueOf(status.toUpperCase());
         } catch (IllegalArgumentException e) {
-            throw new AppException(HttpStatus.BAD_REQUEST,
-                    "Trạng thái không hợp lệ: " + status);
+            throw new AppException(HttpStatus.BAD_REQUEST, "Trạng thái đơn hàng không hợp lệ: " + status);
+        }
+    }
+
+    private Order.PaymentStatus parsePaymentStatus(String paymentStatus) {
+        try {
+            return Order.PaymentStatus.valueOf(paymentStatus.toUpperCase());
+        } catch (IllegalArgumentException e) {
+            throw new AppException(HttpStatus.BAD_REQUEST, "Trạng thái thanh toán không hợp lệ: " + paymentStatus);
         }
     }
 
     /**
      * Luồng hợp lệ:
-     * PENDING → CONFIRMED | CANCELLED
-     * CONFIRMED → SHIPPING | CANCELLED
-     * SHIPPING → DELIVERED | CANCELLED
+     * PENDING   → CONFIRMED | CANCELLED
+     * CONFIRMED → SHIPPING  | CANCELLED
+     * SHIPPING  → DELIVERED | CANCELLED
      * DELIVERED / CANCELLED → không được đổi nữa
      */
     private void validateTransition(Order.OrderStatus current, Order.OrderStatus target) {
         boolean valid = switch (current) {
             case PENDING   -> target == Order.OrderStatus.CONFIRMED
-                    || target == Order.OrderStatus.CANCELLED;
+                           || target == Order.OrderStatus.CANCELLED;
             case CONFIRMED -> target == Order.OrderStatus.SHIPPING
-                    || target == Order.OrderStatus.CANCELLED;
+                           || target == Order.OrderStatus.CANCELLED;
             case SHIPPING  -> target == Order.OrderStatus.DELIVERED
-                    || target == Order.OrderStatus.CANCELLED;
+                           || target == Order.OrderStatus.CANCELLED;
             case DELIVERED, CANCELLED -> false;
         };
 
         if (!valid) {
             throw new AppException(HttpStatus.BAD_REQUEST,
-                    "Không thể chuyển trạng thái từ " + current.name()
-                            + " → " + target.name());
+                    "Không thể chuyển trạng thái từ " + current.name() + " → " + target.name());
         }
     }
 }

@@ -14,6 +14,8 @@ import java.util.Optional;
 
 public interface OrderRepository extends JpaRepository<Order, Long> {
 
+    // ── User ─────────────────────────────────────────────────────────────────
+
     /** Lấy danh sách đơn hàng của user, mới nhất trước */
     Page<Order> findByUserIdOrderByCreatedAtDesc(Long userId, Pageable pageable);
 
@@ -23,20 +25,21 @@ public interface OrderRepository extends JpaRepository<Order, Long> {
     /** Kiểm tra mã đơn hàng có tồn tại chưa (tránh trùng) */
     boolean existsByOrderCode(String orderCode);
 
-    /** Lấy số lượng đơn hàng của User **/
+    /** Lấy số lượng đơn hàng của User */
     long countByUserId(Long userId);
 
-    /** Lấy số lượng đơn hàng của status **/
+    /** Lấy số lượng đơn hàng của status theo user */
     long countByUserIdAndStatus(Long userId, Order.OrderStatus status);
 
-    /** Lấy số lượng đơn hàng của status theo ngày tạo**/
-    Page<Order> findByUserIdAndStatusOrderByCreatedAtDesc(Long userId, Order.OrderStatus status, Pageable pageable);
+    /** Lấy đơn hàng của user theo status, mới nhất trước */
+    Page<Order> findByUserIdAndStatusOrderByCreatedAtDesc(
+            Long userId, Order.OrderStatus status, Pageable pageable);
 
-    /** Tìm Order theo code  **/
+    /** Tìm Order theo code */
     Optional<Order> findByOrderCode(String orderCode);
 
-    // ==================== DASHBOARD: Tổng doanh thu trong khoảng thời gian ====================
-    // Chỉ tính order có payment_status = PAID
+    // ── Dashboard ─────────────────────────────────────────────────────────────
+
     @Query("""
             SELECT COALESCE(SUM(o.totalAmount), 0)
             FROM Order o
@@ -46,11 +49,8 @@ public interface OrderRepository extends JpaRepository<Order, Long> {
             """)
     BigDecimal sumRevenueBetween(@Param("from") LocalDateTime from, @Param("to") LocalDateTime to);
 
-    // ==================== DASHBOARD: Số đơn hàng mới (pending) ====================
     long countByStatus(Order.OrderStatus status);
 
-    // ==================== DASHBOARD: Doanh thu + số đơn theo từng ngày (raw) ====================
-    // Trả về [ngày (DATE), tổng doanh thu, số đơn] để service group lại theo range
     @Query(value = """
             SELECT DATE(o.created_at) AS day,
                    COALESCE(SUM(o.total_amount), 0) AS revenue,
@@ -64,7 +64,6 @@ public interface OrderRepository extends JpaRepository<Order, Long> {
             """, nativeQuery = true)
     List<Object[]> sumRevenueGroupByDay(@Param("from") LocalDateTime from, @Param("to") LocalDateTime to);
 
-    // ==================== DASHBOARD: Doanh thu + số đơn theo từng tháng (raw) ====================
     @Query(value = """
             SELECT YEAR(o.created_at) AS y,
                    MONTH(o.created_at) AS m,
@@ -79,19 +78,68 @@ public interface OrderRepository extends JpaRepository<Order, Long> {
             """, nativeQuery = true)
     List<Object[]> sumRevenueGroupByMonth(@Param("from") LocalDateTime from, @Param("to") LocalDateTime to);
 
+    // ── Admin: các method cũ (giữ nguyên) ────────────────────────────────────
+
     /** Admin: lấy tất cả đơn, mới nhất trước */
     Page<Order> findAllByOrderByCreatedAtDesc(Pageable pageable);
 
-    /** Admin: lọc theo status */
+    /** Admin: lọc theo order status */
     Page<Order> findByStatusOrderByCreatedAtDesc(Order.OrderStatus status, Pageable pageable);
 
     /** Admin: tìm theo orderCode (LIKE) */
     Page<Order> findByOrderCodeContainingIgnoreCaseOrderByCreatedAtDesc(
             String orderCode, Pageable pageable);
 
-    /** Admin: tìm theo orderCode + status */
+    /** Admin: tìm theo orderCode + order status */
     Page<Order> findByOrderCodeContainingIgnoreCaseAndStatusOrderByCreatedAtDesc(
             String orderCode, Order.OrderStatus status, Pageable pageable);
+
+    // ── Admin: MỚI — đếm + filter theo paymentStatus ─────────────────────────
+
+    /** Đếm số đơn theo trạng thái thanh toán — dùng cho tab badge */
+    long countByPaymentStatus(Order.PaymentStatus paymentStatus);
+
+    /**
+     * Query tổng hợp cho admin — xử lý mọi tổ hợp filter:
+     *   status        = null  → bỏ qua filter order status
+     *   paymentStatus = null  → bỏ qua filter payment status
+     *   search        = null  → bỏ qua tìm kiếm orderCode
+     * Kết quả sắp xếp mới nhất trước.
+     */
+    @Query("""
+            SELECT o FROM Order o
+            WHERE (:status        IS NULL OR o.status        = :status)
+              AND (:paymentStatus IS NULL OR o.paymentStatus = :paymentStatus)
+              AND (:search        IS NULL OR LOWER(o.orderCode) LIKE LOWER(CONCAT('%', :search, '%')))
+              AND (:dateFrom      IS NULL OR o.createdAt    >= :dateFrom)
+              AND (:dateTo        IS NULL OR o.createdAt    <  :dateTo)
+            ORDER BY o.createdAt DESC
+            """)
+    Page<Order> findWithFilters(
+            @Param("status")        Order.OrderStatus   status,
+            @Param("paymentStatus") Order.PaymentStatus paymentStatus,
+            @Param("search")        String              search,
+            @Param("dateFrom")      LocalDateTime       dateFrom,
+            @Param("dateTo")        LocalDateTime       dateTo,
+            Pageable pageable
+    );
+
+    /**
+     * Đếm số đơn theo từng ngày trong khoảng thời gian — dùng cho mini calendar
+     */
+    @Query(value = """
+        SELECT DATE(o.created_at) AS day, COUNT(*) AS cnt
+        FROM orders o
+        WHERE o.created_at >= :from
+          AND o.created_at <  :to
+        GROUP BY DATE(o.created_at)
+        """, nativeQuery = true)
+    List<Object[]> countGroupByDate(
+            @Param("from") LocalDateTime from,
+            @Param("to")   LocalDateTime to
+    );
+    // ── Scheduler ────────────────────────────────────────────────────────────
+
     /** Tìm đơn SHIPPING đã quá hạn — dùng cho scheduled job */
     List<Order> findByStatusAndUpdatedAtBefore(Order.OrderStatus status, LocalDateTime before);
 }
