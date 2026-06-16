@@ -1,7 +1,7 @@
 // useProducts.js
 import { useState, useEffect, useCallback, useRef } from "react";
 import { useSearchParams } from "react-router-dom";
-import { getProducts, getCategories, getFlavors, getSizes } from "@/api/productApi";
+import { getProducts, getCategories, getFlavors, getSizes, getTags } from "@/api/productApi";
 
 const PAGE_SIZE = 12;
 const SESSION_KEY = "products_session";
@@ -83,6 +83,7 @@ export function useProducts() {
   const [categories, setCategories] = useState([]);
   const [flavors, setFlavors]       = useState([]);
   const [sizes, setSizes]           = useState([]);
+  const [tags, setTags] = useState([]);
 
   const filterRef = useRef(filter);
   filterRef.current = filter;
@@ -91,6 +92,7 @@ export function useProducts() {
     getCategories().then(r => setCategories(r.data)).catch(() => { });
     getFlavors().then(r => setFlavors(r.data)).catch(() => { });
     getSizes().then(r => setSizes(r.data)).catch(() => { });
+    getTags().then(setTags).catch(() => {});
   }, []);
 
   // ── Sync keyword từ URL vào filter ──────────────────────
@@ -203,7 +205,7 @@ export function useProducts() {
 
   return {
     filter, products, totalElements, hasMore, loading, loadingMore,
-    categories, flavors, sizes,
+    categories, flavors, sizes, tags,
     updateFilter, loadMore, resetFilter,
   };
 }

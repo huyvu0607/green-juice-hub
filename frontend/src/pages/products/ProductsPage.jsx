@@ -7,12 +7,6 @@ import { sharedObserver } from "@/utils/sharedObserver";
 import { usePageReady } from "@/hooks/usePageReady";
 
 
-const TAG_CHIPS = [
-  { key: "bestseller", label: "Bestseller" },
-  { key: "organic", label: "Organic" },
-  { key: "new", label: "New" },
-  { key: "sugar-free", label: "Sugar-free" },
-];
 
 const SORT_OPTIONS = [
   { value: "newest", label: "Mới nhất" },
@@ -85,7 +79,7 @@ function ScrollToTopButton() {
 export default function ProductsPage() {
   const {
     filter, products, totalElements, hasMore, loading, loadingMore,
-    categories, flavors, sizes,
+    categories, flavors, sizes, tags,
     updateFilter, loadMore, resetFilter,
   } = useProducts();
 
@@ -154,18 +148,17 @@ export default function ProductsPage() {
         <div className="flex-1" />
 
         {/* Tag chips */}
-        {TAG_CHIPS.map(({ key, label }) => (
-          <button
-            key={key}
-            onClick={() => toggleTag(key)}
-            className={`px-3 py-1.5 rounded-full text-sm font-medium border transition-colors shrink-0
+        {tags.map(({ key, label }) => (<button
+          key={key}
+          onClick={() => toggleTag(key)}
+          className={`px-3 py-1.5 rounded-full text-sm font-medium border transition-colors shrink-0
               ${(filter.tags ?? []).includes(key)
-                ? "bg-[var(--color-primary)] border-[var(--color-primary)] text-white"
-                : "border-[var(--color-border-subtle)] text-[var(--color-text-secondary)] hover:bg-[var(--color-bg-muted)]"
-              }`}
-          >
-            {label}
-          </button>
+              ? "bg-[var(--color-primary)] border-[var(--color-primary)] text-white"
+              : "border-[var(--color-border-subtle)] text-[var(--color-text-secondary)] hover:bg-[var(--color-bg-muted)]"
+            }`}
+        >
+          {label}
+        </button>
         ))}
 
         {/* Price range */}

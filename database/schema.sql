@@ -357,6 +357,24 @@ CREATE TABLE banners (
   is_active  BOOLEAN      NOT NULL DEFAULT TRUE
 ) ENGINE=InnoDB;
 
+-- ============================================================
+-- 23. TAG DEFINITIONS  ← THÊM MỚI để quản lý tập trung các tag được phép sử dụng
+-- ============================================================ 
+-- Thêm vào cuối file schema, hoặc chạy riêng migration
+CREATE TABLE tag_definitions (
+  id         BIGINT AUTO_INCREMENT PRIMARY KEY,
+  name       VARCHAR(50) NOT NULL UNIQUE,
+  is_active  BOOLEAN     NOT NULL DEFAULT TRUE,
+  sort_order INT         NOT NULL DEFAULT 0
+) ENGINE=InnoDB;
+
+-- Seed dữ liệu ban đầu từ các tag đang có sẵn
+INSERT INTO tag_definitions (name, is_active, sort_order) VALUES
+  ('bestseller', TRUE, 1),
+  ('organic',    TRUE, 2),
+  ('new',        TRUE, 3),
+  ('sugar-free', TRUE, 4);
+
 ALTER TABLE orders 
 MODIFY COLUMN payment_status 
 ENUM('PENDING','PAID','REFUND_PENDING','REFUNDED') NOT NULL DEFAULT 'PENDING';

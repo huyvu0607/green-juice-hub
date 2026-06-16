@@ -81,24 +81,36 @@ export default function AdminProductsPage() {
   const [page, setPage] = useState(0);
   const PAGE_SIZE = 20;
 
+  const [activeFilter, setActiveFilter] = useState("");
+  const [stockFilter, setStockFilter] = useState("");
+  const [tagFilter, setTagFilter] = useState("");
+
   const [confirmDelete, setConfirmDelete] = useState(null);
 
   const fetchProducts = useCallback(() => {
     setLoading(true);
     adminProductApi
-      .getProducts({ keyword: keyword || undefined, categoryId: categoryId || undefined, page, size: PAGE_SIZE })
+      .getProducts({
+        keyword: keyword || undefined,
+        categoryId: categoryId || undefined,
+        isActive: activeFilter !== "" ? activeFilter : undefined,
+        stock: stockFilter || undefined,
+        tag: tagFilter || undefined,
+        page,
+        size: PAGE_SIZE,
+      })
       .then((res) => {
         setProducts(res.data.content);
         setTotalPages(res.data.totalPages);
       })
       .catch(() => setError("Không thể tải danh sách sản phẩm."))
       .finally(() => setLoading(false));
-  }, [keyword, categoryId, page]);
+  }, [keyword, categoryId, activeFilter, stockFilter, tagFilter, page]);
 
   useEffect(() => { fetchProducts(); }, [fetchProducts]);
 
   useEffect(() => {
-    adminProductApi.getCategories().then((res) => setCategories(res.data)).catch(() => {});
+    adminProductApi.getCategories().then((res) => setCategories(res.data)).catch(() => { });
   }, []);
 
   const handleSearch = (e) => {
@@ -147,6 +159,7 @@ export default function AdminProductsPage() {
 
       {/* Filters */}
       <div className="flex flex-wrap items-center gap-3">
+        {/* Search */}
         <form onSubmit={handleSearch} className="flex items-center gap-2">
           <div className="relative">
             <span className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400">{icons.search}</span>
@@ -163,6 +176,7 @@ export default function AdminProductsPage() {
           </button>
         </form>
 
+        {/* Danh mục */}
         <select
           value={categoryId}
           onChange={(e) => { setCategoryId(e.target.value); setPage(0); }}
@@ -173,6 +187,57 @@ export default function AdminProductsPage() {
             <option key={c.id} value={c.id}>{c.name}</option>
           ))}
         </select>
+
+        {/* Trạng thái */}
+        <select
+          value={activeFilter}
+          onChange={(e) => { setActiveFilter(e.target.value); setPage(0); }}
+          className="h-9 rounded-lg border border-gray-200 px-3 text-sm focus:border-green-500 focus:outline-none"
+        >
+          <option value="">Tất cả trạng thái</option>
+          <option value="true">Hiển thị</option>
+          <option value="false">Ẩn</option>
+        </select>
+
+        {/* Tồn kho */}
+        <select
+          value={stockFilter}
+          onChange={(e) => { setStockFilter(e.target.value); setPage(0); }}
+          className="h-9 rounded-lg border border-gray-200 px-3 text-sm focus:border-green-500 focus:outline-none"
+        >
+          <option value="">Tất cả tồn kho</option>
+          <option value="instock">Còn hàng</option>
+          <option value="low">Sắp hết (≤10)</option>
+          <option value="out">Hết hàng</option>
+        </select>
+
+        {/* Tags */}
+        <select
+          value={tagFilter}
+          onChange={(e) => { setTagFilter(e.target.value); setPage(0); }}
+          className="h-9 rounded-lg border border-gray-200 px-3 text-sm focus:border-green-500 focus:outline-none"
+        >
+          <option value="">Tất cả tags</option>
+          <option value="bestseller">Bestseller</option>
+          <option value="organic">Organic</option>
+          <option value="new">New</option>
+          <option value="sugar-free">Sugar-free</option>
+        </select>
+
+        {/* Xoá lọc */}
+        {(keyword || categoryId || activeFilter || stockFilter || tagFilter) && (
+          <button
+            onClick={() => {
+              setKeyword(""); setInputKeyword("");
+              setCategoryId(""); setActiveFilter("");
+              setStockFilter(""); setTagFilter("");
+              setPage(0);
+            }}
+            className="h-9 rounded-lg border border-gray-200 px-3 text-sm text-gray-500 hover:bg-gray-50"
+          >
+            Xoá lọc
+          </button>
+        )}
       </div>
 
       {/* Table */}

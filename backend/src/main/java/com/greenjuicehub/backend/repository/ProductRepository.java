@@ -66,17 +66,31 @@ public interface ProductRepository extends JpaRepository<Product, Long>,
     // ── Admin-side (thêm mới) ──────────────────────────────────────────────────
 
     // Tìm tất cả sản phẩm (cả active lẫn inactive) theo keyword + category
-    @Query("""
-            SELECT p FROM Product p
-            WHERE (:keyword IS NULL OR LOWER(p.name) LIKE LOWER(CONCAT('%', :keyword, '%')))
-              AND (:categoryId IS NULL OR p.category.id = :categoryId)
-            ORDER BY p.createdAt DESC
-            """)
+    @Query(
+            value = """
+        SELECT DISTINCT p FROM Product p
+        LEFT JOIN p.tags t
+        WHERE (:keyword IS NULL OR LOWER(p.name) LIKE LOWER(CONCAT('%', :keyword, '%')))
+          AND (:categoryId IS NULL OR p.category.id = :categoryId)
+          AND (:isActive IS NULL OR p.isActive = :isActive)
+          AND (:tag IS NULL OR t.tag = :tag)
+        ORDER BY p.createdAt DESC
+        """,
+            countQuery = """
+        SELECT COUNT(DISTINCT p.id) FROM Product p
+        LEFT JOIN p.tags t
+        WHERE (:keyword IS NULL OR LOWER(p.name) LIKE LOWER(CONCAT('%', :keyword, '%')))
+          AND (:categoryId IS NULL OR p.category.id = :categoryId)
+          AND (:isActive IS NULL OR p.isActive = :isActive)
+          AND (:tag IS NULL OR t.tag = :tag)
+        """
+    )
     Page<Product> findAllForAdmin(
             @Param("keyword") String keyword,
             @Param("categoryId") Long categoryId,
+            @Param("isActive") Boolean isActive,
+            @Param("tag") String tag,
             Pageable pageable);
-
     // Kiểm tra slug trùng khi tạo/sửa (loại trừ chính nó khi update)
     boolean existsBySlugAndIdNot(String slug, Long id);
 

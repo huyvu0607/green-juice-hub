@@ -30,6 +30,7 @@ public class ProductServiceImpl implements IProductService {
     private final ProductVariantRepository variantRepository;
     private final ProductImageRepository imageRepository;
     private final ProductMapper productMapper;
+    private final TagDefinitionRepository tagDefinitionRepository;
 
     // ==================== GET PRODUCTS ====================
     @Override
@@ -97,7 +98,13 @@ public class ProductServiceImpl implements IProductService {
         return sizeRepository.findAllByIsActiveTrueOrderByNameAsc()
                 .stream().map(productMapper::toSize).toList();
     }
-
+    @Override
+    public List<TagDefinitionResponse> getAllTags() {
+        return tagDefinitionRepository.findAllByIsActiveTrueOrderBySortOrderAsc()
+                .stream()
+                .map(t -> new TagDefinitionResponse(t.getId(), t.getName(), t.getName()))
+                .toList();
+    }
     // ==================== HELPER: toSummary ====================
     // Service tự query variants + images, rồi tính toán
     // Mapper sẽ KHÔNG gọi DB — chỉ nhận data đã sẵn
@@ -109,6 +116,7 @@ public class ProductServiceImpl implements IProductService {
 
         return productMapper.toSummary(product, variants, images);
     }
+
 
 
     // ==================== SPEC ====================

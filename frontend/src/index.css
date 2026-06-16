@@ -1,5 +1,5 @@
 @import "tailwindcss";
-
+@plugin "@tailwindcss/typography";
 /* ============================================================
    GREEN JUICE HUB — Design Tokens
    Tailwind v4 @theme block

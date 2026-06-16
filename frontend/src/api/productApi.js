@@ -14,3 +14,6 @@ export const getFlavors = () =>
 
 export const getSizes = () =>
   api.get("/products/sizes");
+
+export const getTags = () => 
+  api.get("/products/tags").then(r => r.data);

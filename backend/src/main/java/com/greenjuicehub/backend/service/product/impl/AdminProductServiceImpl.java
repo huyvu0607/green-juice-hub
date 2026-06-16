@@ -35,16 +35,37 @@ public class AdminProductServiceImpl implements IAdminProductService {
     private final FlavorRepository flavorRepository;
     private final SizeRepository sizeRepository;
     private final ProductMapper productMapper;
+    private final ProductTagRepository productTagRepository;
 
     // ══════════════════════════════════════════════════════════════════════════
     // PRODUCTS
     // ══════════════════════════════════════════════════════════════════════════
 
     @Override
-    public Page<AdminProductRowResponse> getProductsForAdmin(String keyword, Long categoryId, int page, int size) {
-        Pageable pageable = PageRequest.of(page, size);
+    public Page<AdminProductRowResponse> getProductsForAdmin(
+            String keyword, Long categoryId, Boolean isActive, String stock, String tag, int page, int size) {
+
+        Pageable pageable = PageRequest.of(page, size, Sort.by(Sort.Direction.DESC, "createdAt"));
         String kw = (keyword != null && !keyword.isBlank()) ? keyword.trim() : null;
-        return productRepository.findAllForAdmin(kw, categoryId, pageable).map(this::toRow);
+        String tagParam = (tag != null && !tag.isBlank()) ? tag.trim().toLowerCase() : null;
+
+        Page<Product> productPage = productRepository.findAllForAdmin(kw, categoryId, isActive, tagParam, pageable);
+
+        if (stock == null || stock.isBlank()) {
+            return productPage.map(this::toRow);
+        }
+
+        List<AdminProductRowResponse> filtered = productPage.getContent().stream()
+                .map(this::toRow)
+                .filter(p -> switch (stock) {
+                    case "out"     -> p.getTotalStock() == 0;
+                    case "low"     -> p.getTotalStock() > 0 && p.getTotalStock() <= 10;
+                    case "instock" -> p.getTotalStock() > 0;
+                    default        -> true;
+                })
+                .toList();
+
+        return new PageImpl<>(filtered, pageable, filtered.size());
     }
 
     @Override
@@ -93,8 +114,9 @@ public class AdminProductServiceImpl implements IAdminProductService {
         }
 
         if (request.getTags() != null) {
+            productTagRepository.deleteAllByProductId(product.getId());
+            productRepository.flush();
             product.getTags().clear();
-            productRepository.save(product);
             saveTags(product, request.getTags());
         }
 

@@ -31,4 +31,10 @@ export const adminProductApi = {
     createSize: (data) => api.post("/admin/products/sizes", data),
     updateSize: (id, data) => api.put(`/admin/products/sizes/${id}`, data),
     toggleSizeActive: (id) => api.patch(`/admin/products/sizes/${id}/toggle-active`),
+
+    // ── Tags ──────────────────────────────────────────────────────────────────
+    getTags: () => api.get("/admin/tags"),
+    createTag: (name) => api.post("/admin/tags", { name }),
+    deleteTag: (id) => api.delete(`/admin/tags/${id}`),
+    toggleTag: (id) => api.patch(`/admin/tags/${id}/toggle`),
 };

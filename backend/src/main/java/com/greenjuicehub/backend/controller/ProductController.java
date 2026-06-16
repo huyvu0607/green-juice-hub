@@ -16,6 +16,11 @@ public class ProductController {
 
     private final IProductService productService;
 
+    @GetMapping("/tags")
+    public ResponseEntity<List<TagDefinitionResponse>> getAllTags() {
+        return ResponseEntity.ok(productService.getAllTags());
+    }
+
     @GetMapping
     public ResponseEntity<Page<ProductSummaryResponse>> getProducts(
             ProductFilterRequest request) {

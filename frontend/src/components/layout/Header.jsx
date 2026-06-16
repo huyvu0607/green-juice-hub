@@ -124,6 +124,7 @@ function UserDropdown({ user, onLogout, onOpenProfile }) {
   const [open, setOpen] = useState(false);
   const ref = useRef(null);
   const navigate = useNavigate();
+  const isAdminOrStaff = ["ADMIN", "STAFF"].includes(user?.role?.toUpperCase());
 
   useEffect(() => {
     const handler = (e) => {
@@ -151,6 +152,24 @@ function UserDropdown({ user, onLogout, onOpenProfile }) {
       label: "Cài đặt",
       onClick: () => { navigate("/profile?tab=settings"); setOpen(false); },
     },
+    // Chỉ hiện với Admin / Staff
+    ...(isAdminOrStaff ? [
+      { divider: true },
+      {
+        icon: (
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <rect x="3" y="3" width="7" height="7" rx="1" />
+            <rect x="14" y="3" width="7" height="7" rx="1" />
+            <rect x="14" y="14" width="7" height="7" rx="1" />
+            <rect x="3" y="14" width="7" height="7" rx="1" />
+          </svg>
+        ),
+        label: "Trang quản lý",
+        onClick: () => { navigate("/admin"); setOpen(false); },
+        admin: true,
+      }
+    ] : []),
+    { divider: true },
     {
       icon: (<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4" /><polyline points="16 17 21 12 16 7" /><line x1="21" y1="12" x2="9" y2="12" /></svg>),
       label: "Đăng xuất",
@@ -211,24 +230,39 @@ function UserDropdown({ user, onLogout, onOpenProfile }) {
             </div>
           </div>
           <div style={{ padding: "6px 0" }}>
-            {menuItems.map((item) => (
-              <button key={item.label} onClick={item.onClick}
-                style={{
-                  width: "100%", display: "flex", alignItems: "center", gap: 10,
-                  padding: "9px 14px", background: "none", border: "none", cursor: "pointer",
-                  fontSize: 13, fontWeight: 450,
-                  color: item.danger ? "var(--color-brand-600)" : "var(--color-text-primary)",
-                  transition: "background 0.12s ease", textAlign: "left"
-                }}
-                onMouseEnter={(e) => { e.currentTarget.style.background = item.danger ? "var(--color-primary-subtle)" : "var(--color-bg-muted)"; }}
-                onMouseLeave={(e) => { e.currentTarget.style.background = "none"; }}
-              >
-                <span style={{ color: item.danger ? "var(--color-primary)" : "var(--color-text-muted)", display: "flex" }}>
-                  {item.icon}
-                </span>
-                {item.label}
-              </button>
-            ))}
+            {menuItems.map((item, idx) =>
+              item.divider ? (
+                <div key={`divider-${idx}`} style={{
+                  height: 1,
+                  background: "var(--color-border-subtle)",
+                  margin: "4px 0"
+                }} />
+              ) : (
+                <button key={item.label} onClick={item.onClick}
+                  style={{
+                    width: "100%", display: "flex", alignItems: "center", gap: 10,
+                    padding: "9px 14px", background: "none", border: "none", cursor: "pointer",
+                    fontSize: 13, fontWeight: 450,
+                    color: item.danger ? "var(--color-brand-600)" : "var(--color-text-primary)",
+                    transition: "background 0.12s ease", textAlign: "left"
+                  }}
+                  onMouseEnter={(e) => {
+                    e.currentTarget.style.background = (item.danger || item.admin)
+                      ? "var(--color-primary-subtle)"
+                      : "var(--color-bg-muted)";
+                  }}
+                  onMouseLeave={(e) => { e.currentTarget.style.background = "none"; }}
+                >
+                  <span style={{
+                    color: item.danger ? "var(--color-primary)" : item.admin ? "var(--color-primary)" : "var(--color-text-muted)",
+                    display: "flex"
+                  }}>
+                    {item.icon}
+                  </span>
+                  {item.label}
+                </button>
+              )
+            )}
           </div>
         </div>
       )}

@@ -30,9 +30,13 @@ public class AdminProductController {
     public ResponseEntity<Page<AdminProductRowResponse>> getProducts(
             @RequestParam(required = false) String keyword,
             @RequestParam(required = false) Long categoryId,
+            @RequestParam(required = false) Boolean isActive,
+            @RequestParam(required = false) String stock,
+            @RequestParam(required = false) String tag,
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "20") int size) {
-        return ResponseEntity.ok(adminProductService.getProductsForAdmin(keyword, categoryId, page, size));
+        return ResponseEntity.ok(
+                adminProductService.getProductsForAdmin(keyword, categoryId, isActive, stock, tag, page, size));
     }
 
     @GetMapping("/{id}")
