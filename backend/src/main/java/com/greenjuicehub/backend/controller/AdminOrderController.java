@@ -3,6 +3,7 @@ package com.greenjuicehub.backend.controller;
 
 import com.greenjuicehub.backend.dto.adminOrder.request.AdminRefundRequest;
 import com.greenjuicehub.backend.dto.adminOrder.request.AdminUpdateOrderStatusRequest;
+import com.greenjuicehub.backend.dto.adminOrder.response.TopProductResponse;
 import com.greenjuicehub.backend.dto.order.response.OrderResponse;
 import com.greenjuicehub.backend.service.order.IAdminOrderService;
 import lombok.RequiredArgsConstructor;
@@ -13,6 +14,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
+import java.util.List;
 import java.util.Map;
 
 @RestController
@@ -25,7 +27,6 @@ public class AdminOrderController {
 
     /**
      * GET /api/admin/orders?page=0&size=15&status=PENDING&paymentStatus=REFUND_PENDING&search=GJH-xxx
-     * Danh sách đơn hàng — lọc + tìm kiếm + phân trang
      */
     @GetMapping
     public ResponseEntity<Page<OrderResponse>> getOrders(
@@ -34,8 +35,8 @@ public class AdminOrderController {
             @RequestParam(required = false) String status,
             @RequestParam(required = false) String paymentStatus,
             @RequestParam(required = false) String search,
-            @RequestParam(required = false) String dateFrom,  // ← thêm "2026-06-16"
-            @RequestParam(required = false) String dateTo     // ← thêm "2026-06-16"
+            @RequestParam(required = false) String dateFrom,
+            @RequestParam(required = false) String dateTo
     ) {
         Pageable pageable = PageRequest.of(page, size);
         return ResponseEntity.ok(
@@ -43,10 +44,9 @@ public class AdminOrderController {
         );
     }
 
-
     /**
      * GET /api/admin/orders/counts-by-date?year=2026&month=6
-     * Trả về map { "2026-06-01": 3, "2026-06-05": 7, ... } — dùng cho mini calendar
+     * Dùng cho mini calendar — map { "2026-06-01": 3, ... }
      */
     @GetMapping("/counts-by-date")
     public ResponseEntity<Map<String, Long>> getCountsByDate(
@@ -57,8 +57,27 @@ public class AdminOrderController {
     }
 
     /**
+     * GET /api/admin/orders/weekly-counts
+     * Dùng cho mini bar chart — map { "2026-06-10": 4, "2026-06-11": 7, ... } (7 ngày gần nhất)
+     */
+    @GetMapping("/weekly-counts")
+    public ResponseEntity<Map<String, Long>> getWeeklyCounts() {
+        return ResponseEntity.ok(adminOrderService.getWeeklyOrderCounts());
+    }
+
+    /**
+     * GET /api/admin/orders/top-products?limit=5
+     * Top sản phẩm bán chạy trong 30 ngày gần nhất
+     */
+    @GetMapping("/top-products")
+    public ResponseEntity<List<TopProductResponse>> getTopProducts(
+            @RequestParam(defaultValue = "5") int limit
+    ) {
+        return ResponseEntity.ok(adminOrderService.getTopProducts(limit));
+    }
+
+    /**
      * GET /api/admin/orders/status-counts
-     * Số đơn theo từng trạng thái đơn hàng + trạng thái thanh toán — dùng cho tab badge
      */
     @GetMapping("/status-counts")
     public ResponseEntity<Map<String, Long>> getStatusCounts() {
@@ -67,7 +86,6 @@ public class AdminOrderController {
 
     /**
      * GET /api/admin/orders/{orderId}
-     * Chi tiết 1 đơn hàng bất kỳ
      */
     @GetMapping("/{orderId}")
     public ResponseEntity<OrderResponse> getOrderDetail(@PathVariable Long orderId) {

@@ -30,6 +30,8 @@ import AdminOrdersPage from '@/pages/admin/order/AdminOrdersPage'
 import AdminOrderDetailPage from '@/pages/admin/order/AdminOrderDetailPage'
 import AdminProductsPage from '@/pages/admin/product/AdminProductsPage'
 import AdminProductFormPage from '@/pages/admin/product/AdminProductFormPage'
+import AdminPromotionsPage from '@/pages/admin/promotion/AdminPromotionsPage'   // ← thêm
+import AdminUsersPage from '@/pages/admin/user/AdminUsersPage'                       // ← thêm
 
 function ScrollToTop() {
   const { pathname, search } = useLocation()
@@ -169,11 +171,13 @@ function AppRoutes() {
           </ProtectedRoute>
         }>
           <Route index element={<AdminDashboardPage />} />
+          <Route path="users" element={<AdminUsersPage />} />  {/* ← thêm route mới */}
           <Route path="orders" element={<AdminOrdersPage />} />
           <Route path="orders/:orderId" element={<AdminOrderDetailPage />} />
           <Route path="products" element={<AdminProductsPage />} />
           <Route path="products/new" element={<AdminProductFormPage />} />
           <Route path="products/:id/edit" element={<AdminProductFormPage />} />
+          <Route path="promotions" element={<AdminPromotionsPage />} />
 
 
         </Route>

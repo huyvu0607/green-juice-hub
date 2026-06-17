@@ -14,24 +14,19 @@ const CartSidebar = () => {
   const { isLoggedIn } = useAuthStore()
   const { overlayStyle, drawerStyle } = useDrawerTransition(isOpen)
 
-
   // ── Selection state ──────────────────────────────────
   const [selectedIds, setSelectedIds] = useState(new Set())
 
-  // Khi items thay đổi: loại bỏ id đã bị xoá khỏi selection
   useEffect(() => {
     const validIds = new Set(items.map((i) => i.cartItemId))
     setSelectedIds((prev) => new Set([...prev].filter((id) => validIds.has(id))))
   }, [items])
 
-  // Các item còn hàng (có thể chọn)
   const availableItems = useMemo(() => items.filter((i) => i.inStock), [items])
   const availableIds = useMemo(() => availableItems.map((i) => i.cartItemId), [availableItems])
 
-  const isAllSelected =
-    availableIds.length > 0 && availableIds.every((id) => selectedIds.has(id))
-  const isIndeterminate =
-    !isAllSelected && availableIds.some((id) => selectedIds.has(id))
+  const isAllSelected = availableIds.length > 0 && availableIds.every((id) => selectedIds.has(id))
+  const isIndeterminate = !isAllSelected && availableIds.some((id) => selectedIds.has(id))
 
   const handleToggleItem = (id) => {
     setSelectedIds((prev) => {
@@ -49,7 +44,6 @@ const CartSidebar = () => {
     }
   }
 
-  // Tính tổng tiền theo selection
   const selectedItems = useMemo(
     () => items.filter((i) => selectedIds.has(i.cartItemId)),
     [items, selectedIds]
@@ -75,13 +69,15 @@ const CartSidebar = () => {
 
   const handleCheckout = () => {
     closeCart()
-    // Truyền danh sách cartItemId đã chọn qua navigate state
     navigate('/checkout', { state: { selectedIds: [...selectedIds] } })
   }
 
   const handleOverlayClick = (e) => {
     if (e.target === overlayRef.current) closeCart()
   }
+
+  // Đóng cart khi user click link sản phẩm
+  const handleProductNavigate = () => closeCart()
 
   return (
     <>
@@ -139,7 +135,6 @@ const CartSidebar = () => {
         {/* ── Select All bar ─────────────────────────────── */}
         {isLoggedIn && items.length > 0 && (
           <div className="flex items-center gap-2.5 px-4 py-2.5 border-b border-[var(--color-border-subtle)] bg-[var(--color-bg-muted)]/50">
-            {/* Checkbox chọn tất cả */}
             <button
               onClick={handleToggleAll}
               aria-label={isAllSelected ? 'Bỏ chọn tất cả' : 'Chọn tất cả'}
@@ -253,6 +248,7 @@ const CartSidebar = () => {
               item={item}
               selected={selectedIds.has(item.cartItemId)}
               onToggle={handleToggleItem}
+              onNavigate={handleProductNavigate}
             />
           ))}
         </div>
@@ -260,7 +256,6 @@ const CartSidebar = () => {
         {/* ── Footer ────────────────────────────────────── */}
         {isLoggedIn && items.length > 0 && (
           <div className="border-t border-[var(--color-border-subtle)] px-5 py-4 space-y-3 bg-[var(--color-bg-base)]">
-            {/* Tổng tiền */}
             <div className="flex items-center justify-between">
               <span className="text-[var(--text-sm)] text-[var(--color-text-secondary)]">
                 Tạm tính
@@ -277,7 +272,6 @@ const CartSidebar = () => {
               Phí vận chuyển sẽ được tính ở bước thanh toán
             </p>
 
-            {/* Nút thanh toán */}
             <button
               onClick={handleCheckout}
               disabled={loading || selectedIds.size === 0}

@@ -3,6 +3,7 @@ package com.greenjuicehub.backend.service.order.impl;
 
 import com.greenjuicehub.backend.dto.adminOrder.request.AdminRefundRequest;
 import com.greenjuicehub.backend.dto.adminOrder.request.AdminUpdateOrderStatusRequest;
+import com.greenjuicehub.backend.dto.adminOrder.response.TopProductResponse;
 import com.greenjuicehub.backend.dto.order.response.OrderResponse;
 import com.greenjuicehub.backend.entity.*;
 import com.greenjuicehub.backend.exception.AppException;
@@ -11,6 +12,7 @@ import com.greenjuicehub.backend.repository.*;
 import com.greenjuicehub.backend.service.order.IAdminOrderService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
@@ -18,9 +20,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDate;
 import java.time.LocalDateTime;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 
 @Service
 @RequiredArgsConstructor
@@ -55,7 +55,7 @@ public class AdminOrderServiceImpl implements IAdminOrderService {
                 ? search.trim()                     : null;
 
         LocalDateTime from = parseDate(dateFrom, false);
-        LocalDateTime to   = parseDate(dateTo,   true);   // dateTo exclusive (+1 ngày)
+        LocalDateTime to   = parseDate(dateTo,   true);
 
         Page<Order> page = orderRepository.findWithFilters(
                 orderStatus, payStatus, searchTrimmed, from, to, pageable
@@ -63,6 +63,10 @@ public class AdminOrderServiceImpl implements IAdminOrderService {
 
         return page.map(this::mapToResponse);
     }
+
+    // ─────────────────────────────────────────────────────────────────────────
+    // ĐẾM THEO NGÀY (CALENDAR)
+    // ─────────────────────────────────────────────────────────────────────────
 
     @Override
     @Transactional(readOnly = true)
@@ -74,9 +78,60 @@ public class AdminOrderServiceImpl implements IAdminOrderService {
 
         Map<String, Long> result = new HashMap<>();
         for (Object[] row : rows) {
-            String day   = row[0].toString(); // "2026-06-16"
+            String day   = row[0].toString();
             Long   count = ((Number) row[1]).longValue();
             result.put(day, count);
+        }
+        return result;
+    }
+
+    // ─────────────────────────────────────────────────────────────────────────
+    // WEEKLY CHART — 7 NGÀY GẦN NHẤT
+    // ─────────────────────────────────────────────────────────────────────────
+
+    @Override
+    @Transactional(readOnly = true)
+    public Map<String, Long> getWeeklyOrderCounts() {
+        LocalDateTime to   = LocalDate.now().plusDays(1).atStartOfDay(); // exclusive
+        LocalDateTime from = LocalDate.now().minusDays(6).atStartOfDay(); // 7 ngày: D-6 → D
+
+        List<Object[]> rows = orderRepository.countGroupByDate(from, to);
+
+        // Map đã có từ DB
+        Map<String, Long> dbMap = new HashMap<>();
+        for (Object[] row : rows) {
+            dbMap.put(row[0].toString(), ((Number) row[1]).longValue());
+        }
+
+        // Đảm bảo đủ 7 ngày, ngày nào không có đơn thì = 0, giữ thứ tự
+        Map<String, Long> result = new LinkedHashMap<>();
+        for (int i = 6; i >= 0; i--) {
+            String key = LocalDate.now().minusDays(i).toString(); // "2026-06-10"
+            result.put(key, dbMap.getOrDefault(key, 0L));
+        }
+        return result;
+    }
+
+    // ─────────────────────────────────────────────────────────────────────────
+    // TOP PRODUCTS — 30 NGÀY GẦN NHẤT
+    // ─────────────────────────────────────────────────────────────────────────
+
+    @Override
+    @Transactional(readOnly = true)
+    public List<TopProductResponse> getTopProducts(int limit) {
+        LocalDateTime to   = LocalDate.now().plusDays(1).atStartOfDay();
+        LocalDateTime from = LocalDate.now().minusDays(29).atStartOfDay(); // 30 ngày
+
+        Pageable pageable = PageRequest.of(0, limit);
+        List<Object[]> rows = orderItemRepository.findTopProducts(from, to, pageable);
+
+        List<TopProductResponse> result = new ArrayList<>();
+        for (Object[] row : rows) {
+            result.add(TopProductResponse.builder()
+                    .productId(((Number) row[0]).longValue())
+                    .name((String) row[1])
+                    .totalSold(((Number) row[2]).longValue())
+                    .build());
         }
         return result;
     }
@@ -104,7 +159,6 @@ public class AdminOrderServiceImpl implements IAdminOrderService {
         validateTransition(order.getStatus(), targetStatus);
 
         if (targetStatus == Order.OrderStatus.CANCELLED) {
-            // Hoàn lại tồn kho
             List<OrderItem> items = orderItemRepository.findAllByOrderIdWithDetails(orderId);
             List<ProductVariant> variantsToUpdate = items.stream()
                     .map(item -> {
@@ -115,7 +169,6 @@ public class AdminOrderServiceImpl implements IAdminOrderService {
                     .toList();
             productVariantRepository.saveAll(variantsToUpdate);
 
-            // Hoàn lại lượt dùng mã khuyến mãi
             if (order.getPromotion() != null) {
                 Promotion promo = order.getPromotion();
                 promo.setUsedCount(Math.max(0, promo.getUsedCount() - 1));
@@ -127,7 +180,6 @@ public class AdminOrderServiceImpl implements IAdminOrderService {
                     : "Admin huỷ đơn";
             order.setCancelReason(reason);
 
-            // Nếu đã thanh toán → chuyển sang chờ hoàn tiền
             if (order.getPaymentStatus() == Order.PaymentStatus.PAID) {
                 paymentRepository.findTopByOrderIdOrderByCreatedAtDesc(order.getId())
                         .ifPresent(payment -> {
@@ -178,7 +230,7 @@ public class AdminOrderServiceImpl implements IAdminOrderService {
     }
 
     // ─────────────────────────────────────────────────────────────────────────
-    // ĐẾM SỐ ĐƠN THEO STATUS
+    // ĐẾM SỐ ĐƠN THEO STATUS (TAB BADGE)
     // ─────────────────────────────────────────────────────────────────────────
 
     @Override
@@ -186,18 +238,14 @@ public class AdminOrderServiceImpl implements IAdminOrderService {
     public Map<String, Long> getStatusCounts() {
         Map<String, Long> counts = new HashMap<>();
 
-        // Tổng tất cả đơn
         counts.put("ALL", orderRepository.count());
 
-        // Đếm theo order status
         for (Order.OrderStatus s : Order.OrderStatus.values()) {
             counts.put(s.name(), orderRepository.countByStatus(s));
         }
 
-        // Tổng tất cả theo payment status
         counts.put("PAY_ALL", orderRepository.count());
 
-        // Đếm theo payment status — prefix PAY_ để tránh trùng key với order status
         for (Order.PaymentStatus ps : Order.PaymentStatus.values()) {
             counts.put("PAY_" + ps.name(), orderRepository.countByPaymentStatus(ps));
         }
@@ -212,12 +260,13 @@ public class AdminOrderServiceImpl implements IAdminOrderService {
     private LocalDateTime parseDate(String date, boolean nextDay) {
         if (date == null || date.isBlank()) return null;
         try {
-            LocalDate d = LocalDate.parse(date); // expect "yyyy-MM-dd"
+            LocalDate d = LocalDate.parse(date);
             return nextDay ? d.plusDays(1).atStartOfDay() : d.atStartOfDay();
         } catch (Exception e) {
             throw new AppException(HttpStatus.BAD_REQUEST, "Định dạng ngày không hợp lệ: " + date);
         }
     }
+
     private Order findOrderOrThrow(Long orderId) {
         return orderRepository.findById(orderId)
                 .orElseThrow(() -> new AppException(HttpStatus.NOT_FOUND,
@@ -248,21 +297,14 @@ public class AdminOrderServiceImpl implements IAdminOrderService {
         }
     }
 
-    /**
-     * Luồng hợp lệ:
-     * PENDING   → CONFIRMED | CANCELLED
-     * CONFIRMED → SHIPPING  | CANCELLED
-     * SHIPPING  → DELIVERED | CANCELLED
-     * DELIVERED / CANCELLED → không được đổi nữa
-     */
     private void validateTransition(Order.OrderStatus current, Order.OrderStatus target) {
         boolean valid = switch (current) {
             case PENDING   -> target == Order.OrderStatus.CONFIRMED
-                           || target == Order.OrderStatus.CANCELLED;
+                    || target == Order.OrderStatus.CANCELLED;
             case CONFIRMED -> target == Order.OrderStatus.SHIPPING
-                           || target == Order.OrderStatus.CANCELLED;
+                    || target == Order.OrderStatus.CANCELLED;
             case SHIPPING  -> target == Order.OrderStatus.DELIVERED
-                           || target == Order.OrderStatus.CANCELLED;
+                    || target == Order.OrderStatus.CANCELLED;
             case DELIVERED, CANCELLED -> false;
         };
 
