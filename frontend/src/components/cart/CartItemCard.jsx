@@ -1,7 +1,8 @@
 import { useState } from 'react'
+import { Link } from 'react-router-dom'
 import useCartStore from '../../store/useCartStore'
 
-const CartItemCard = ({ item, selected, onToggle }) => {
+const CartItemCard = ({ item, selected, onToggle, onNavigate }) => {
   const { updateItem, removeItem } = useCartStore()
   const [removing, setRemoving] = useState(false)
 
@@ -15,7 +16,6 @@ const CartItemCard = ({ item, selected, onToggle }) => {
     salePrice,
     discountPercent,
     quantity,
-    subtotal,
     stockQty,
     inStock,
   } = item
@@ -40,6 +40,8 @@ const CartItemCard = ({ item, selected, onToggle }) => {
     setRemoving(true)
     await removeItem(cartItemId)
   }
+
+  const productPath = `/products/${productSlug}`
 
   return (
     <div
@@ -78,14 +80,14 @@ const CartItemCard = ({ item, selected, onToggle }) => {
         </button>
       </div>
 
-      {/* Ảnh sản phẩm */}
-      <div className="relative shrink-0 w-[72px] h-[72px] rounded-[var(--radius-sm)] overflow-hidden bg-[var(--color-bg-muted)]">
+      {/* Ảnh sản phẩm — có link */}
+      <Link
+        to={productPath}
+        onClick={onNavigate}
+        className="relative shrink-0 w-[72px] h-[72px] rounded-[var(--radius-sm)] overflow-hidden bg-[var(--color-bg-muted)] hover:opacity-90 transition-opacity"
+      >
         {imageUrl ? (
-          <img
-            src={imageUrl}
-            alt={productName}
-            className="w-full h-full object-cover"
-          />
+          <img src={imageUrl} alt={productName} className="w-full h-full object-cover" />
         ) : (
           <div className="w-full h-full flex items-center justify-center">
             <svg className="w-7 h-7 text-[var(--color-text-muted)]" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -93,21 +95,25 @@ const CartItemCard = ({ item, selected, onToggle }) => {
             </svg>
           </div>
         )}
-
         {hasDiscount && (
           <span className="absolute top-1 left-1 text-[10px] font-semibold leading-none px-1.5 py-0.5 rounded-[var(--radius-sm)] bg-red-500 text-white">
             -{discountPercent}%
           </span>
         )}
-      </div>
+      </Link>
 
       {/* Nội dung */}
       <div className="flex-1 min-w-0 flex flex-col justify-between">
         <div className="flex items-start justify-between gap-2">
           <div className="min-w-0">
-            <p className="text-[var(--text-sm)] font-medium text-[var(--color-text-primary)] leading-snug line-clamp-2">
+            {/* Tên sản phẩm — có link */}
+            <Link
+              to={productPath}
+              onClick={onNavigate}
+              className="text-[var(--text-sm)] font-medium text-[var(--color-text-primary)] leading-snug line-clamp-2 hover:text-[var(--color-primary)] transition-colors"
+            >
               {productName}
-            </p>
+            </Link>
             {variantLabel && (
               <p className="mt-0.5 text-[var(--text-xs)] text-[var(--color-text-secondary)]">
                 {variantLabel}
