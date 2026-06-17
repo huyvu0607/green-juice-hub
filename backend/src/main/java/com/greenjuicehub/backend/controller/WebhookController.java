@@ -1,6 +1,6 @@
 package com.greenjuicehub.backend.controller;
 
-import com.greenjuicehub.backend.config.SePayProperties;
+import com.greenjuicehub.backend.config.properties.SePayProperties;
 import com.greenjuicehub.backend.dto.sepay.request.SePayWebhookRequest;
 import com.greenjuicehub.backend.service.sepay.ISePayWebhookService;
 import lombok.RequiredArgsConstructor;

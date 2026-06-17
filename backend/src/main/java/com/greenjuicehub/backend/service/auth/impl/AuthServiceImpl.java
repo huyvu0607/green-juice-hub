@@ -1,8 +1,8 @@
 package com.greenjuicehub.backend.service.auth.impl;
 
 import com.google.api.client.googleapis.auth.oauth2.GoogleIdToken;
-import com.greenjuicehub.backend.config.JwtUtil;
-import com.greenjuicehub.backend.config.OtpProperties;
+import com.greenjuicehub.backend.utils.JwtUtil;
+import com.greenjuicehub.backend.config.properties.OtpProperties;
 import com.greenjuicehub.backend.dto.auth.request.*;
 import com.greenjuicehub.backend.dto.auth.response.*;
 import com.greenjuicehub.backend.entity.*;

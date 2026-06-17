@@ -1,27 +1,22 @@
 import { useState, useEffect, useCallback, useRef } from "react";
 import { createPortal } from "react-dom";
 
-// Bezier curve cao cấp tạo cảm giác mượt mà và có độ nảy nhẹ nhàng
-const SPRING_BEZIER = "cubic-bezier(.19,1,.22,1)";
-
 export default function ImageGallery({ images = [] }) {
     // ── Main Gallery State ──────────────────────────────────────
     const [active, setActive] = useState(0);
     const [sliding, setSliding] = useState(null); 
-    const imageRef = useRef(null);
     const timerRef = useRef(null);
 
     // ── Lightbox State ──────────────────────────────────────────
     const [lightbox, setLightbox] = useState(false); // Trạng thái mount Portal
     const [lbState, setLbState] = useState("idle");  // "idle" | "opening" | "open" | "closing"
     const [lbActive, setLbActive] = useState(0);
-    const [startRect, setStartRect] = useState(null);
 
-    // State riêng cho hiệu ứng chuyển ảnh bên trong Lightbox (không phụ thuộc gallery ngoài)
-    const [lbSliding, setLbSliding] = useState(null); // { fromIdx, toIdx, phase }
+    // State riêng cho hiệu ứng chuyển ảnh bên trong Lightbox
+    const [lbSliding, setLbSliding] = useState(null); 
     const lbTimerRef = useRef(null);
 
-    // Ref lưu state hiện tại để dùng trong callbacks (ví dụ event listener)
+    // Ref lưu state hiện tại
     const stateRef = useRef({ active, lbActive });
     useEffect(() => {
         stateRef.current = { active, lbActive };
@@ -57,47 +52,41 @@ export default function ImageGallery({ images = [] }) {
     const goPrev = useCallback(() => goTo((active - 1 + total) % total, "right"), [active, total, goTo]);
     const goNext = useCallback(() => goTo((active + 1) % total, "left"), [active, total, goTo]);
 
-    // ── Logic Lightbox Navigation (Next/Prev Độc lập) ───────────
+    // ── Logic Lightbox Navigation ───────────────────────────────
     const lbGoTo = useCallback((idx) => {
-        if (lbSliding) return; // Chặn bấm liên tục gây loạn animation
+        if (lbSliding) return;
         setLbActive((prev) => {
             if (idx === prev) return prev;
             
-            // Bắt đầu phase chuẩn bị (enter)
             setLbSliding({ fromIdx: prev, toIdx: idx, phase: "enter" });
             clearTimeout(lbTimerRef.current);
 
-            // Kích hoạt phase chạy (run) sau 1 frame
             requestAnimationFrame(() => {
                 requestAnimationFrame(() => {
                     setLbSliding((s) => s ? { ...s, phase: "run" } : null);
                 });
             });
 
-            // Kết thúc animation: 220ms
             lbTimerRef.current = setTimeout(() => {
                 setLbSliding(null);
             }, 220);
 
-            return idx; // Cập nhật state UI (counter, thumb) ngay lập tức
+            return idx;
         });
     }, [lbSliding]);
 
     const lbGoPrev = useCallback(() => lbGoTo((lbActive - 1 + total) % total), [lbActive, total, lbGoTo]);
     const lbGoNext = useCallback(() => lbGoTo((lbActive + 1) % total), [lbActive, total, lbGoTo]);
 
-    // ── Logic Mở / Đóng Lightbox ────────────────────────────────
+    // ── Logic Mở / Đóng Lightbox (Đã tối giản) ──────────────────
     const openLightbox = useCallback(() => {
-        if (imageRef.current) {
-            setStartRect(imageRef.current.getBoundingClientRect());
-        }
         setLbActive(active);
         setLightbox(true);
-        setLbState("opening"); // Phase 1: Gắn DOM ở vị trí thumbnail
+        setLbState("opening"); 
 
         requestAnimationFrame(() => {
             requestAnimationFrame(() => {
-                setLbState("open"); // Phase 2: Kích hoạt CSS transition bay ra giữa
+                setLbState("open"); // Kích hoạt Fade In & Scale Up
             });
         });
     }, [active]);
@@ -106,33 +95,19 @@ export default function ImageGallery({ images = [] }) {
         const { active: currentActive, lbActive: currentLbActive } = stateRef.current;
 
         const triggerClose = () => {
-            setLbState("closing"); // Bay về
+            setLbState("closing"); // Kích hoạt Fade Out & Scale Down
             setTimeout(() => {
                 setLightbox(false);
                 setLbState("idle");
-            }, 650); // Khớp với duration animation
+            }, 300); // Khớp với duration transition mới (300ms)
         };
 
-        // Nếu người dùng đã next/prev trong Lightbox, ta cần đồng bộ gallery ngoài trước
         if (currentActive !== currentLbActive) {
             setActive(currentLbActive);
-            setSliding(null); // Huỷ mọi animation trượt đang dang dở ở ngoài
-            
-            // Đợi 2 frames để React render lại ảnh chính bên ngoài và DOM cập nhật vị trí mới
-            requestAnimationFrame(() => {
-                requestAnimationFrame(() => {
-                    if (imageRef.current) {
-                        setStartRect(imageRef.current.getBoundingClientRect()); // Tính lại toạ độ bay về
-                    }
-                    triggerClose();
-                });
-            });
-        } else {
-            if (imageRef.current) {
-                setStartRect(imageRef.current.getBoundingClientRect());
-            }
-            triggerClose();
+            setSliding(null);
         }
+        
+        triggerClose();
     }, []);
 
     // Events và Scroll Lock
@@ -216,52 +191,35 @@ export default function ImageGallery({ images = [] }) {
         return createPortal(
             <div style={{ position: "fixed", inset: 0, zIndex: 99999, display: "flex", alignItems: "center", justifyContent: "center", pointerEvents: "auto" }}>
                 
-                {/* CSS injection xử lý phần vật lý học (Scale Bounce) không thể dùng transition thường */}
-                <style>{`
-                    @keyframes lb-physics-open {
-                        0% { transform: scale(0.95); }
-                        60% { transform: scale(1.02); }
-                        100% { transform: scale(1); }
-                    }
-                    @keyframes lb-physics-close {
-                        0% { transform: scale(1); }
-                        100% { transform: scale(0.97); }
-                    }
-                `}</style>
-
                 {/* 1. Backdrop */}
                 <div
                     onClick={closeLightbox}
                     style={{
                         position: "absolute", inset: 0,
-                        background: isFullscreen ? "rgba(0,0,0,0.85)" : "rgba(0,0,0,0)",
-                        backdropFilter: isFullscreen ? "blur(14px)" : "blur(0px)",
-                        WebkitBackdropFilter: isFullscreen ? "blur(14px)" : "blur(0px)",
-                        transition: `background 650ms ${SPRING_BEZIER}, backdrop-filter 650ms ${SPRING_BEZIER}`
+                        background: "rgba(0,0,0,0.85)",
+                        backdropFilter: "blur(14px)",
+                        WebkitBackdropFilter: "blur(14px)",
+                        opacity: isFullscreen ? 1 : 0,
+                        transition: "opacity 300ms ease"
                     }}
                 />
 
-                {/* 2. Wrapper điều khiển toạ độ và kích thước bay (FLIP Animation) */}
+                {/* 2. Wrapper điều khiển Popup & Fade */}
                 <div
                     style={{
-                        position: "fixed",
+                        position: "relative",
                         zIndex: 2,
-                        // Nếu đang fullscreen thì nằm giữa, ngược lại nằm đúng tọa độ thumbnail
-                        left: isFullscreen ? "50%" : `${startRect?.left || 0}px`,
-                        top: isFullscreen ? "50%" : `${startRect?.top || 0}px`,
-                        width: isFullscreen ? "88vw" : `${startRect?.width || 0}px`,
-                        height: isFullscreen ? "88vh" : `${startRect?.height || 0}px`,
-                        transform: isFullscreen ? "translate(-50%, -50%)" : "translate(0, 0)",
-                        transition: `all 650ms ${SPRING_BEZIER}`,
+                        width: "88vw",
+                        height: "88vh",
+                        opacity: isFullscreen ? 1 : 0,
+                        transform: isFullscreen ? "scale(1)" : "scale(0.95)",
+                        transition: "opacity 300ms ease, transform 300ms cubic-bezier(0.4, 0, 0.2, 1)",
                     }}
                     onClick={(e) => e.stopPropagation()}
                 >
-                    {/* Inner điều khiển Scale Physics + Crossfade Navidation */}
                     <div style={{ width: "100%", height: "100%", position: "relative" }}>
-                        
                         {lbSliding ? (
                             <>
-                                {/* Ảnh cũ đang fade và scale xuống nhẹ */}
                                 <img
                                     src={getUrl(imgs[lbSliding.fromIdx])}
                                     alt=""
@@ -272,7 +230,6 @@ export default function ImageGallery({ images = [] }) {
                                         transition: "opacity 220ms ease, transform 220ms ease", zIndex: 1
                                     }}
                                 />
-                                {/* Ảnh mới đang fade và scale lên chuẩn */}
                                 <img
                                     src={getUrl(imgs[lbSliding.toIdx])}
                                     alt=""
@@ -289,52 +246,43 @@ export default function ImageGallery({ images = [] }) {
                                 src={getUrl(imgs[lbActive])}
                                 alt="Lightbox"
                                 style={{
-                                    width: "100%", height: "100%", objectFit: "contain", display: "block",
-                                    // Áp dụng keyframe physics cảm giác vật lý thật lúc open/close
-                                    animation: (lbState === "opening" || lbState === "open")
-                                        ? `lb-physics-open 650ms ${SPRING_BEZIER} forwards`
-                                        : lbState === "closing"
-                                        ? `lb-physics-close 650ms ${SPRING_BEZIER} forwards`
-                                        : "none"
+                                    width: "100%", height: "100%", objectFit: "contain", display: "block"
                                 }}
                             />
                         )}
                     </div>
                 </div>
 
-                {/* 3. Các thành phần UI - Render độc lập với các mốc thời gian trễ riêng */}
+                {/* 3. Các thành phần UI - Trễ nhẹ 1 chút để tạo cảm giác mượt */}
                 {total > 1 && (
                     <>
-                        {/* Arrows fade-in sau 300ms */}
                         <div style={{ 
                             position: "absolute", left: 20, top: "50%", transform: "translateY(-50%)", zIndex: 3,
-                            opacity: isFullscreen ? 1 : 0, transition: "opacity 300ms ease 300ms", pointerEvents: isFullscreen ? "auto" : "none"
+                            opacity: isFullscreen ? 1 : 0, transition: "opacity 300ms ease 150ms", pointerEvents: isFullscreen ? "auto" : "none"
                         }}>
                             <ArrowBtn onClickFn={lbGoPrev} direction="prev" light />
                         </div>
                         <div style={{ 
                             position: "absolute", right: 20, top: "50%", transform: "translateY(-50%)", zIndex: 3,
-                            opacity: isFullscreen ? 1 : 0, transition: "opacity 300ms ease 300ms", pointerEvents: isFullscreen ? "auto" : "none"
+                            opacity: isFullscreen ? 1 : 0, transition: "opacity 300ms ease 150ms", pointerEvents: isFullscreen ? "auto" : "none"
                         }}>
                             <ArrowBtn onClickFn={lbGoNext} direction="next" light />
                         </div>
 
-                        {/* Counter fade-in sau 200ms */}
                         <div style={{
                             position: "absolute", bottom: 16, left: "50%", transform: "translateX(-50%)",
                             zIndex: 4, padding: "4px 14px", borderRadius: 999, background: "rgba(0,0,0,0.5)",
                             color: "white", fontSize: 13, fontWeight: 500,
-                            opacity: isFullscreen ? 1 : 0, transition: "opacity 300ms ease 200ms",
+                            opacity: isFullscreen ? 1 : 0, transition: "opacity 300ms ease 100ms",
                         }}>
                             {lbActive + 1} / {total}
                         </div>
 
-                        {/* Thumbnails slide-up & fade-in sau 250ms */}
                         <div style={{
                             position: "absolute", bottom: 52, left: "50%", zIndex: 4, display: "flex", gap: 8,
                             opacity: isFullscreen ? 1 : 0,
-                            transform: isFullscreen ? "translateX(-50%) translateY(0)" : "translateX(-50%) translateY(20px)",
-                            transition: "all 300ms cubic-bezier(0.4, 0, 0.2, 1) 250ms",
+                            transform: isFullscreen ? "translateX(-50%) translateY(0)" : "translateX(-50%) translateY(10px)",
+                            transition: "all 300ms ease 150ms",
                             pointerEvents: isFullscreen ? "auto" : "none"
                         }}>
                             {imgs.map((img, idx) => (
@@ -353,7 +301,6 @@ export default function ImageGallery({ images = [] }) {
                     </>
                 )}
 
-                {/* Nút đóng fade-in sau 150ms */}
                 <button
                     onClick={closeLightbox}
                     style={{
@@ -362,7 +309,7 @@ export default function ImageGallery({ images = [] }) {
                         backdropFilter: "blur(4px)", WebkitBackdropFilter: "blur(4px)", border: "none", cursor: "pointer",
                         display: "flex", alignItems: "center", justifyContent: "center", color: "white",
                         opacity: isFullscreen ? 1 : 0,
-                        transition: "opacity 300ms ease 150ms",
+                        transition: "opacity 300ms ease 100ms",
                         pointerEvents: isFullscreen ? "auto" : "none"
                     }}
                 >
@@ -392,7 +339,6 @@ export default function ImageGallery({ images = [] }) {
                         <img src={getUrl(imgs[sliding.toIdx])} alt="Ảnh sản phẩm" style={getToStyle()} />
                     ) : (
                         <img
-                            ref={imageRef} // Gắn ref để lấy vị trí thumbnail
                             src={getUrl(imgs[active])}
                             alt="Ảnh sản phẩm"
                             style={{ position: "absolute", inset: 0, width: "100%", height: "100%", objectFit: "cover" }}

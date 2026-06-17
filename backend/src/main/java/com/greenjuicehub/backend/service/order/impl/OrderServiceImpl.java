@@ -501,15 +501,18 @@ public class OrderServiceImpl implements IOrderService {
         }
 
         order.setStatus(Order.OrderStatus.DELIVERED);
-
-        // ── Nếu COD → tự động đánh dấu đã thanh toán ──
         markPaidIfCod(order);
-
         order = orderRepository.save(order);
 
         List<OrderItem> items = orderItemRepository.findAllByOrderIdWithDetails(orderId);
         Payment payment = paymentRepository.findTopByOrderIdOrderByCreatedAtDesc(orderId).orElse(null);
-        return orderMapper.toOrderResponse(order, items, payment);
+
+        // ✅ Thêm reviewedIds như getOrderDetail
+        Set<Long> reviewedIds = new HashSet<>(
+                reviewRepository.findReviewedProductIdsByOrderIdAndUserId(orderId, userId)
+        );
+
+        return orderMapper.toOrderResponse(order, items, payment, reviewedIds);
     }
     // ─────────────────────────────────────────────────────────────────────────
     // HELPERS

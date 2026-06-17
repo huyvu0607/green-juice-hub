@@ -13,10 +13,10 @@ import ReviewFormPopup from '@/components/product/ReviewFormPopup'
 
 // ── Order Status Stepper ───────────────────────────────────────────
 const STATUS_STEPS = [
-  { key: 'PENDING',   label: 'Đã đặt hàng' },
+  { key: 'PENDING', label: 'Đã đặt hàng' },
   { key: 'CONFIRMED', label: 'Đã xác nhận' },
-  { key: 'SHIPPING',  label: 'Đang giao'   },
-  { key: 'DELIVERED', label: 'Hoàn tất'    },
+  { key: 'SHIPPING', label: 'Đang giao' },
+  { key: 'DELIVERED', label: 'Hoàn tất' },
 ]
 
 function OrderStepper({ status }) {
@@ -37,7 +37,7 @@ function OrderStepper({ status }) {
   return (
     <div className="flex items-start gap-0 w-full">
       {STATUS_STEPS.map((step, idx) => {
-        const done   = idx <= currentIdx
+        const done = idx <= currentIdx
         const active = idx === currentIdx
         const isLast = idx === STATUS_STEPS.length - 1
         return (
@@ -47,16 +47,16 @@ function OrderStepper({ status }) {
                 background: idx === 0 ? 'transparent' : done ? 'var(--color-primary)' : 'var(--color-border-subtle)',
               }} />
               <div className="flex-shrink-0 w-8 h-8 rounded-full flex items-center justify-center transition-all" style={{
-                background:  done ? 'var(--color-primary)' : 'var(--color-bg-muted)',
-                border:      active ? '2.5px solid var(--color-primary)' : done ? 'none' : '1.5px solid var(--color-border-subtle)',
-                boxShadow:   active ? '0 0 0 3px var(--color-primary-subtle)' : 'none',
+                background: done ? 'var(--color-primary)' : 'var(--color-bg-muted)',
+                border: active ? '2.5px solid var(--color-primary)' : done ? 'none' : '1.5px solid var(--color-border-subtle)',
+                boxShadow: active ? '0 0 0 3px var(--color-primary-subtle)' : 'none',
               }}>
                 {done && !active && (
                   <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="3" strokeLinecap="round">
                     <polyline points="20 6 9 17 4 12" />
                   </svg>
                 )}
-                {active  && <div className="w-2.5 h-2.5 rounded-full" style={{ background: '#fff' }} />}
+                {active && <div className="w-2.5 h-2.5 rounded-full" style={{ background: '#fff' }} />}
                 {!done && !active && <div className="w-2 h-2 rounded-full" style={{ background: 'var(--color-border-subtle)' }} />}
               </div>
               <div className="flex-1 h-0.5 transition-all" style={{
@@ -64,7 +64,7 @@ function OrderStepper({ status }) {
               }} />
             </div>
             <p className="text-xs mt-2 text-center" style={{
-              color:      done ? 'var(--color-primary)' : 'var(--color-text-muted)',
+              color: done ? 'var(--color-primary)' : 'var(--color-text-muted)',
               fontWeight: active ? 600 : done ? 500 : 400,
             }}>
               {step.label}
@@ -78,13 +78,13 @@ function OrderStepper({ status }) {
 
 // ── Payment Modal ──────────────────────────────────────────────────
 function PaymentModal({ order, onClose }) {
-  const [copied, setCopied]   = useState(false)
+  const [copied, setCopied] = useState(false)
   const [qrLoaded, setQrLoaded] = useState(false)
-  const [qrError, setQrError]   = useState(false)
-  const [showQr, setShowQr]     = useState(true)
-  const [paid, setPaid]         = useState(false)
-  const [closing, setClosing]   = useState(false)
-  const { fetchOrderDetail }    = useOrderStore()
+  const [qrError, setQrError] = useState(false)
+  const [showQr, setShowQr] = useState(true)
+  const [paid, setPaid] = useState(false)
+  const [closing, setClosing] = useState(false)
+  const { fetchOrderDetail } = useOrderStore()
   const paidRef = useRef(false)
 
   useEffect(() => {
@@ -245,7 +245,7 @@ function PaymentModal({ order, onClose }) {
                     className="flex-1 py-2 text-xs font-medium cursor-pointer transition-all"
                     style={{
                       background: showQr === key ? 'var(--color-primary)' : 'transparent',
-                      color:      showQr === key ? '#fff' : 'var(--color-text-secondary)',
+                      color: showQr === key ? '#fff' : 'var(--color-text-secondary)',
                     }}
                   >
                     {label}
@@ -289,10 +289,10 @@ function PaymentModal({ order, onClose }) {
               ) : (
                 <div className="flex flex-col gap-2.5">
                   {[
-                    { label: 'Ngân hàng',        value: BANK_NAME },
-                    { label: 'Số tài khoản',     value: ACCOUNT_NUMBER, mono: true },
-                    { label: 'Chủ tài khoản',    value: ACCOUNT_NAME },
-                    { label: 'Số tiền',           value: fmt(order.totalAmount), highlight: true },
+                    { label: 'Ngân hàng', value: BANK_NAME },
+                    { label: 'Số tài khoản', value: ACCOUNT_NUMBER, mono: true },
+                    { label: 'Chủ tài khoản', value: ACCOUNT_NAME },
+                    { label: 'Số tiền', value: fmt(order.totalAmount), highlight: true },
                   ].map(({ label, value, mono, highlight }) => (
                     <div key={label} className="flex justify-between items-center py-1.5"
                       style={{ borderBottom: '0.5px solid var(--color-border-subtle)' }}>
@@ -371,7 +371,7 @@ const CANCEL_REASONS = [
 
 function CancelModal({ onConfirm, onClose, cancelling, isPaid }) {
   const [selected, setSelected] = useState(null)
-  const [custom, setCustom]     = useState('')
+  const [custom, setCustom] = useState('')
 
   useEffect(() => {
     const handler = (e) => { if (e.key === 'Escape') onClose() }
@@ -384,8 +384,8 @@ function CancelModal({ onConfirm, onClose, cancelling, isPaid }) {
     return () => { document.body.style.overflow = '' }
   }, [])
 
-  const isOther   = selected === 'Lý do khác'
-  const reason    = isOther ? custom.trim() : selected
+  const isOther = selected === 'Lý do khác'
+  const reason = isOther ? custom.trim() : selected
   const canSubmit = selected && (!isOther || custom.trim().length > 0)
 
   return (
@@ -399,7 +399,6 @@ function CancelModal({ onConfirm, onClose, cancelling, isPaid }) {
         className="w-full max-w-sm rounded-[var(--radius-lg)] overflow-hidden shadow-2xl"
         style={{ background: 'var(--color-bg-elevated)', animation: 'slideUp 0.25s cubic-bezier(0.16,1,0.3,1)' }}
       >
-        {/* Header */}
         <div
           className="flex items-center justify-between px-5 py-4"
           style={{ borderBottom: '1px solid var(--color-border-subtle)', background: '#fef2f2' }}
@@ -428,10 +427,7 @@ function CancelModal({ onConfirm, onClose, cancelling, isPaid }) {
           </button>
         </div>
 
-        {/* Body */}
         <div className="px-5 py-4 flex flex-col gap-3">
-
-          {/* Banner hoàn tiền — chỉ hiện khi đã PAID */}
           {isPaid && (
             <div
               className="flex gap-2.5 px-3 py-3 rounded-[var(--radius-md)]"
@@ -439,7 +435,7 @@ function CancelModal({ onConfirm, onClose, cancelling, isPaid }) {
             >
               <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#c2410c" strokeWidth="2.5" strokeLinecap="round" className="flex-shrink-0 mt-0.5">
                 <path d="M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z" />
-                <line x1="12" y1="9"  x2="12"   y2="13" />
+                <line x1="12" y1="9" x2="12" y2="13" />
                 <line x1="12" y1="17" x2="12.01" y2="17" />
               </svg>
               <div>
@@ -465,15 +461,15 @@ function CancelModal({ onConfirm, onClose, cancelling, isPaid }) {
                 onClick={() => { setSelected(r); setCustom('') }}
                 className="flex items-center gap-2.5 px-3 py-2.5 rounded-[var(--radius-md)] text-left text-sm cursor-pointer transition-all"
                 style={{
-                  border:     selected === r ? '1.5px solid #ef4444' : '1px solid var(--color-border-subtle)',
+                  border: selected === r ? '1.5px solid #ef4444' : '1px solid var(--color-border-subtle)',
                   background: selected === r ? '#fef2f2' : 'transparent',
-                  color:      selected === r ? '#dc2626' : 'var(--color-text-primary)',
+                  color: selected === r ? '#dc2626' : 'var(--color-text-primary)',
                 }}
               >
                 <div
                   className="w-4 h-4 rounded-full flex-shrink-0 flex items-center justify-center transition-all"
                   style={{
-                    border:     selected === r ? '2px solid #ef4444' : '1.5px solid var(--color-border-subtle)',
+                    border: selected === r ? '2px solid #ef4444' : '1.5px solid var(--color-border-subtle)',
                     background: selected === r ? '#ef4444' : 'transparent',
                   }}
                 >
@@ -493,26 +489,25 @@ function CancelModal({ onConfirm, onClose, cancelling, isPaid }) {
               onChange={e => setCustom(e.target.value)}
               className="w-full px-3 py-2 text-sm rounded-[var(--radius-md)] resize-none transition-colors"
               style={{
-                border:     '1px solid var(--color-border-subtle)',
+                border: '1px solid var(--color-border-subtle)',
                 background: 'var(--color-bg-muted)',
-                color:      'var(--color-text-primary)',
-                outline:    'none',
+                color: 'var(--color-text-primary)',
+                outline: 'none',
               }}
               onFocus={e => e.currentTarget.style.borderColor = '#ef4444'}
-              onBlur={e  => e.currentTarget.style.borderColor = 'var(--color-border-subtle)'}
+              onBlur={e => e.currentTarget.style.borderColor = 'var(--color-border-subtle)'}
             />
           )}
         </div>
 
-        {/* Footer */}
         <div className="px-5 pb-5 flex gap-2">
           <button
             onClick={onClose}
             className="flex-1 py-2.5 rounded-[var(--radius-md)] text-sm font-medium cursor-pointer transition-colors"
             style={{
               background: 'var(--color-bg-muted)',
-              border:     '1px solid var(--color-border-subtle)',
-              color:      'var(--color-text-secondary)',
+              border: '1px solid var(--color-border-subtle)',
+              color: 'var(--color-text-secondary)',
             }}
           >
             Giữ đơn
@@ -537,7 +532,6 @@ function CancelModal({ onConfirm, onClose, cancelling, isPaid }) {
 }
 
 // ── Refund Pending Info Banner ─────────────────────────────────────
-// Hiển thị bên dưới trạng thái thanh toán khi đơn đã huỷ + chờ hoàn tiền
 function RefundPendingBanner() {
   return (
     <div
@@ -561,14 +555,12 @@ function RefundPendingBanner() {
 function OrderSummary({ o, onCancel, cancelling, onConfirmDelivered, confirming }) {
   const navigate = useNavigate()
   const [showPaymentModal, setShowPaymentModal] = useState(false)
-  const [showCancelModal,  setShowCancelModal]  = useState(false)
+  const [showCancelModal, setShowCancelModal] = useState(false)
 
-  // Cho phép thanh toán khi chưa PAID và chưa huỷ
   const canPay = ['BANK_TRANSFER', 'MOMO', 'VNPAY'].includes(o.paymentMethod)
     && o.paymentStatus === 'PENDING'
     && o.status !== 'CANCELLED'
 
-  // Cho phép huỷ khi PENDING (bất kể đã PAID hay chưa)
   const canCancel = o.status === 'PENDING'
 
   return (
@@ -578,7 +570,6 @@ function OrderSummary({ o, onCancel, cancelling, onConfirmDelivered, confirming 
           className="rounded-[var(--radius-lg)] overflow-hidden"
           style={{ background: 'var(--color-bg-elevated)', border: '1px solid var(--color-border-subtle)' }}
         >
-          {/* Tóm tắt giá */}
           <div className="px-5 py-4" style={{ borderBottom: '1px solid var(--color-border-subtle)' }}>
             <p className="text-sm font-semibold" style={{ color: 'var(--color-text-primary)' }}>Tóm tắt</p>
           </div>
@@ -611,7 +602,6 @@ function OrderSummary({ o, onCancel, cancelling, onConfirmDelivered, confirming 
             </div>
           </div>
 
-          {/* Thanh toán */}
           <div className="px-5 pb-4 flex flex-col gap-1.5">
             <p className="text-xs" style={{ color: 'var(--color-text-muted)' }}>Phương thức thanh toán</p>
             <p className="text-sm font-medium" style={{ color: 'var(--color-text-primary)' }}>
@@ -638,11 +628,9 @@ function OrderSummary({ o, onCancel, cancelling, onConfirmDelivered, confirming 
               )}
             </div>
 
-            {/* Banner chờ hoàn tiền */}
             {o.paymentStatus === 'REFUND_PENDING' && <RefundPendingBanner />}
           </div>
 
-          {/* Actions */}
           <div className="px-5 pb-5 flex flex-col gap-2">
             <button
               onClick={() => navigate('/orders')}
@@ -661,7 +649,6 @@ function OrderSummary({ o, onCancel, cancelling, onConfirmDelivered, confirming 
               Tiếp tục mua sắm
             </button>
 
-            {/* Xác nhận đã nhận hàng */}
             {o.status === 'SHIPPING' && (
               <button
                 onClick={onConfirmDelivered}
@@ -673,7 +660,6 @@ function OrderSummary({ o, onCancel, cancelling, onConfirmDelivered, confirming 
               </button>
             )}
 
-            {/* Huỷ đơn — hiện khi PENDING, bất kể đã PAID hay chưa */}
             {canCancel && (
               <button
                 onClick={() => setShowCancelModal(true)}
@@ -686,7 +672,6 @@ function OrderSummary({ o, onCancel, cancelling, onConfirmDelivered, confirming 
             )}
           </div>
 
-          {/* Lý do huỷ */}
           {o.status === 'CANCELLED' && o.cancelReason && (
             <div
               className="mx-5 mb-5 px-3 py-2.5 rounded-[var(--radius-md)]"
@@ -720,18 +705,27 @@ function OrderSummary({ o, onCancel, cancelling, onConfirmDelivered, confirming 
 
 // ── Page ───────────────────────────────────────────────────────────
 export default function OrderDetailPage() {
-  const { orderId }   = useParams()
-  const navigate      = useNavigate()
-  const location      = useLocation()
-  const [reviewItem, setReviewItem] = useState(null)
-  const fromCheckout  = location.state?.fromCheckout
+  const { orderId } = useParams()
+  const navigate = useNavigate()
+  const location = useLocation()
+  const fromCheckout = location.state?.fromCheckout
 
   const { currentOrder, loading, error, fetchOrderDetail, cancelOrder } = useOrderStore()
   const [cancelling, setCancelling] = useState(false)
   const [confirming, setConfirming] = useState(false)
+  const [reviewItems, setReviewItems] = useState(null)
+
+  // Ref để biết popup đang mở → chặn setReviewItems từ onSuccess ghi đè
+  // const reviewPopupOpenRef = useRef(false)
+
   const { addItem } = useCartStore()
 
   useEffect(() => { fetchOrderDetail(orderId) }, [orderId])
+
+  // Sync ref với state
+  // useEffect(() => {
+  //   reviewPopupOpenRef.current = reviewItems !== null && reviewItems.length > 0
+  // }, [reviewItems])
 
   if (loading) {
     return (
@@ -752,7 +746,7 @@ export default function OrderDetailPage() {
     )
   }
 
-  const o    = currentOrder
+  const o = currentOrder
   const addr = o.shippingAddress
 
   const handleCancel = async (reason) => {
@@ -760,7 +754,6 @@ export default function OrderDetailPage() {
     try {
       await cancelOrder(o.id, reason)
     } catch (e) {
-      // Không dùng alert — lỗi thầm lặng hoặc có thể thêm toast sau
       console.error(e)
     } finally {
       setCancelling(false)
@@ -768,11 +761,25 @@ export default function OrderDetailPage() {
   }
 
   const handleConfirmDelivered = async () => {
-    if (!window.confirm('Xác nhận bạn đã nhận được hàng?')) return
     setConfirming(true)
     try {
       await orderApi.confirmDelivered(o.id)
       await fetchOrderDetail(orderId)
+
+      const updatedOrder = useOrderStore.getState().currentOrder
+      const unreviewed = updatedOrder?.items
+        ?.filter(i => !i.hasReviewed && i.productSlug)
+        ?.map(i => ({
+          productId: i.productId,
+          variantId: i.variantId,
+          orderId: updatedOrder.id,
+          productName: i.productName,
+          variantName: i.variantName,
+          imageUrl: i.imageUrl,
+          quantity: i.quantity,
+        })) ?? []
+
+      if (unreviewed.length > 0) setReviewItems(unreviewed)
     } catch (e) {
       console.error(e?.response?.data?.message ?? 'Có lỗi xảy ra')
     } finally {
@@ -785,7 +792,7 @@ export default function OrderDetailPage() {
       <div className="max-w-6xl mx-auto px-6 py-8">
 
         <nav className="flex items-center gap-1.5 text-sm mb-5" style={{ color: 'var(--color-text-muted)' }}>
-          <Link to="/"       className="hover:text-[var(--color-primary)] transition-colors">Trang chủ</Link>
+          <Link to="/" className="hover:text-[var(--color-primary)] transition-colors">Trang chủ</Link>
           <span className="opacity-50">/</span>
           <Link to="/orders" className="hover:text-[var(--color-primary)] transition-colors">Đơn hàng của tôi</Link>
           <span className="opacity-50">/</span>
@@ -863,28 +870,28 @@ export default function OrderDetailPage() {
                             className="text-xs font-medium px-2.5 py-1 rounded-[var(--radius-md)] cursor-pointer transition-all"
                             style={{
                               background: 'var(--color-bg-muted)',
-                              color:      'var(--color-text-secondary)',
-                              border:     '1px solid var(--color-border-subtle)',
+                              color: 'var(--color-text-secondary)',
+                              border: '1px solid var(--color-border-subtle)',
                             }}
                           >
                             Mua lại
                           </button>
                           {!item.hasReviewed && item.productSlug && (
                             <button
-                              onClick={() => setReviewItem({
-                                productId:   item.productId,
-                                variantId:   item.variantId,
-                                orderId:     o.id,
+                              onClick={() => setReviewItems([{
+                                productId: item.productId,
+                                variantId: item.variantId,
+                                orderId: o.id,
                                 productName: item.productName,
                                 variantName: item.variantName,
-                                imageUrl:    item.imageUrl,
-                                quantity:    item.quantity,
-                              })}
+                                imageUrl: item.imageUrl,
+                                quantity: item.quantity,
+                              }])}
                               className="text-xs font-medium px-2.5 py-1 rounded-[var(--radius-md)] cursor-pointer transition-all"
                               style={{
                                 background: 'var(--color-primary-subtle)',
-                                color:      'var(--color-primary)',
-                                border:     '1px solid var(--color-primary)',
+                                color: 'var(--color-primary)',
+                                border: '1px solid var(--color-primary)',
                               }}
                             >
                               Đánh giá
@@ -931,30 +938,29 @@ export default function OrderDetailPage() {
         </div>
       </div>
 
-      {reviewItem && (
+      {reviewItems && reviewItems.length > 0 && (
         <ReviewFormPopup
-          item={reviewItem}
-          onClose={() => setReviewItem(null)}
-          onSuccess={async () => {
-            await fetchOrderDetail(orderId)
-            const updatedOrder    = useOrderStore.getState().currentOrder
-            const nextUnreviewed  = updatedOrder?.items?.find(
-              i => !i.hasReviewed && i.productId !== reviewItem.productId
-            )
-            if (nextUnreviewed) {
-              setReviewItem({
-                productId:   nextUnreviewed.productId,
-                variantId:   nextUnreviewed.variantId,
-                orderId:     o.id,
-                productName: nextUnreviewed.productName,
-                variantName: nextUnreviewed.variantName,
-                imageUrl:    nextUnreviewed.imageUrl,
-                quantity:    nextUnreviewed.quantity,
-              })
-            } else {
-              setReviewItem(null)
-            }
+          items={reviewItems}
+          onClose={() => {
+            setReviewItems(null)
+            fetchOrderDetail(orderId)  // fetch lại khi đóng để cập nhật hasReviewed
           }}
+          onSuccess={(justDoneItems) => {
+            setReviewItems(prev => {
+              if (!prev) return null
+              const doneKeys = new Set(
+                (justDoneItems ?? []).map(i => `${i.productId}:${i.variantId ?? ''}`)
+              )
+              const remaining = prev.filter(
+                i => !doneKeys.has(`${i.productId}:${i.variantId ?? ''}`)
+              )
+              // ✅ FIX: remaining === 0 thì set null để ReviewFormPopup tự show SuccessScreen
+              // KHÔNG return prev nữa — để popup tự handle SuccessScreen bên trong
+              return remaining.length > 0 ? remaining : null
+            })
+            // ✅ KHÔNG fetchOrderDetail ở đây — tránh re-render gây loop
+          }}
+
         />
       )}
     </div>

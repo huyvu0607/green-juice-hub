@@ -44,6 +44,32 @@ function RatingBar({ star, count, total }) {
     );
 }
 
+/* ── Admin Reply Block ── */
+function AdminReply({ reply, repliedAt }) {
+    if (!reply) return null;
+    return (
+        <div className="mt-2 ml-4 border-l-2 border-green-200 pl-3">
+            <div className="rounded-[var(--radius-md)] bg-green-50 border border-green-100 px-3 py-2.5">
+                <div className="flex items-center gap-2 mb-1">
+                    {/* Avatar Quản trị viên */}
+                    <div className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-white-600 text-white">
+                        <img
+                            src="/LogoGreen.png"
+                            alt="Green Juice Hub"
+                            className="h-5 w-5 shrink-0 rounded-full object-cover"
+                        />
+                    </div>
+                    <span className="text-xs font-semibold text-green-700">Quản trị viên</span>
+                    {repliedAt && (
+                        <span className="text-xs text-green-500 ml-auto">{fmt(repliedAt)}</span>
+                    )}
+                </div>
+                <p className="text-sm text-green-800 leading-relaxed">{reply}</p>
+            </div>
+        </div>
+    );
+}
+
 /* ── Main Component ── */
 export default function ReviewList({ productId, deliveredOrderId: propOrderId = null }) {
     const { isLoggedIn } = useAuthStore();
@@ -55,10 +81,7 @@ export default function ReviewList({ productId, deliveredOrderId: propOrderId = 
     const [loadingList, setLoadingList] = useState(false);
     const [hasReviewed, setHasReviewed] = useState(false);
     const [filterRating, setFilterRating] = useState(null);
-
     const [showForm, setShowForm] = useState(false);
-
-    // ← THÊM: khai báo state đúng chỗ
     const [deliveredOrderId, setDeliveredOrderId] = useState(propOrderId);
 
     /* ── Tự fetch deliveredOrderId nếu không được truyền vào ── */
@@ -80,9 +103,7 @@ export default function ReviewList({ productId, deliveredOrderId: propOrderId = 
         try {
             const data = await reviewApi.getProductRating(productId);
             setRating(data);
-        } catch {
-            // silent
-        }
+        } catch { }
     }, [productId]);
 
     /* ── Fetch review list ── */
@@ -94,9 +115,7 @@ export default function ReviewList({ productId, deliveredOrderId: propOrderId = 
             setTotalPages(data.totalPages);
             setPage(p);
         } catch { }
-        finally {
-            setLoadingList(false);
-        }
+        finally { setLoadingList(false); }
     }, [productId, filterRating]);
 
     const handleFilterRating = (star) => {
@@ -104,30 +123,19 @@ export default function ReviewList({ productId, deliveredOrderId: propOrderId = 
         setFilterRating(newFilter);
         fetchReviews(0, newFilter);
     };
+
     /* ── Kiểm tra đã review chưa ── */
     const checkReviewed = useCallback(async () => {
         if (!isLoggedIn || !deliveredOrderId) return;
         try {
             const reviewed = await reviewApi.hasReviewed(deliveredOrderId, productId);
             setHasReviewed(reviewed);
-        } catch {
-            // silent
-        }
+        } catch { }
     }, [isLoggedIn, deliveredOrderId, productId]);
 
-    /* ── Fetch rating + reviews khi mount ── */
-    useEffect(() => {
-        fetchRating();
-        fetchReviews(0);
-    }, [fetchRating, fetchReviews]);
+    useEffect(() => { fetchRating(); fetchReviews(0); }, [fetchRating, fetchReviews]);
+    useEffect(() => { checkReviewed(); }, [checkReviewed]);
 
-    /* ── Check reviewed riêng — chạy lại khi deliveredOrderId thay đổi ──
-       (deliveredOrderId có thể fetch async sau khi mount)              */
-    useEffect(() => {
-        checkReviewed();
-    }, [checkReviewed]);
-
-    /* ── Sau khi gửi review thành công ── */
     const handleReviewSuccess = () => {
         setHasReviewed(true);
         setShowForm(false);
@@ -164,13 +172,14 @@ export default function ReviewList({ productId, deliveredOrderId: propOrderId = 
                     </div>
                 </div>
             )}
+
             {/* ── Filter theo sao ── */}
             {rating && (
                 <div className="flex flex-wrap gap-2">
                     <button
                         onClick={() => handleFilterRating(null)}
                         className={`px-3 py-1.5 rounded-[var(--radius-pill)] text-xs font-medium border transition-all duration-150
-                ${filterRating === null
+                            ${filterRating === null
                                 ? "bg-[var(--color-primary)] text-white border-[var(--color-primary)]"
                                 : "border-default text-secondary hover:border-[var(--color-primary)] hover:text-[var(--color-primary)]"}`}
                     >
@@ -184,7 +193,7 @@ export default function ReviewList({ productId, deliveredOrderId: propOrderId = 
                                 key={star}
                                 onClick={() => handleFilterRating(star)}
                                 className={`px-3 py-1.5 rounded-[var(--radius-pill)] text-xs font-medium border transition-all duration-150
-                        ${filterRating === star
+                                    ${filterRating === star
                                         ? "bg-[var(--color-primary)] text-white border-[var(--color-primary)]"
                                         : "border-default text-secondary hover:border-[var(--color-primary)] hover:text-[var(--color-primary)]"}`}
                             >
@@ -194,6 +203,7 @@ export default function ReviewList({ productId, deliveredOrderId: propOrderId = 
                     })}
                 </div>
             )}
+
             {/* ── Nút viết review ── */}
             {canWriteReview && !showForm && (
                 <button
@@ -232,6 +242,7 @@ export default function ReviewList({ productId, deliveredOrderId: propOrderId = 
                             key={r.id}
                             className="p-4 rounded-[var(--radius-md)] bg-surface border border-subtle flex flex-col gap-2"
                         >
+                            {/* User info + rating */}
                             <div className="flex items-center gap-3">
                                 {r.userAvatar ? (
                                     <img
@@ -253,10 +264,12 @@ export default function ReviewList({ productId, deliveredOrderId: propOrderId = 
                                 </div>
                             </div>
 
+                            {/* Comment */}
                             {r.comment && (
                                 <p className="text-sm text-secondary leading-relaxed">{r.comment}</p>
                             )}
 
+                            {/* Ảnh đính kèm */}
                             {r.imageUrl && (
                                 <img
                                     src={r.imageUrl}
@@ -264,6 +277,9 @@ export default function ReviewList({ productId, deliveredOrderId: propOrderId = 
                                     className="w-20 h-20 rounded-[var(--radius-md)] object-cover border border-subtle"
                                 />
                             )}
+
+                            {/* ── Reply của Quản trị viên ── */}
+                            <AdminReply reply={r.reply} repliedAt={r.repliedAt} />
                         </div>
                     ))}
 

@@ -1,4 +1,4 @@
-package com.greenjuicehub.backend.config;
+package com.greenjuicehub.backend.config.properties;
 
 import lombok.Getter;
 import lombok.Setter;

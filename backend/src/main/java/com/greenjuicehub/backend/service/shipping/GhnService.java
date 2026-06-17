@@ -2,7 +2,7 @@ package com.greenjuicehub.backend.service.shipping;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.greenjuicehub.backend.config.GhnProperties;
+import com.greenjuicehub.backend.config.properties.GhnProperties;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.*;

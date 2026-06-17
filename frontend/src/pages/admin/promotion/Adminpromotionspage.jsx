@@ -1,6 +1,7 @@
 import { useEffect, useState, useCallback, useRef } from "react";
 import adminPromotionApi from "@/api/adminPromotionApi";
 import PromotionFormModal from "./PromotionFormModal"; // ← tách ra rồi
+import { useAdminRole } from "@/hooks/useAdminRole";
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
 const fmt = (n) =>
@@ -71,6 +72,17 @@ function Toggle({ checked, onChange, disabled }) {
       <span className="pointer-events-none inline-block h-4 w-4 rounded-full bg-white shadow transform transition-transform duration-200 mt-0.5"
         style={{ transform: checked ? "translateX(18px)" : "translateX(2px)" }} />
     </button>
+  );
+}
+
+// ── Read-only state dot (dùng cho STAFF, không cho tương tác) ──────────────────
+function StatusDot({ active }) {
+  return (
+    <span
+      className="inline-block h-2.5 w-2.5 rounded-full"
+      style={{ background: active ? "#16a34a" : "#d1d5db" }}
+      title={active ? "Đang kích hoạt" : "Đã tắt"}
+    />
   );
 }
 
@@ -237,6 +249,8 @@ const TARGET_OPTIONS = [
 ];
 
 export default function AdminPromotionsPage() {
+  const { canWrite } = useAdminRole(); // STAFF → false, ADMIN → true
+
   const [promotions, setPromotions] = useState([]);
   const [totalPages, setTotalPages] = useState(0);
   const [loading, setLoading]       = useState(true);
@@ -288,6 +302,7 @@ export default function AdminPromotionsPage() {
   const handleClearSearch = () => { setInputKeyword(""); setKeyword(""); setPage(0); };
 
   const handleToggle = async (id) => {
+    if (!canWrite) return; // STAFF không có quyền bật/tắt
     setToggling(id);
     try {
       await adminPromotionApi.toggleActive(id);
@@ -316,13 +331,15 @@ export default function AdminPromotionsPage() {
       {/* Header */}
       <div className="flex items-center justify-between">
         <h1 className="text-xl font-semibold text-gray-900">Quản lý khuyến mãi</h1>
-        <button
-          onClick={() => setFormModal("new")}
-          className="flex items-center gap-2 rounded-lg bg-green-600 px-4 py-2 text-sm font-medium text-white hover:bg-green-700"
-        >
-          <span className="h-4 w-4">{icons.plus}</span>
-          Thêm mã
-        </button>
+        {canWrite && (
+          <button
+            onClick={() => setFormModal("new")}
+            className="flex items-center gap-2 rounded-lg bg-green-600 px-4 py-2 text-sm font-medium text-white hover:bg-green-700"
+          >
+            <span className="h-4 w-4">{icons.plus}</span>
+            Thêm mã
+          </button>
+        )}
       </div>
 
       {/* Filters */}
@@ -444,14 +461,20 @@ export default function AdminPromotionsPage() {
                     </td>
                     <td className="px-4 py-3"><StatusBadge status={p.status} /></td>
                     <td className="px-4 py-3 text-center">
-                      <Toggle checked={p.isActive} onChange={() => handleToggle(p.id)} disabled={toggling === p.id} />
+                      {canWrite ? (
+                        <Toggle checked={p.isActive} onChange={() => handleToggle(p.id)} disabled={toggling === p.id} />
+                      ) : (
+                        <StatusDot active={p.isActive} />
+                      )}
                     </td>
                     <td className="px-4 py-3">
                       <div className="flex items-center justify-end gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                        <button onClick={() => setFormModal(p)}
-                          className="rounded-lg p-2 text-gray-400 hover:bg-gray-100 hover:text-gray-700" title="Chỉnh sửa">
-                          <span className="h-4 w-4 block">{icons.edit}</span>
-                        </button>
+                        {canWrite && (
+                          <button onClick={() => setFormModal(p)}
+                            className="rounded-lg p-2 text-gray-400 hover:bg-gray-100 hover:text-gray-700" title="Chỉnh sửa">
+                            <span className="h-4 w-4 block">{icons.edit}</span>
+                          </button>
+                        )}
                         <button onClick={() => setHistoryModal(p)}
                           className="rounded-lg p-2 text-gray-400 hover:bg-gray-100 hover:text-green-600" title="Lịch sử sử dụng">
                           <span className="h-4 w-4 block">{icons.history}</span>
@@ -484,7 +507,7 @@ export default function AdminPromotionsPage() {
       )}
 
       {/* Modals */}
-      {formModal && (
+      {formModal && canWrite && (
         <PromotionFormModal
           editTarget={formModal === "new" ? null : formModal}
           onClose={() => setFormModal(null)}
