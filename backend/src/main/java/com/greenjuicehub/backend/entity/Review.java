@@ -37,7 +37,18 @@ public class Review {
     private String imageUrl;
 
     @Column(name = "is_approved", nullable = false)
-    private Boolean isApproved = false;
+    private Boolean isApproved = true; // tự duyệt luôn
+
+    /** Phản hồi từ Admin/Staff — hiển thị là "Quản trị viên" phía user */
+    @Column(columnDefinition = "TEXT")
+    private String reply;
+
+    @Column(name = "replied_at")
+    private LocalDateTime repliedAt;
+
+    /** Snapshot tên sản phẩm lúc đánh giá */
+    @Column(name = "product_name", length = 200)
+    private String productName;
 
     @Column(name = "created_at", updatable = false)
     private LocalDateTime createdAt;

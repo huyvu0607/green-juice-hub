@@ -15,5 +15,8 @@ public class ContactResponse {
     private String subject;
     private String message;
     private ContactStatus status;
+    private String reply;
+    private LocalDateTime repliedAt;
+    private String repliedByName;
     private LocalDateTime createdAt;
 }

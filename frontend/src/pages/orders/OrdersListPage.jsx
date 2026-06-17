@@ -51,7 +51,9 @@ export default function OrdersListPage() {
   const tabRef = useRef(null)
   const debounceRef = useRef(null)
   const searchRef = useRef(null)
-  const [reviewItem, setReviewItem] = useState(null)
+
+  // ✅ FIX 2: đổi tên state thành reviewItems (số nhiều), kiểu array | null
+  const [reviewItems, setReviewItems] = useState(null)
   const { addItem } = useCartStore()
 
   useEffect(() => {
@@ -93,11 +95,6 @@ export default function OrdersListPage() {
     : statusCounts[key] ?? 0
 
   const isSearching = searchQuery.trim().length > 0
-
-  // Kiểm tra đơn DELIVERED còn item chưa review không
-  const hasUnreviewed = (order) =>
-    order.status === 'DELIVERED' &&
-    order.items?.some(item => !item.hasReviewed)
 
   return (
     <div className="min-h-screen" style={{ background: 'var(--color-bg-surface)' }}>
@@ -291,12 +288,17 @@ export default function OrdersListPage() {
           {filtered.map((order) => {
             const previewNames = order.items?.slice(0, 2).map(i => i.productName).join(', ')
             const extraItems = (order.items?.length ?? 0) - 2
-            const unreviewedCount = order.items?.filter(i => !i.hasReviewed).length ?? 0
+            const unreviewedItems = order.items?.filter(i => !i.hasReviewed) ?? []
+            const unreviewedCount = unreviewedItems.length
 
             return (
-              <button
+              // ✅ FIX 1: đổi <button> thành <div> để tránh nested button
+              <div
                 key={order.id}
                 onClick={() => navigate(`/orders/${order.id}`)}
+                role="button"
+                tabIndex={0}
+                onKeyDown={(e) => e.key === 'Enter' && navigate(`/orders/${order.id}`)}
                 className="w-full text-left rounded-[var(--radius-lg)] overflow-hidden cursor-pointer transition-all"
                 style={{
                   background: 'var(--color-bg-elevated)',
@@ -404,27 +406,24 @@ export default function OrdersListPage() {
                     </p>
                   </div>
 
-                  {/* Action buttons — gọn 1 cột, tối đa 2 nút */}
+                  {/* Action buttons — stopPropagation để không trigger navigate */}
                   <div className="flex flex-col gap-1.5 flex-shrink-0" onClick={e => e.stopPropagation()}>
 
-                    {/* Nút "Đánh giá" — chỉ khi DELIVERED còn item chưa review */}
+                    {/* ✅ FIX 2: Nút "Đánh giá" — truyền items array (tất cả unreviewed) */}
                     {order.status === 'DELIVERED' && unreviewedCount > 0 && (
                       <button
                         onClick={(e) => {
                           e.stopPropagation()
-                          // Mở popup cho item chưa review đầu tiên
-                          const firstUnreviewed = order.items.find(i => !i.hasReviewed)
-                          if (firstUnreviewed) {
-                            setReviewItem({
-                              productId: firstUnreviewed.productId,
-                              variantId: firstUnreviewed.variantId,
-                              orderId: order.id,
-                              productName: firstUnreviewed.productName,
-                              variantName: firstUnreviewed.variantName,
-                                imageUrl: firstUnreviewed.imageUrl,
-                              quantity: firstUnreviewed.quantity,
-                            })
-                          }
+                          const items = unreviewedItems.map(i => ({
+                            productId: i.productId,
+                            variantId: i.variantId,
+                            orderId: order.id,
+                            productName: i.productName,
+                            variantName: i.variantName,
+                            imageUrl: i.imageUrl,
+                            quantity: i.quantity,
+                          }))
+                          if (items.length > 0) setReviewItems(items)
                         }}
                         className="text-xs font-semibold px-3 py-1.5 rounded-[var(--radius-md)] cursor-pointer transition-all whitespace-nowrap"
                         style={{
@@ -437,17 +436,20 @@ export default function OrdersListPage() {
                       </button>
                     )}
 
-                    {/* Nút "Mua lại" — chỉ 1 nút cho cả đơn, mua lại item đầu tiên */}
+                    {/* Nút "Mua lại" */}
                     {(order.status === 'DELIVERED' || order.status === 'CANCELLED') && (
                       <button
                         onClick={async (e) => {
                           e.stopPropagation()
-                          const firstItem = order.items?.[0]
-                          if (!firstItem) return
+                          if (!order.items?.length) return
                           try {
-                            await addItem(firstItem.productId, firstItem.variantId, firstItem.quantity ?? 1)
+                            // Thêm tuần tự từng sản phẩm
+                            for (const item of order.items) {
+                              await addItem(item.productId, item.variantId, item.quantity ?? 1)
+                            }
+                            // Dispatch event 1 lần sau khi thêm hết
                             window.dispatchEvent(new CustomEvent('cart:item-added', {
-                              detail: { imageUrl: firstItem.imageUrl ?? null }
+                              detail: { imageUrl: order.items[0]?.imageUrl ?? null }
                             }))
                           } catch { }
                         }}
@@ -498,7 +500,7 @@ export default function OrdersListPage() {
                     <Icon.ChevronRight />
                   </div>
                 </div>
-              </button>
+              </div>
             )
           })}
         </div>
@@ -522,10 +524,11 @@ export default function OrdersListPage() {
 
       </div>
 
-      {reviewItem && (
+      {/* ✅ FIX 2: prop đúng tên "items", truyền array */}
+      {reviewItems && reviewItems.length > 0 && (
         <ReviewFormPopup
-          item={reviewItem}
-          onClose={() => setReviewItem(null)}
+          items={reviewItems}
+          onClose={() => setReviewItems(null)}
           onSuccess={() => fetchMyOrders(0, 10, activeTab === 'ALL' ? null : activeTab)}
         />
       )}

@@ -1,6 +1,6 @@
 package com.greenjuicehub.backend.service.auth;
 
-import com.greenjuicehub.backend.config.OtpProperties;
+import com.greenjuicehub.backend.config.properties.OtpProperties;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.stereotype.Service;

@@ -32,14 +32,24 @@ public class Contact {
 
     @Enumerated(EnumType.STRING)
     @Column(nullable = false, length = 20)
-    private ContactStatus status = ContactStatus.NEW;
+    private ContactStatus status;
+
+    @Column(columnDefinition = "TEXT")
+    private String reply;
+
+    @Column(name = "replied_at")
+    private LocalDateTime repliedAt;
+
+    @Column(name = "replied_by_name", length = 100)
+    private String repliedByName;
 
     @Column(name = "created_at", updatable = false)
     private LocalDateTime createdAt;
 
     @PrePersist
     protected void onCreate() {
-        createdAt = LocalDateTime.now();
+        if (this.status == null) this.status = ContactStatus.NEW;
+        this.createdAt = LocalDateTime.now();
     }
 
     public enum ContactStatus {

@@ -45,4 +45,30 @@ public class EmailService {
             // Không throw — lỗi mail không ảnh hưởng việc lưu contact
         }
     }
+
+    @Async
+    public void sendContactReply(String toEmail, String customerName,
+                                 String subject, String replyContent) {
+        try {
+            SimpleMailMessage mail = new SimpleMailMessage();
+            mail.setTo(toEmail);
+            mail.setSubject("[Green Juice Hub] Phản hồi: " + subject);
+            mail.setText("""
+                    Xin chào %s,
+                    
+                    Cảm ơn bạn đã liên hệ với Green Juice Hub.
+                    Dưới đây là phản hồi của chúng tôi về chủ đề "%s":
+                    
+                    %s
+                    
+                    Nếu bạn cần hỗ trợ thêm, đừng ngần ngại liên hệ lại với chúng tôi.
+                    
+                    Trân trọng,
+                    Green Juice Hub
+                    """.formatted(customerName, subject, replyContent));
+            mailSender.send(mail);
+        } catch (Exception e) {
+            // Không throw — lỗi mail không ảnh hưởng việc lưu reply
+        }
+    }
 }

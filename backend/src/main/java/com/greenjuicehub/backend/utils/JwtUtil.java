@@ -1,5 +1,6 @@
-package com.greenjuicehub.backend.config;
+package com.greenjuicehub.backend.utils;
 
+import com.greenjuicehub.backend.config.properties.JwtProperties;
 import io.jsonwebtoken.*;
 import io.jsonwebtoken.security.Keys;
 import lombok.RequiredArgsConstructor;

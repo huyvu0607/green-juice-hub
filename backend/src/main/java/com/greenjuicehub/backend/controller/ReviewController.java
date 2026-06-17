@@ -16,14 +16,16 @@ import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
 
 @RestController
+@RequestMapping("/api/reviews")
 @RequiredArgsConstructor
 public class ReviewController {
 
     private final IReviewService reviewService;
 
-    // ── Customer ─────────────────────────────────────────────────────────────
+    // ── Customer ──────────────────────────────────────────────────────────────
 
-    @PostMapping("/api/reviews")
+    /** POST /api/reviews */
+    @PostMapping
     @PreAuthorize("hasRole('CUSTOMER')")
     public ResponseEntity<ReviewResponse> createReview(
             @AuthenticationPrincipal Long userId,
@@ -31,7 +33,8 @@ public class ReviewController {
         return ResponseEntity.ok(reviewService.createReview(userId, request));
     }
 
-    @GetMapping("/api/reviews/check")
+    /** GET /api/reviews/check?orderId=&productId= */
+    @GetMapping("/check")
     @PreAuthorize("hasRole('CUSTOMER')")
     public ResponseEntity<Boolean> hasReviewed(
             @AuthenticationPrincipal Long userId,
@@ -40,9 +43,10 @@ public class ReviewController {
         return ResponseEntity.ok(reviewService.hasReviewed(userId, orderId, productId));
     }
 
-    // ── Public ───────────────────────────────────────────────────────────────
+    // ── Public ────────────────────────────────────────────────────────────────
 
-    @GetMapping("/api/reviews/product/{productId}")
+    /** GET /api/reviews/product/{productId}?rating=&page=&size= */
+    @GetMapping("/product/{productId}")
     public ResponseEntity<Page<ReviewResponse>> getProductReviews(
             @PathVariable Long productId,
             @RequestParam(required = false) Integer rating,
@@ -50,30 +54,9 @@ public class ReviewController {
         return ResponseEntity.ok(reviewService.getProductReviews(productId, rating, pageable));
     }
 
-    @GetMapping("/api/reviews/product/{productId}/rating")
-    public ResponseEntity<ProductRatingResponse> getProductRating(
-            @PathVariable Long productId) {
+    /** GET /api/reviews/product/{productId}/rating */
+    @GetMapping("/product/{productId}/rating")
+    public ResponseEntity<ProductRatingResponse> getProductRating(@PathVariable Long productId) {
         return ResponseEntity.ok(reviewService.getProductRating(productId));
-    }
-
-    // ── Admin / Staff ─────────────────────────────────────────────────────────
-
-    @GetMapping("/api/admin/reviews/pending")
-    @PreAuthorize("hasAnyRole('STAFF', 'ADMIN')")
-    public ResponseEntity<Page<ReviewResponse>> getPendingReviews(
-            @PageableDefault(size = 10, sort = "createdAt") Pageable pageable) {
-        return ResponseEntity.ok(reviewService.getPendingReviews(pageable));
-    }
-
-    @PatchMapping("/api/admin/reviews/{id}/approve")
-    @PreAuthorize("hasAnyRole('STAFF', 'ADMIN')")
-    public ResponseEntity<ReviewResponse> approveReview(@PathVariable Long id) {
-        return ResponseEntity.ok(reviewService.approveReview(id));
-    }
-
-    @PatchMapping("/api/admin/reviews/{id}/reject")
-    @PreAuthorize("hasAnyRole('STAFF', 'ADMIN')")
-    public ResponseEntity<ReviewResponse> rejectReview(@PathVariable Long id) {
-        return ResponseEntity.ok(reviewService.rejectReview(id));
     }
 }

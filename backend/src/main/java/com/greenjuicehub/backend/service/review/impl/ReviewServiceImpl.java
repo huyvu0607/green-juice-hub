@@ -15,8 +15,7 @@ import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.util.HashMap;
-import java.util.Map;
+import java.time.LocalDateTime;
 
 @Service
 @RequiredArgsConstructor
@@ -24,10 +23,12 @@ public class ReviewServiceImpl implements IReviewService {
 
     private final ReviewRepository reviewRepository;
     private final OrderRepository orderRepository;
-    private final OrderItemRepository orderItemRepository; // thêm
+    private final OrderItemRepository orderItemRepository;
     private final ProductRepository productRepository;
     private final UserRepository userRepository;
     private final ReviewMapper reviewMapper;
+
+    // ── Customer ──────────────────────────────────────────────────────────────
 
     @Override
     @Transactional
@@ -46,15 +47,13 @@ public class ReviewServiceImpl implements IReviewService {
                     "Bạn đã đánh giá sản phẩm này trong đơn hàng này rồi");
         }
 
-        // Fix bước 4: dùng OrderItemRepository thay vì order.getOrderItems()
         boolean productInOrder = orderItemRepository
                 .findAllByOrderIdWithDetails(request.getOrderId())
                 .stream()
                 .anyMatch(item -> item.getProduct().getId().equals(request.getProductId()));
 
         if (!productInOrder) {
-            throw new AppException(HttpStatus.BAD_REQUEST,
-                    "Sản phẩm này không có trong đơn hàng");
+            throw new AppException(HttpStatus.BAD_REQUEST, "Sản phẩm này không có trong đơn hàng");
         }
 
         User user = userRepository.findById(userId)
@@ -70,7 +69,8 @@ public class ReviewServiceImpl implements IReviewService {
                 .rating(request.getRating())
                 .comment(request.getComment())
                 .imageUrl(request.getImageUrl())
-                .isApproved(true)
+                .productName(product.getName()) // snapshot tên sản phẩm
+                .isApproved(true)               // tự duyệt luôn
                 .build();
 
         Review saved = reviewRepository.save(review);
@@ -102,41 +102,74 @@ public class ReviewServiceImpl implements IReviewService {
         );
     }
 
+    // ── Admin / Staff ─────────────────────────────────────────────────────────
+
     @Override
     @Transactional(readOnly = true)
-    public Page<ReviewResponse> getPendingReviews(Pageable pageable) {
-        return reviewRepository.findByIsApprovedFalseOrderByCreatedAtDesc(pageable)
+    public Page<ReviewResponse> getAllReviews(Boolean isApproved, Integer rating, Pageable pageable) {
+        return reviewRepository
+                .findAllForAdmin(isApproved, rating, pageable)
                 .map(reviewMapper::toResponse);
     }
 
     @Override
-    @Transactional
-    public ReviewResponse approveReview(Long reviewId) {
-        Review review = reviewRepository.findById(reviewId)
-                .orElseThrow(() -> new AppException(HttpStatus.NOT_FOUND, "Không tìm thấy đánh giá"));
+    @Transactional(readOnly = true)
+    public Page<ReviewResponse> getPendingReviews(Pageable pageable) {
+        return reviewRepository
+                .findByIsApprovedFalseOrderByCreatedAtDesc(pageable)
+                .map(reviewMapper::toResponse);
+    }
 
-        review.setIsApproved(true);
+    /** Toggle bật/tắt hiển thị review, cập nhật lại rating sản phẩm */
+    @Override
+    @Transactional
+    public ReviewResponse toggleApprove(Long reviewId) {
+        Review review = findOrThrow(reviewId);
+        review.setIsApproved(!review.getIsApproved());
         review = reviewRepository.save(review);
         updateProductRating(review.getProduct().getId());
-
         return reviewMapper.toResponse(review);
     }
 
+    /** Xoá hẳn khỏi DB */
     @Override
     @Transactional
     public ReviewResponse rejectReview(Long reviewId) {
-        Review review = reviewRepository.findById(reviewId)
-                .orElseThrow(() -> new AppException(HttpStatus.NOT_FOUND, "Không tìm thấy đánh giá"));
-
+        Review review = findOrThrow(reviewId);
         boolean wasApproved = Boolean.TRUE.equals(review.getIsApproved());
-        review.setIsApproved(false);
-        review = reviewRepository.save(review);
+        Long productId = review.getProduct().getId();
 
-        if (wasApproved) {
-            updateProductRating(review.getProduct().getId());
+        ReviewResponse response = reviewMapper.toResponse(review);
+        reviewRepository.delete(review);
+
+        if (wasApproved) updateProductRating(productId);
+        return response;
+    }
+
+    /** Phản hồi từ Admin/Staff — hiển thị là "Quản trị viên" phía user */
+    @Override
+    @Transactional
+    public ReviewResponse replyReview(Long reviewId, String reply) {
+        Review review = findOrThrow(reviewId);
+
+        if (reply == null || reply.isBlank()) {
+            // Xoá reply nếu gửi rỗng
+            review.setReply(null);
+            review.setRepliedAt(null);
+        } else {
+            review.setReply(reply.trim());
+            review.setRepliedAt(LocalDateTime.now());
         }
 
+        review = reviewRepository.save(review);
         return reviewMapper.toResponse(review);
+    }
+
+    // ── Helpers ───────────────────────────────────────────────────────────────
+
+    private Review findOrThrow(Long reviewId) {
+        return reviewRepository.findById(reviewId)
+                .orElseThrow(() -> new AppException(HttpStatus.NOT_FOUND, "Không tìm thấy đánh giá"));
     }
 
     private void updateProductRating(Long productId) {
