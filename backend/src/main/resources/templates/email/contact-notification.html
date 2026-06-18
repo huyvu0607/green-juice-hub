@@ -1,0 +1,33 @@
+<!-- thay phần BODY bằng nội dung này, header/footer giữ nguyên -->
+<tr xmlns:th="http://www.w3.org/1999/xhtml">
+    <td style="background:#ffffff;padding:32px 28px;">
+        <p style="margin:0 0 22px;font-size:15px;color:#333;">
+            Bạn có một <strong style="color:#1a6b2a;">liên hệ mới</strong> từ khách hàng:
+        </p>
+
+        <div style="background:#f6fbf4;border-left:4px solid #2e8b3e;border-radius:0 8px 8px 0;padding:18px 22px;margin-bottom:26px;">
+            <table cellpadding="0" cellspacing="0" width="100%" style="font-size:14px;color:#2c2c2a;line-height:1.75;">
+                <tr>
+                    <td style="color:#888;width:90px;padding:4px 0;">Họ tên</td>
+                    <td style="padding:4px 0;"><strong th:text="${fullName}"></strong></td>
+                </tr>
+                <tr>
+                    <td style="color:#888;padding:4px 0;">Email</td>
+                    <td style="padding:4px 0;" th:text="${email}"></td>
+                </tr>
+                <tr>
+                    <td style="color:#888;padding:4px 0;">SĐT</td>
+                    <td style="padding:4px 0;" th:text="${phone}"></td>
+                </tr>
+                <tr>
+                    <td style="color:#888;padding:4px 0;">Chủ đề</td>
+                    <td style="padding:4px 0;" th:text="${subject}"></td>
+                </tr>
+                <tr>
+                    <td style="color:#888;padding:4px 0;vertical-align:top;">Nội dung</td>
+                    <td style="padding:4px 0;" th:text="${message}"></td>
+                </tr>
+            </table>
+        </div>
+    </td>
+</tr>

@@ -49,7 +49,8 @@ public class SecurityConfig {
                                 "/api/webhooks/**",
                                 "/api/contacts",
                                 "/api/policies/**",
-                                "/api/shipping/**"
+                                "/api/shipping/**",
+                                "/api/banners"
                         ).permitAll()
                         // Tất cả còn lại phải authenticated
                         .anyRequest().authenticated()

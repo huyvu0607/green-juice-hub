@@ -34,7 +34,7 @@ import AdminPromotionsPage from '@/pages/admin/promotion/AdminPromotionsPage'   
 import AdminUsersPage from '@/pages/admin/user/AdminUsersPage'                       // ← thêm
 import AdminReviewsPage from './pages/admin/reviews/AdminReviewsPage'
 import AdminContactsPage from '@/pages/admin/contact/AdminContactsPage'
-
+import AdminBannersPage from '@/pages/admin/banners/AdminBannersPage'
 
 function ScrollToTop() {
   const { pathname, search } = useLocation()
@@ -181,8 +181,10 @@ function AppRoutes() {
           <Route path="products/new" element={<AdminProductFormPage />} />
           <Route path="products/:id/edit" element={<AdminProductFormPage />} />
           <Route path="promotions" element={<AdminPromotionsPage />} />
-          <Route path="reviews" element={<AdminReviewsPage/>} />
+          <Route path="reviews" element={<AdminReviewsPage />} />
           <Route path="contacts" element={<AdminContactsPage />} />
+          <Route path="banners" element={<AdminBannersPage />} />
+
 
 
         </Route>
