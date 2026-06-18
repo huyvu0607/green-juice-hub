@@ -3,6 +3,7 @@ const CLOUD_NAME = import.meta.env.VITE_CLOUDINARY_CLOUD_NAME;
 const PRESET_MAP = {
   products: import.meta.env.VITE_CLOUDINARY_PRODUCT_PRESET,
   reviews: import.meta.env.VITE_CLOUDINARY_REVIEW_PRESET,
+  banners:  import.meta.env.VITE_CLOUDINARY_PRODUCT_PRESET,
 };
 
 /**
