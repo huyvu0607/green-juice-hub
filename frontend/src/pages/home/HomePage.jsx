@@ -195,6 +195,17 @@ function BannerCarousel({ banners }) {
             {banner.title}
           </h1>
 
+          {/* Description */}
+          {banner.description && (
+            <p
+              key={`desc-${current}`}
+              className="mt-5 max-w-xl animate-fade-slide-up text-[var(--text-lg)] leading-8 text-white/80"
+              style={{ animationDelay: "220ms" }}
+            >
+              {banner.description}
+            </p>
+          )}
+
           {/* CTA — chỉ hiện nếu có linkUrl */}
           {banner.linkUrl && (
             <div
