@@ -6,9 +6,9 @@ spring:
     scheduling:
       enabled: true
   datasource:
-    url: jdbc:mysql://localhost:3306/green_juice_hub?useSSL=false&serverTimezone=Asia/Ho_Chi_Minh&allowPublicKeyRetrieval=true&characterEncoding=UTF-8
-    username: root
-    password: ${DB_PASSWORD:}
+    url: ${SPRING_DATASOURCE_URL:jdbc:mysql://localhost:3306/green_juice_hub?useSSL=false&serverTimezone=Asia/Ho_Chi_Minh&allowPublicKeyRetrieval=true&characterEncoding=UTF-8}
+    username: ${SPRING_DATASOURCE_USERNAME:root}
+    password: ${SPRING_DATASOURCE_PASSWORD:}
     driver-class-name: com.mysql.cj.jdbc.Driver
 
   jpa:
@@ -20,12 +20,13 @@ spring:
         format_sql: true
 
   profiles:
-    active: local
+    active: ${SPRING_PROFILES_ACTIVE:local}
 
   data:
     redis:
       host: ${REDIS_HOST:localhost}
       port: ${REDIS_PORT:6379}
+      password: ${REDIS_PASSWORD:}
 
   mandatory-file-encoding: UTF-8
   mail:
@@ -40,7 +41,7 @@ spring:
           starttls:
             enable: true
 server:
-  port: 8081
+  port: ${PORT:8081}
   servlet:
     encoding:
       charset: UTF-8
@@ -78,5 +79,3 @@ ghn:
   from-district-id: 1454
   from-ward-code: "21201"
   service-type-id: 2
-
-

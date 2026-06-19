@@ -11,6 +11,7 @@ public class BannerMapper {
         return BannerResponse.builder()
                 .id(banner.getId())
                 .title(banner.getTitle())
+                .description(banner.getDescription())
                 .imageUrl(banner.getImageUrl())
                 .linkUrl(banner.getLinkUrl())
                 .sortOrder(banner.getSortOrder())
