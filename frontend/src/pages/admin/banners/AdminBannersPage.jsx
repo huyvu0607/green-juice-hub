@@ -78,6 +78,7 @@ const icons = {
 
 const EMPTY_FORM = {
   title: '',
+  description: '',
   imageUrl: '',
   linkUrl: '',
   sortOrder: 0,
@@ -131,11 +132,12 @@ function BannerFormModal({ banner, onClose, onSaved }) {
     setLoading(true); setError('')
     try {
       const payload = {
-        title:     form.title.trim(),
-        imageUrl:  form.imageUrl,
-        linkUrl:   form.linkUrl?.trim() || null,
-        sortOrder: Number(form.sortOrder) || 0,
-        isActive:  form.isActive,
+        title:       form.title.trim(),
+        description: form.description?.trim() || null,
+        imageUrl:    form.imageUrl,
+        linkUrl:     form.linkUrl?.trim() || null,
+        sortOrder:   Number(form.sortOrder) || 0,
+        isActive:    form.isActive,
       }
 
       let res
@@ -230,6 +232,18 @@ function BannerFormModal({ banner, onClose, onSaved }) {
               placeholder="VD: Khuyến mãi mùa hè 2026"
               value={form.title}
               onChange={e => set('title', e.target.value)}
+            />
+          </div>
+
+          {/* Mô tả */}
+          <div>
+            <label className={labelCls}>Mô tả (không bắt buộc)</label>
+            <textarea
+              className={inputCls + ' resize-none'}
+              rows={2}
+              placeholder="VD: Ép tươi mỗi ngày, giao nhanh trong 2h nội thành"
+              value={form.description}
+              onChange={e => set('description', e.target.value)}
             />
           </div>
 

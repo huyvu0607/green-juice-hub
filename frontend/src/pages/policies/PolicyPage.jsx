@@ -1,14 +1,14 @@
 import { useState, useEffect } from "react";
-import { useParams, Link } from "react-router-dom";
+import { useParams, useNavigate, Link } from "react-router-dom";
 import policyApi from "@/api/policyApi";
 import RichText from "@/components/common/RichText";
 
-const POLICY_TABS = [
-    { type: "SHIPPING", label: "Vận chuyển" },
-    { type: "RETURN", label: "Đổi trả" },
-    { type: "WARRANTY", label: "Bảo hành" },
-    { type: "TERMS", label: "Điều khoản" },
-];
+const POLICY_LABEL = {
+    SHIPPING: "Vận chuyển",
+    RETURN:   "Đổi trả",
+    WARRANTY: "Bảo hành",
+    TERMS:    "Điều khoản",
+};
 
 function Skeleton() {
     return (
@@ -25,13 +25,35 @@ function Skeleton() {
 
 export default function PolicyPage() {
     const { type } = useParams();
+    const navigate  = useNavigate();
     const activeType = type?.toUpperCase() ?? "SHIPPING";
 
-    const [policy, setPolicy] = useState(null);
-    const [loading, setLoading] = useState(true);
-    const [error, setError] = useState("");
+    // tabs = danh sách policy active từ API (chỉ hiện tab khi có nội dung)
+    const [tabs, setTabs]       = useState([]);
+    const [tabsLoaded, setTabsLoaded] = useState(false);
 
+    const [policy, setPolicy]   = useState(null);
+    const [loading, setLoading] = useState(true);
+    const [error, setError]     = useState("");
+
+    // Fetch danh sách tab (tất cả policy active)
     useEffect(() => {
+        policyApi.getAll()
+            .then((list) => {
+                setTabs(list)
+                // Nếu type hiện tại không có trong danh sách active → redirect sang tab đầu tiên
+                const valid = list.some(p => p.type === activeType)
+                if (!valid && list.length > 0) {
+                    navigate(`/policies/${list[0].type.toLowerCase()}`, { replace: true })
+                }
+            })
+            .catch(() => {})
+            .finally(() => setTabsLoaded(true))
+    }, [])
+
+    // Fetch nội dung tab đang active
+    useEffect(() => {
+        if (!tabsLoaded) return
         setLoading(true);
         setError("");
         setPolicy(null);
@@ -39,7 +61,7 @@ export default function PolicyPage() {
             .then(setPolicy)
             .catch(() => setError("Không tìm thấy nội dung chính sách."))
             .finally(() => setLoading(false));
-    }, [activeType]);
+    }, [activeType, tabsLoaded]);
 
     return (
         <main className="max-w-4xl mx-auto px-4 py-10 animate-fade-slide-up">
@@ -54,23 +76,25 @@ export default function PolicyPage() {
                 </p>
             </div>
 
-            {/* ── Tabs ── */}
-            <div className="flex justify-center border-b border-subtle mb-8">
-                {POLICY_TABS.map((tab) => (
-                    <Link
-                        key={tab.type}
-                        to={`/policies/${tab.type.toLowerCase()}`}
-                        className={`
-                            px-8 pb-3 pt-1 text-sm font-medium border-b-2 transition-all duration-150 -mb-px
-                            ${activeType === tab.type
-                                ? "border-[var(--color-primary)] text-[var(--color-primary)]"
-                                : "border-transparent text-secondary hover:text-primary"}
-                        `}
-                    >
-                        {tab.label}
-                    </Link>
-                ))}
-            </div>
+            {/* ── Tabs — chỉ hiện tab khi có nội dung ── */}
+            {tabs.length > 0 && (
+                <div className="flex justify-center border-b border-subtle mb-8">
+                    {tabs.map((tab) => (
+                        <Link
+                            key={tab.type}
+                            to={`/policies/${tab.type.toLowerCase()}`}
+                            className={`
+                                px-8 pb-3 pt-1 text-sm font-medium border-b-2 transition-all duration-150 -mb-px
+                                ${activeType === tab.type
+                                    ? "border-[var(--color-primary)] text-[var(--color-primary)]"
+                                    : "border-transparent text-secondary hover:text-primary"}
+                            `}
+                        >
+                            {POLICY_LABEL[tab.type] ?? tab.title}
+                        </Link>
+                    ))}
+                </div>
+            )}
 
             {/* ── Content ── */}
             <div className="p-6 rounded-[var(--radius-lg)] bg-surface border border-subtle">

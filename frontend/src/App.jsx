@@ -35,6 +35,7 @@ import AdminUsersPage from '@/pages/admin/user/AdminUsersPage'                  
 import AdminReviewsPage from './pages/admin/reviews/AdminReviewsPage'
 import AdminContactsPage from '@/pages/admin/contact/AdminContactsPage'
 import AdminBannersPage from '@/pages/admin/banners/AdminBannersPage'
+import AdminPoliciesPage from '@/pages/admin/policy/AdminPoliciesPage'
 
 function ScrollToTop() {
   const { pathname, search } = useLocation()
@@ -184,6 +185,7 @@ function AppRoutes() {
           <Route path="reviews" element={<AdminReviewsPage />} />
           <Route path="contacts" element={<AdminContactsPage />} />
           <Route path="banners" element={<AdminBannersPage />} />
+          <Route path="policies" element={<AdminPoliciesPage />} /> 
 
 
 
