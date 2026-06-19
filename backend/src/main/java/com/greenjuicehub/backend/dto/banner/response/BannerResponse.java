@@ -9,6 +9,7 @@ public class BannerResponse {
     private Long id;
     private String title;
     private String imageUrl;
+    private String description;
     private String linkUrl;
     private Integer sortOrder;
     private Boolean isActive;

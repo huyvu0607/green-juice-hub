@@ -48,6 +48,7 @@ public class BannerServiceImpl implements IBannerService {
     public BannerResponse createBanner(SaveBannerRequest request) {
         Banner banner = Banner.builder()
                 .title(request.getTitle())
+                .description(request.getDescription())
                 .imageUrl(request.getImageUrl())
                 .linkUrl(request.getLinkUrl())
                 .sortOrder(request.getSortOrder())
@@ -64,6 +65,7 @@ public class BannerServiceImpl implements IBannerService {
         Banner banner = findOrThrow(id);
 
         banner.setTitle(request.getTitle());
+        banner.setDescription(request.getDescription());
         banner.setImageUrl(request.getImageUrl());
         banner.setLinkUrl(request.getLinkUrl());
         banner.setSortOrder(request.getSortOrder());

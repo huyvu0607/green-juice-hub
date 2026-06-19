@@ -17,6 +17,9 @@ public class Banner {
     @Column(length = 200, nullable = false)
     private String title;
 
+    @Column(length = 500)                    // ← THÊM DÒNG NÀY
+    private String description;              // ← THÊM DÒNG NÀY
+
     @Column(name = "image_url", length = 500, nullable = false)
     private String imageUrl;
 

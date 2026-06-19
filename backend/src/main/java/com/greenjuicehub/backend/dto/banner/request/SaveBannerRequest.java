@@ -12,6 +12,9 @@ public class SaveBannerRequest {
     @Size(max = 200, message = "Tiêu đề tối đa 200 ký tự")
     private String title;
 
+    @Size(max = 500, message = "Mô tả tối đa 500 ký tự")
+    private String description;
+
     @NotBlank(message = "URL ảnh không được để trống")
     @Size(max = 500, message = "URL ảnh tối đa 500 ký tự")
     private String imageUrl;
