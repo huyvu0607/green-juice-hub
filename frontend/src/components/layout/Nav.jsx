@@ -1,3 +1,12 @@
+/**
+ * Nav.jsx — component này hiện không được dùng trực tiếp trong layout chính.
+ * Responsive navigation đã được tích hợp vào Header.jsx với:
+ *   - Desktop (sm+): floating pill nav ở trên
+ *   - Mobile (<sm): bottom tab bar với icon + label
+ *
+ * File này giữ nguyên nếu cần dùng Nav standalone ở nơi khác.
+ */
+
 import { NavLink, useLocation } from "react-router-dom";
 import { useRef, useState, useEffect, useLayoutEffect } from "react";
 
@@ -30,7 +39,6 @@ export default function Nav() {
     return { x: elRect.left - navRect.left, width: elRect.width };
   };
 
-  // Init pill vị trí ngay lập tức (không animate lần đầu)
   useLayoutEffect(() => {
     const rect = getActiveRect();
     if (rect) {
@@ -39,7 +47,6 @@ export default function Nav() {
     }
   }, []);
 
-  // Animate khi route đổi
   useEffect(() => {
     const target = getActiveRect();
     if (!target) return;
@@ -51,21 +58,17 @@ export default function Nav() {
     const start = performance.now();
     const DURATION = 420;
 
-    // Easing
     const easeOutBack = (t) => {
-  const c1 = 1.4;
-  const c3 = c1 + 1;
-  return 1 + c3 * Math.pow(t - 1, 3) + c1 * Math.pow(t - 1, 2);
-};
-    const easeOutCubic = (t) => 1 - Math.pow(1 - t, 3);
+      const c1 = 1.4;
+      const c3 = c1 + 1;
+      return 1 + c3 * Math.pow(t - 1, 3) + c1 * Math.pow(t - 1, 2);
+    };
 
     const animate = (now) => {
       const elapsed = now - start;
       const tRaw = Math.min(elapsed / DURATION, 1);
       const tPill = easeOutBack(tRaw);
-      const tBlob = easeOutCubic(tRaw);
 
-      // Blob kéo dài ở giữa rồi co lại
       const stretchPhase = tRaw < 0.5 ? tRaw * 2 : 1;
       const shrinkPhase = tRaw < 0.5 ? 0 : (tRaw - 0.5) * 2;
 
@@ -89,80 +92,81 @@ export default function Nav() {
   }, [location.pathname]);
 
   return (
-      <nav
-        ref={navRef}
-        data-glass
-        className="relative flex items-center gap-2 px-3 py-2 mb-4 rounded-[var(--radius-pill)]"
+    <nav
+      ref={navRef}
+      data-glass
+      className="relative flex items-center gap-1 px-2 py-2 mb-4 rounded-[var(--radius-pill)] overflow-x-auto"
+      style={{
+        background: "rgba(255,255,255,0.55)",
+        backdropFilter: "blur(12px)",
+        WebkitBackdropFilter: "blur(12px)",
+        border: "1px solid rgba(255,255,255,0.4)",
+        boxShadow: "0 4px 24px rgba(0,0,0,0.06), inset 0 1px 0 rgba(255,255,255,0.8)",
+        /* Cho phép scroll ngang trên màn nhỏ nếu dùng standalone */
+        WebkitOverflowScrolling: "touch",
+        scrollbarWidth: "none",
+        msOverflowStyle: "none",
+      }}
+    >
+      {/* Liquid blob layer */}
+      <div
+        aria-hidden="true"
         style={{
-          background: "rgba(255,255,255,0.55)",
-          backdropFilter: "blur(12px)",
-          WebkitBackdropFilter: "blur(12px)",
-          border: "1px solid rgba(255,255,255,0.4)",
-          boxShadow: "0 4px 24px rgba(0,0,0,0.06), inset 0 1px 0 rgba(255,255,255,0.8)",
+          position: "absolute",
+          inset: 0,
+          borderRadius: 9999,
+          overflow: "hidden",
+          filter: "url(#goo)",
+          pointerEvents: "none",
         }}
       >
-        {/* Liquid blob layer — dùng SVG goo filter */}
         <div
-          aria-hidden="true"
           style={{
             position: "absolute",
-            inset: 0,
+            top: "50%",
+            transform: "translateY(-50%)",
+            left: blob.x,
+            width: blob.width,
+            height: 36,
             borderRadius: 9999,
-            overflow: "hidden",
-            filter: "url(#goo)",
-            pointerEvents: "none",
+            background: "var(--color-primary)",
+            transition: "none",
           }}
-        >
-          {/* Blob kéo dài */}
-          <div
-            style={{
-              position: "absolute",
-              top: "50%",
-              transform: "translateY(-50%)",
-              left: blob.x,
-              width: blob.width,
-              height: 36,
-              borderRadius: 9999,
-              background: "var(--color-primary)",
-              transition: "none",
-            }}
-          />
-          {/* Pill đích — easing elastic */}
-          <div
-            style={{
-              position: "absolute",
-              top: "50%",
-              transform: "translateY(-50%)",
-              left: pill.x,
-              width: pill.width,
-              height: 36,
-              borderRadius: 9999,
-              background: "var(--color-primary)",
-              opacity: pill.opacity,
-              transition: "none",
-            }}
-          />
-        </div>
+        />
+        <div
+          style={{
+            position: "absolute",
+            top: "50%",
+            transform: "translateY(-50%)",
+            left: pill.x,
+            width: pill.width,
+            height: 36,
+            borderRadius: 9999,
+            background: "var(--color-primary)",
+            opacity: pill.opacity,
+            transition: "none",
+          }}
+        />
+      </div>
 
-        {/* Nav links */}
-        {NAV_LINKS.map(({ label, to }) => (
-          <NavLink
-            key={to}
-            to={to}
-            end
-            ref={(el) => { if (el) itemRefs.current[to] = el; }}
-            className={({ isActive }) =>
-              `relative z-10 shrink-0 px-5 h-9 flex items-center rounded-[var(--radius-pill)]
-               text-[var(--text-sm)] font-medium transition-colors duration-[var(--duration-base)]
-               ${isActive
-                 ? "text-white"
-                 : "text-[var(--color-text-secondary)] hover:text-[var(--color-text-primary)]"
-               }`
-            }
-          >
-            {label}
-          </NavLink>
-        ))}
-      </nav>
+      {NAV_LINKS.map(({ label, to }) => (
+        <NavLink
+          key={to}
+          to={to}
+          end
+          ref={(el) => { if (el) itemRefs.current[to] = el; }}
+          className={({ isActive }) =>
+            `relative z-10 shrink-0 px-4 md:px-5 h-9 flex items-center rounded-[var(--radius-pill)]
+             text-[var(--text-sm)] font-medium transition-colors duration-[var(--duration-base)]
+             ${isActive
+               ? "text-white"
+               : "text-[var(--color-text-secondary)] hover:text-[var(--color-text-primary)]"
+             }`
+          }
+        >
+          {label}
+        </NavLink>
+      ))}
+    </nav>
   );
 }

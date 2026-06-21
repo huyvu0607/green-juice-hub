@@ -1,0 +1,1 @@
+export const LOGO_URL = "https://res.cloudinary.com/dpxksubxg/image/upload/v1781724548/vcivevfpqx42bw0gcmc5.png";

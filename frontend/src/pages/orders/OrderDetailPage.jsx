@@ -7,6 +7,7 @@ import {
   fmt, formatDate, PAYMENT_STATUS, PAYMENT_METHOD,
   StatusBadge, Icon,
   BANK_NAME, ACCOUNT_NUMBER, ACCOUNT_NAME, getQrUrl,
+  CANCELLED_BY, formatCountdown, getSecondsUntil,
 } from './orderHelpers'
 import useCartStore from '@/store/useCartStore'
 import ReviewFormPopup from '@/components/product/ReviewFormPopup'
@@ -19,15 +20,18 @@ const STATUS_STEPS = [
   { key: 'DELIVERED', label: 'Hoàn tất' },
 ]
 
-function OrderStepper({ status }) {
+function OrderStepper({ status, cancelledBy }) {
   if (status === 'CANCELLED') {
+    const cfg = CANCELLED_BY[cancelledBy] || CANCELLED_BY.CUSTOMER
     return (
       <div
         className="flex items-center gap-2 px-4 py-3 rounded-[var(--radius-md)]"
-        style={{ background: '#fef2f2', border: '1px solid #fecaca' }}
+        style={{ background: cfg.bg, border: `1px solid ${cfg.border}` }}
       >
-        <span className="text-base">❌</span>
-        <p className="text-sm font-semibold" style={{ color: '#dc2626' }}>Đơn hàng đã bị huỷ</p>
+        <span className="text-base">{cfg.icon}</span>
+        <p className="text-sm font-semibold" style={{ color: cfg.color }}>
+          {cfg.shortLabel}
+        </p>
       </div>
     )
   }
@@ -87,6 +91,11 @@ function PaymentModal({ order, onClose }) {
   const { fetchOrderDetail } = useOrderStore()
   const paidRef = useRef(false)
 
+  // ── Đếm ngược hạn thanh toán ────────────────────────────────────
+  const [timeLeft, setTimeLeft] = useState(() => getSecondsUntil(order.expiresAt))
+  const [expired, setExpired] = useState(false)
+  const expiredHandledRef = useRef(false)
+
   useEffect(() => {
     const handler = (e) => { if (e.key === 'Escape' && !paid) onClose() }
     window.addEventListener('keydown', handler)
@@ -120,6 +129,42 @@ function PaymentModal({ order, onClose }) {
     return () => clearInterval(interval)
   }, [])
 
+  // ── Tick đếm ngược mỗi giây, dựa trên order.expiresAt ──────────────
+  useEffect(() => {
+    if (!order.expiresAt || paid) return
+
+    const tick = () => {
+      const diff = getSecondsUntil(order.expiresAt)
+      if (diff <= 0) {
+        setTimeLeft(0)
+        if (!expiredHandledRef.current) {
+          expiredHandledRef.current = true
+          setExpired(true)
+        }
+        return
+      }
+      setTimeLeft(diff)
+    }
+
+    tick()
+    const interval = setInterval(tick, 1000)
+    return () => clearInterval(interval)
+  }, [order.expiresAt, paid])
+
+  // ── Khi hết hạn: fetch lại order rồi đóng modal ─────────────────────
+  useEffect(() => {
+    if (!expired) return
+
+    const handleExpired = async () => {
+      try {
+        await fetchOrderDetail(order.id)
+      } finally {
+        setTimeout(() => onClose(), 1500)
+      }
+    }
+    handleExpired()
+  }, [expired])
+
   const handleCopy = () => {
     navigator.clipboard.writeText(order.orderCode)
     setCopied(true)
@@ -127,6 +172,8 @@ function PaymentModal({ order, onClose }) {
   }
 
   const qrUrl = getQrUrl(order.totalAmount, order.orderCode)
+  const showCountdown = !paid && order.expiresAt
+  const urgentCountdown = timeLeft !== null && timeLeft < 300 // dưới 5 phút
 
   return (
     <div
@@ -202,6 +249,32 @@ function PaymentModal({ order, onClose }) {
           )}
         </div>
 
+        {/* Countdown bar */}
+        {showCountdown && (
+          <div
+            className="flex items-center justify-center gap-2 px-5 py-2.5"
+            style={{
+              background: expired ? '#fee2e2' : urgentCountdown ? '#fff7ed' : 'var(--color-bg-muted)',
+              borderBottom: '1px solid var(--color-border-subtle)',
+              transition: 'background 0.3s ease',
+            }}
+          >
+            {expired ? (
+              <p className="text-xs font-semibold" style={{ color: '#dc2626' }}>
+                ⏱️ Đơn đã hết hạn thanh toán, đang cập nhật...
+              </p>
+            ) : (
+              <>
+                <span style={{ fontSize: 13 }}>⏱️</span>
+                <p className="text-xs" style={{ color: urgentCountdown ? '#c2410c' : 'var(--color-text-secondary)' }}>
+                  Hết hạn sau{' '}
+                  <span className="font-mono font-bold">{formatCountdown(timeLeft)}</span>
+                </p>
+              </>
+            )}
+          </div>
+        )}
+
         {/* Body */}
         {paid ? (
           <div className="flex flex-col items-center gap-4 px-6 py-8" style={{ animation: 'fadeIn 0.4s ease' }}>
@@ -230,6 +303,23 @@ function PaymentModal({ order, onClose }) {
               <span className="font-bold text-sm" style={{ color: '#16a34a' }}>{fmt(order.totalAmount)}</span>
             </div>
             <p className="text-xs" style={{ color: 'var(--color-text-muted)' }}>Tự động chuyển về đơn hàng...</p>
+          </div>
+        ) : expired ? (
+          <div className="flex flex-col items-center gap-4 px-6 py-8" style={{ animation: 'fadeIn 0.4s ease' }}>
+            <div style={{
+              width: 72, height: 72, borderRadius: '50%',
+              background: '#fee2e2',
+              display: 'flex', alignItems: 'center', justifyContent: 'center',
+            }}>
+              <span style={{ fontSize: 32 }}>⏱️</span>
+            </div>
+            <div className="text-center">
+              <p className="font-bold text-base mb-1" style={{ color: '#dc2626' }}>Đơn đã hết hạn thanh toán</p>
+              <p className="text-xs leading-relaxed" style={{ color: 'var(--color-text-muted)' }}>
+                Đơn hàng sẽ sớm được hệ thống tự động huỷ.<br />
+                Bạn có thể đặt lại đơn hàng mới.
+              </p>
+            </div>
           </div>
         ) : (
           <>
@@ -672,15 +762,22 @@ function OrderSummary({ o, onCancel, cancelling, onConfirmDelivered, confirming 
             )}
           </div>
 
-          {o.status === 'CANCELLED' && o.cancelReason && (
-            <div
-              className="mx-5 mb-5 px-3 py-2.5 rounded-[var(--radius-md)]"
-              style={{ background: '#fef2f2', border: '1px solid #fecaca' }}
-            >
-              <p className="text-xs font-medium mb-0.5" style={{ color: '#dc2626' }}>Lý do huỷ</p>
-              <p className="text-xs" style={{ color: '#b91c1c' }}>{o.cancelReason}</p>
-            </div>
-          )}
+          {o.status === 'CANCELLED' && (() => {
+            const cfg = CANCELLED_BY[o.cancelledBy] || CANCELLED_BY.CUSTOMER
+            const detailText = cfg.detail ?? o.cancelReason
+            if (!detailText) return null
+            return (
+              <div
+                className="mx-5 mb-5 px-3 py-2.5 rounded-[var(--radius-md)]"
+                style={{ background: cfg.bg, border: `1px solid ${cfg.border}` }}
+              >
+                <p className="text-xs font-medium mb-0.5" style={{ color: cfg.color }}>
+                  {o.cancelledBy === 'SYSTEM' ? `${cfg.icon} ${cfg.label}` : 'Lý do huỷ'}
+                </p>
+                <p className="text-xs" style={{ color: cfg.detailColor }}>{detailText}</p>
+              </div>
+            )
+          })()}
         </div>
       </div>
 
@@ -715,17 +812,9 @@ export default function OrderDetailPage() {
   const [confirming, setConfirming] = useState(false)
   const [reviewItems, setReviewItems] = useState(null)
 
-  // Ref để biết popup đang mở → chặn setReviewItems từ onSuccess ghi đè
-  // const reviewPopupOpenRef = useRef(false)
-
   const { addItem } = useCartStore()
 
   useEffect(() => { fetchOrderDetail(orderId) }, [orderId])
-
-  // Sync ref với state
-  // useEffect(() => {
-  //   reviewPopupOpenRef.current = reviewItems !== null && reviewItems.length > 0
-  // }, [reviewItems])
 
   if (loading) {
     return (
@@ -828,7 +917,7 @@ export default function OrderDetailPage() {
             <div className="rounded-[var(--radius-lg)] p-5"
               style={{ background: 'var(--color-bg-elevated)', border: '1px solid var(--color-border-subtle)' }}>
               <p className="text-sm font-semibold mb-5" style={{ color: 'var(--color-text-primary)' }}>Trạng thái đơn hàng</p>
-              <OrderStepper status={o.status} />
+              <OrderStepper status={o.status} cancelledBy={o.cancelledBy} />
             </div>
 
             {/* Sản phẩm */}
@@ -943,7 +1032,7 @@ export default function OrderDetailPage() {
           items={reviewItems}
           onClose={() => {
             setReviewItems(null)
-            fetchOrderDetail(orderId)  // fetch lại khi đóng để cập nhật hasReviewed
+            fetchOrderDetail(orderId)
           }}
           onSuccess={(justDoneItems) => {
             setReviewItems(prev => {
@@ -954,13 +1043,9 @@ export default function OrderDetailPage() {
               const remaining = prev.filter(
                 i => !doneKeys.has(`${i.productId}:${i.variantId ?? ''}`)
               )
-              // ✅ FIX: remaining === 0 thì set null để ReviewFormPopup tự show SuccessScreen
-              // KHÔNG return prev nữa — để popup tự handle SuccessScreen bên trong
               return remaining.length > 0 ? remaining : null
             })
-            // ✅ KHÔNG fetchOrderDetail ở đây — tránh re-render gây loop
           }}
-
         />
       )}
     </div>

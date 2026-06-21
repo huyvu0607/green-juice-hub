@@ -50,9 +50,13 @@ const PAYMENTS = ["COD", "VNPay", "Momo", "Bank"];
 
 export default function Footer() {
   return (
-    <footer className="bg-[var(--color-brand-600)] text-white mt-5">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 py-12">
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-10">
+    /*
+      Thêm padding-bottom trên mobile để không bị bottom nav che khuất.
+      sm:pb-0 để desktop không bị ảnh hưởng.
+    */
+    <footer className="bg-[var(--color-brand-600)] text-white mt-5 pb-14 sm:pb-0">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 py-10 sm:py-12">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-8 sm:gap-10">
 
           {/* Brand */}
           <div className="space-y-4">
@@ -89,42 +93,45 @@ export default function Footer() {
             </div>
           </div>
 
-          {/* Quick links */}
-          <div>
-            <p className="text-[var(--text-xs)] font-semibold uppercase tracking-widest text-white/40 mb-4">
-              Liên kết nhanh
-            </p>
-            <ul className="space-y-2.5">
-              {QUICK_LINKS.map(({ label, to }) => (
-                <li key={to}>
-                  <Link
-                    to={to}
-                    className="text-[var(--text-sm)] text-white/70 hover:text-white transition-colors duration-[var(--duration-base)]"
-                  >
-                    {label}
-                  </Link>
-                </li>
-              ))}
-            </ul>
-          </div>
+          {/* Quick links + Support — gộp thành 2 cột trên mobile */}
+          <div className="grid grid-cols-2 sm:contents gap-8">
+            {/* Quick links */}
+            <div>
+              <p className="text-[var(--text-xs)] font-semibold uppercase tracking-widest text-white/40 mb-4">
+                Liên kết nhanh
+              </p>
+              <ul className="space-y-2.5">
+                {QUICK_LINKS.map(({ label, to }) => (
+                  <li key={to}>
+                    <Link
+                      to={to}
+                      className="text-[var(--text-sm)] text-white/70 hover:text-white transition-colors duration-[var(--duration-base)]"
+                    >
+                      {label}
+                    </Link>
+                  </li>
+                ))}
+              </ul>
+            </div>
 
-          {/* Support */}
-          <div>
-            <p className="text-[var(--text-xs)] font-semibold uppercase tracking-widest text-white/40 mb-4">
-              Hỗ trợ
-            </p>
-            <ul className="space-y-2.5">
-              {SUPPORT_LINKS.map(({ label, to }) => (
-                <li key={to}>
-                  <Link
-                    to={to}
-                    className="text-[var(--text-sm)] text-white/70 hover:text-white transition-colors duration-[var(--duration-base)]"
-                  >
-                    {label}
-                  </Link>
-                </li>
-              ))}
-            </ul>
+            {/* Support */}
+            <div>
+              <p className="text-[var(--text-xs)] font-semibold uppercase tracking-widest text-white/40 mb-4">
+                Hỗ trợ
+              </p>
+              <ul className="space-y-2.5">
+                {SUPPORT_LINKS.map(({ label, to }) => (
+                  <li key={to}>
+                    <Link
+                      to={to}
+                      className="text-[var(--text-sm)] text-white/70 hover:text-white transition-colors duration-[var(--duration-base)]"
+                    >
+                      {label}
+                    </Link>
+                  </li>
+                ))}
+              </ul>
+            </div>
           </div>
 
           {/* Contact */}
@@ -163,10 +170,10 @@ export default function Footer() {
       {/* Bottom bar */}
       <div className="border-t border-white/10">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 py-4 flex flex-col sm:flex-row items-center justify-between gap-3">
-          <p className="text-white/40 text-[var(--text-xs)]">
+          <p className="text-white/40 text-[var(--text-xs)] text-center sm:text-left">
             © {new Date().getFullYear()} Green Juice Hub. Mọi quyền được bảo lưu.
           </p>
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-2 flex-wrap justify-center">
             {PAYMENTS.map((method) => (
               <span
                 key={method}
