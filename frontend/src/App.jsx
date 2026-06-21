@@ -141,11 +141,7 @@ function AppRoutes() {
         <Route path="/policies/:type" element={<MainLayout><PolicyPage /></MainLayout>} />
 
         {/* ── Customer only ── */}
-        <Route path="/cart" element={
-          <ProtectedRoute allowedRoles={['CUSTOMER']}>
-            <MainLayout><div>Giỏ hàng</div></MainLayout>
-          </ProtectedRoute>
-        } />
+        
         <Route path="/checkout" element={
           <ProtectedRoute allowedRoles={['CUSTOMER']}>
             <MainLayout><CheckoutPage /></MainLayout>   {/* ← sửa */}
@@ -160,11 +156,6 @@ function AppRoutes() {
         <Route path="/orders/:orderId" element={
           <ProtectedRoute allowedRoles={['CUSTOMER']}>
             <MainLayout><OrderDetailPage /></MainLayout>
-          </ProtectedRoute>
-        } />
-        <Route path="/profile" element={
-          <ProtectedRoute allowedRoles={['CUSTOMER']}>
-            <MainLayout><div>Tài khoản</div></MainLayout>
           </ProtectedRoute>
         } />
 

@@ -124,6 +124,11 @@ public class OrderServiceImpl implements IOrderService {
         // 7. Tạo Order
         Payment.PaymentMethod paymentMethod = parsePaymentMethod(request.getPaymentMethod());
 
+        //
+        LocalDateTime expiresAt = (paymentMethod != Payment.PaymentMethod.COD)
+                ? LocalDateTime.now().plusHours(24)
+                : null;
+
         Order order = Order.builder()
                 .user(user)
                 .promotion(promotion)
@@ -136,6 +141,7 @@ public class OrderServiceImpl implements IOrderService {
                 .paymentStatus(Order.PaymentStatus.PENDING)
                 .shippingAddress(orderMapper.toShippingAddressJson(address))
                 .note(request.getNote())
+                .expiresAt(expiresAt)
                 .build();
 
         order = orderRepository.save(order);
@@ -263,6 +269,10 @@ public class OrderServiceImpl implements IOrderService {
         // 7. Tạo Order
         Payment.PaymentMethod paymentMethod = parsePaymentMethod(request.getPaymentMethod());
 
+        LocalDateTime expiresAt = (paymentMethod != Payment.PaymentMethod.COD)
+                ? LocalDateTime.now().plusHours(24)
+                : null;
+
         Order order = Order.builder()
                 .user(user)
                 .promotion(promotion)
@@ -275,6 +285,7 @@ public class OrderServiceImpl implements IOrderService {
                 .paymentStatus(Order.PaymentStatus.PENDING)
                 .shippingAddress(orderMapper.toShippingAddressJson(address))
                 .note(request.getNote())
+                .expiresAt(expiresAt)
                 .build();
 
         order = orderRepository.save(order);
@@ -382,26 +393,13 @@ public class OrderServiceImpl implements IOrderService {
                     "Chỉ có thể huỷ đơn hàng đang ở trạng thái chờ xác nhận");
         }
 
-        // Hoàn lại tồn kho
         List<OrderItem> items = orderItemRepository.findAllByOrderIdWithDetails(orderId);
-        List<ProductVariant> variantsToUpdate = items.stream()
-                .map(item -> {
-                    ProductVariant v = item.getVariant();
-                    v.setStockQty(v.getStockQty() + item.getQuantity());
-                    return v;
-                })
-                .toList();
-        productVariantRepository.saveAll(variantsToUpdate);
 
-        // Hoàn lại lượt dùng mã
-        if (order.getPromotion() != null) {
-            Promotion promo = order.getPromotion();
-            promo.setUsedCount(Math.max(0, promo.getUsedCount() - 1));
-            promotionRepository.save(promo);
-        }
+        restockAndRefundPromo(order, items);
 
         order.setCancelReason(reason != null ? reason.trim() : null);
         order.setStatus(Order.OrderStatus.CANCELLED);
+        order.setCancelledBy(Order.CancelledBy.CUSTOMER);
 
         // Nếu đã thanh toán → chuyển sang chờ hoàn tiền thay vì block
         if (order.getPaymentStatus() == Order.PaymentStatus.PAID) {
@@ -517,7 +515,28 @@ public class OrderServiceImpl implements IOrderService {
     // ─────────────────────────────────────────────────────────────────────────
     // HELPERS
     // ─────────────────────────────────────────────────────────────────────────
+// ─────────────────────────────────────────────────────────────────────────
+// HELPER DÙNG CHUNG: hoàn tồn kho + hoàn lượt dùng promo
+// public vì AutoCancelScheduler cũng gọi tới khi tự huỷ đơn hết hạn
+// ─────────────────────────────────────────────────────────────────────────
+    public void restockAndRefundPromo(Order order, List<OrderItem> items) {
+        // Hoàn lại tồn kho
+        List<ProductVariant> variantsToUpdate = items.stream()
+                .map(item -> {
+                    ProductVariant v = item.getVariant();
+                    v.setStockQty(v.getStockQty() + item.getQuantity());
+                    return v;
+                })
+                .toList();
+        productVariantRepository.saveAll(variantsToUpdate);
 
+        // Hoàn lại lượt dùng mã
+        if (order.getPromotion() != null) {
+            Promotion promo = order.getPromotion();
+            promo.setUsedCount(Math.max(0, promo.getUsedCount() - 1));
+            promotionRepository.save(promo);
+        }
+    }
     /** Validate mã khuyến mãi — ném AppException nếu không hợp lệ */
     private Promotion validatePromo(String code, Long userId, BigDecimal subtotal) {
         Promotion promo = promotionRepository.findByCodeIgnoreCase(code)

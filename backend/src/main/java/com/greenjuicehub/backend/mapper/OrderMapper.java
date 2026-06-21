@@ -66,6 +66,8 @@ public class OrderMapper {
                 .promoCode(promoCode)
                 .note(order.getNote())
                 .cancelReason(order.getCancelReason())
+                .cancelledBy(order.getCancelledBy() != null ? order.getCancelledBy().name() : null)
+                .expiresAt(order.getExpiresAt())
                 .shippingAddress(shippingAddress)
                 .items(itemResponses)
                 .createdAt(order.getCreatedAt())

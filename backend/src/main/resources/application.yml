@@ -79,3 +79,4 @@ ghn:
   from-district-id: 1454
   from-ward-code: "21201"
   service-type-id: 2
+  webhook-token: ${GHN_WEBHOOK_TOKEN:}

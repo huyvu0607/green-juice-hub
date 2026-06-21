@@ -38,5 +38,6 @@ ghn:
   from-district-id: 1454
   from-ward-code: "21201"
   service-type-id: 2
+  webhook-token: 55b08740c1ffe46b86ea203cce68cad7debe96a6447b86e9
 
 

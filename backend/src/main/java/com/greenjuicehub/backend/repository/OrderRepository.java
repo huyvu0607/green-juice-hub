@@ -142,4 +142,7 @@ public interface OrderRepository extends JpaRepository<Order, Long> {
 
     /** Tìm đơn SHIPPING đã quá hạn — dùng cho scheduled job */
     List<Order> findByStatusAndUpdatedAtBefore(Order.OrderStatus status, LocalDateTime before);
+
+    /** Tìm đơn PENDING đã quá hạn thanh toán (QR/chuyển khoản) — dùng cho AutoCancelScheduler */
+    List<Order> findAllByStatusAndExpiresAtBefore(Order.OrderStatus status, LocalDateTime before);
 }

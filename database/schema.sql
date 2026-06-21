@@ -373,3 +373,16 @@ CREATE TABLE banners (
     sort_order  INT             NOT NULL DEFAULT 0,
     is_active   BOOLEAN         NOT NULL DEFAULT TRUE
 ) ENGINE = InnoDB;
+
+
+ALTER TABLE orders ADD COLUMN ghn_order_code VARCHAR(50) NULL AFTER cancel_reason;
+
+ALTER TABLE orders
+ADD COLUMN expires_at DATETIME NULL
+COMMENT 'Hạn thanh toán cho đơn online (QR/chuyển khoản); NULL với COD'
+AFTER updated_at;
+
+ALTER TABLE orders
+ADD COLUMN cancelled_by VARCHAR(20) NULL
+COMMENT 'CUSTOMER hoặc SYSTEM - ai là người huỷ đơn'
+AFTER cancel_reason;
