@@ -31,6 +31,30 @@ export const PAYMENT_METHOD = {
   BANK_TRANSFER: 'Chuyển khoản ngân hàng',
 }
 
+// ── Ai là người huỷ đơn — dùng cho OrderStepper, OrderSummary ──────────────
+export const CANCELLED_BY = {
+  CUSTOMER: {
+    label: 'Bạn đã huỷ đơn',
+    shortLabel: 'Đơn hàng đã bị huỷ',
+    detail: null, // dùng o.cancelReason thay vì câu cố định
+    color: '#dc2626',
+    bg: '#fef2f2',
+    border: '#fecaca',
+    detailColor: '#b91c1c',
+    icon: '❌',
+  },
+  SYSTEM: {
+    label: 'Hệ thống tự huỷ',
+    shortLabel: 'Đơn đã hết hạn thanh toán và bị huỷ tự động',
+    detail: 'Đơn đã quá hạn 24 giờ mà chưa được thanh toán nên hệ thống tự động huỷ.',
+    color: '#c2410c',
+    bg: '#fff7ed',
+    border: '#fed7aa',
+    detailColor: '#92400e',
+    icon: '⏱️',
+  },
+}
+
 // ── Thông tin ngân hàng — single source of truth ─────────────────────────────
 // BankTransferModal và PaymentModal đều import từ đây, không tự khai báo lại
 export const BANK_BIN = '970436'
@@ -41,6 +65,22 @@ export const BANK_NAME = 'Vietcombank'
 export const getQrUrl = (amount, content) =>
   `https://img.vietqr.io/image/${BANK_BIN}-${ACCOUNT_NUMBER}-compact2.png` +
   `?amount=${amount}&addInfo=${encodeURIComponent(content)}&accountName=${encodeURIComponent(ACCOUNT_NAME)}`
+
+// ── Format giây còn lại -> "HH:MM:SS" hoặc "MM:SS" ──────────────────────────
+export const formatCountdown = (seconds) => {
+  if (seconds === null || seconds === undefined || seconds < 0) return ''
+  const h = Math.floor(seconds / 3600)
+  const m = Math.floor((seconds % 3600) / 60)
+  const s = Math.floor(seconds % 60)
+  const pad = (n) => String(n).padStart(2, '0')
+  return h > 0 ? `${pad(h)}:${pad(m)}:${pad(s)}` : `${pad(m)}:${pad(s)}`
+}
+
+// ── Tính số giây còn lại tới một mốc thời gian ISO ──────────────────────────
+export const getSecondsUntil = (isoDate) => {
+  if (!isoDate) return null
+  return Math.floor((new Date(isoDate) - new Date()) / 1000)
+}
 
 export function StatusBadge({ status }) {
   const cfg = STATUS[status] || { label: status, color: '#6b7280', bg: '#f3f4f6' }
