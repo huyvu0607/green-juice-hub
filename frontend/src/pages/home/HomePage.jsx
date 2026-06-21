@@ -265,11 +265,10 @@ function BannerCarousel({ banners }) {
                 key={i}
                 onClick={() => handleManualNav(() => goTo(i))}
                 aria-label={`Chuyển đến banner ${i + 1}`}
-                className={`rounded-full transition-all duration-300 ${
-                  i === current
-                    ? "w-6 h-2 bg-white"
-                    : "w-2 h-2 bg-white/50 hover:bg-white/75"
-                }`}
+                className={`rounded-full transition-all duration-300 ${i === current
+                  ? "w-6 h-2 bg-white"
+                  : "w-2 h-2 bg-white/50 hover:bg-white/75"
+                  }`}
               />
             ))}
           </div>
@@ -351,10 +350,9 @@ function HeroFallback() {
 
 export default function HomePage() {
   const [banners, setBanners] = useState([])           // [] = chưa load xong
-  const [bannerReady, setBannerReady] = useState(false) // true khi fetch xong (dù có hay không)
+  // const [bannerReady, setBannerReady] = useState(false) // true khi fetch xong (dù có hay không)
   const [featuredProducts, setFeaturedProducts] = useState(FEATURED_PRODUCTS);
   const { setPageReady } = useAppStore()
-
   useScrollReveal();
 
   // Fetch banners
@@ -366,8 +364,7 @@ export default function HomePage() {
           setBanners(data)
         }
       })
-      .catch(() => {})
-      .finally(() => setBannerReady(true))
+      .catch(() => { })
   }, [])
 
   // Fetch featured products
@@ -380,7 +377,7 @@ export default function HomePage() {
           setFeaturedProducts(products);
         }
       })
-      .catch(() => {})
+      .catch(() => { })
       .finally(() => {
         if (!ignore) setPageReady(true)
       });
@@ -391,13 +388,7 @@ export default function HomePage() {
     <div className="bg-[var(--color-bg-surface)] text-[var(--color-text-primary)] transition-theme">
 
       {/* ── HERO / BANNER CAROUSEL ── */}
-      {!bannerReady ? (
-        // Skeleton trong khi chờ fetch — giữ chiều cao để tránh layout shift
-        <div
-          className="relative bg-gray-900 animate-pulse"
-          style={{ minHeight: "min(calc(100svh - 64px), 860px)" }}
-        />
-      ) : banners.length > 0 ? (
+      {banners.length > 0 ? (
         <BannerCarousel banners={banners} />
       ) : (
         <HeroFallback />

@@ -10,6 +10,8 @@ import { usePageReady } from '@/hooks/usePageReady'
 import BankTransferModal from '@/components/order/BankTransferModal'
 import OrderSuccessModal from '@/components/order/OrderSuccessModal'
 import orderApi from '@/api/orderApi'
+import useProfileModalStore from '@/store/useProfileModalStore'
+
 
 
 
@@ -190,8 +192,11 @@ function AddressSelector({ selectedId, onSelect }) {
   const [addresses, setAddresses] = useState([])
   const [loading, setLoading] = useState(true)
   const [showPicker, setShowPicker] = useState(false)
+  const isProfileModalOpen = useProfileModalStore((s) => s.isOpen)
+  const wasOpenRef = useRef(false)
 
-  useEffect(() => {
+  const fetchAddresses = () => {
+    setLoading(true)
     userApi.getAddresses()
       .then((res) => {
         const list = res.data
@@ -203,7 +208,14 @@ function AddressSelector({ selectedId, onSelect }) {
       })
       .catch(() => { })
       .finally(() => setLoading(false))
-  }, [])
+  }
+
+  useEffect(() => { fetchAddresses() }, [])
+
+  useEffect(() => {
+    if (wasOpenRef.current && !isProfileModalOpen) fetchAddresses() // vừa đóng modal -> refetch
+    wasOpenRef.current = isProfileModalOpen
+  }, [isProfileModalOpen])
 
   const selected = addresses.find((a) => a.id === selectedId)
 
@@ -219,7 +231,13 @@ function AddressSelector({ selectedId, onSelect }) {
     return (
       <p className="text-sm py-4 text-center" style={{ color: 'var(--color-text-muted)' }}>
         Bạn chưa có địa chỉ nào.{' '}
-        <a href="/profile" className="underline" style={{ color: 'var(--color-primary)' }}>Thêm ngay</a>
+        <button
+          onClick={() => useProfileModalStore.getState().openProfileModal('address')}
+          className="underline cursor-pointer"
+          style={{ color: 'var(--color-primary)', background: 'none', border: 'none', padding: 0 }}
+        >
+          Thêm ngay
+        </button>
       </p>
     )
   }
@@ -320,7 +338,6 @@ function AddressSelector({ selectedId, onSelect }) {
     </>
   )
 }
-
 // ── Promo Picker Modal ──────────────────────────────────────────────────────
 // ── Promo Picker Modal ──────────────────────────────────────────────────────
 function PromoPickerModal({ onClose, onSelect, promoPayload, subtotal, currentCode }) {
@@ -883,32 +900,32 @@ export default function CheckoutPage() {
   const handlePromoApplied = (result) => {
     setPromoCode(result.promoCode)
     if (result.freeShipping) {
-        setShipping(0)
+      setShipping(0)
     }
-}
+  }
 
 
   const handlePromoCleared = () => {
     setPromoCode('')
     // Fetch lại shipping thực tế khi bỏ mã
     if (addressId) {
-        const refetchShipping = async () => {
-            setShippingLoading(true)
-            try {
-                const payload = buyNowItem
-                    ? { addressId, variantId: buyNowItem.variantId, quantity: buyNowItem.quantity }
-                    : { addressId, cartItemIds: [...selectedIds] }
-                const res = await orderApi.calculateShippingFee(payload)
-                setShipping(res.data.shippingFee)
-            } catch {
-                setShipping(30000)
-            } finally {
-                setShippingLoading(false)
-            }
+      const refetchShipping = async () => {
+        setShippingLoading(true)
+        try {
+          const payload = buyNowItem
+            ? { addressId, variantId: buyNowItem.variantId, quantity: buyNowItem.quantity }
+            : { addressId, cartItemIds: [...selectedIds] }
+          const res = await orderApi.calculateShippingFee(payload)
+          setShipping(res.data.shippingFee)
+        } catch {
+          setShipping(30000)
+        } finally {
+          setShippingLoading(false)
         }
-        refetchShipping()
+      }
+      refetchShipping()
     }
-}
+  }
 
   const handleSubmit = async () => {
     if (!addressId) {

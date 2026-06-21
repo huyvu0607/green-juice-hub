@@ -31,6 +31,8 @@ public class OrderResponse {
     private List<OrderItemResponse> items;
 
     private String cancelReason;
+    private String cancelledBy;      // "CUSTOMER" | "SYSTEM" | null
+    private LocalDateTime expiresAt; // hạn thanh toán, null nếu COD hoặc đã thanh toán xong
 
     private LocalDateTime createdAt;
     private LocalDateTime updatedAt;

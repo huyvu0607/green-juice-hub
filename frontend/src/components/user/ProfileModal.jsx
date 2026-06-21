@@ -3,6 +3,8 @@ import userApi from '@/api/userApi'
 import useAuthStore from '@/store/authStore'
 import { useDrawerTransition } from '@/hooks/useDrawerTransition'
 import LocationSelect from './LocationSelect'
+import useProfileModalStore from '@/store/useProfileModalStore'
+
 
 // ── Icons (inline SVG để không cần thêm thư viện) ──────────────────────────
 const Icon = {
@@ -749,11 +751,16 @@ function AddressTab() {
 // MAIN: ProfileModal (Drawer từ phải)
 // ══════════════════════════════════════════════════════════════════
 export default function ProfileModal({ isOpen, onClose }) {
-    const { user } = useAuthStore()
-    const { setUser } = useAuthStore()
-    const [tab, setTab] = useState('profile')
+    const { user, setUser } = useAuthStore()
+    const initialTab = useProfileModalStore((s) => s.initialTab)
+    const [tab, setTab] = useState(initialTab)
     const overlayRef = useRef(null)
     const { overlayStyle, drawerStyle } = useDrawerTransition(isOpen)
+
+    useEffect(() => {
+        if (isOpen) setTab(initialTab)
+    }, [isOpen, initialTab])
+
 
 
     // Đóng khi click overlay

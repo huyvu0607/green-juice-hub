@@ -5,6 +5,8 @@ import useAuthStore from "@/store/authStore";
 import useCartStore from "@/store/useCartStore";
 import ProfileModal from '@/components/user/ProfileModal'
 import { useCartAnimation } from '@/hooks/useCartAnimation'
+import useProfileModalStore from '@/store/useProfileModalStore'
+
 
 
 const NAV_LINKS = [
@@ -394,7 +396,9 @@ export default function Header() {
   const [navTop, setNavTop] = useState(64);
   const headerRef = useRef(null);
   const timerRef = useRef(null);
-  const [profileOpen, setProfileOpen] = useState(false);
+  // const [profileOpen, setProfileOpen] = useState(false);
+  const { isOpen: profileOpen, openProfileModal, closeProfileModal } = useProfileModalStore()
+
   const cartBtnRef = useRef(null)
   useCartAnimation(cartBtnRef)
 
@@ -503,7 +507,7 @@ export default function Header() {
                 )}
               </button>
               {isLoggedIn && user ? (
-                <UserDropdown user={user} onLogout={handleLogout} onOpenProfile={() => setProfileOpen(true)} />
+                <UserDropdown user={user} onLogout={handleLogout} onOpenProfile={() => openProfileModal('profile')} />
               ) : (
                 <Link to="/login"
                   className="flex items-center gap-1.5 h-9 px-4 rounded-[var(--radius-pill)] text-[var(--text-sm)] font-medium bg-[var(--color-primary)] text-white hover:bg-[var(--color-primary-hover)] transition-colors duration-[var(--duration-base)]">
@@ -629,7 +633,7 @@ export default function Header() {
           </svg>
         </button>
       </div>
-      <ProfileModal isOpen={profileOpen} onClose={() => setProfileOpen(false)} />
+      <ProfileModal isOpen={profileOpen} onClose={closeProfileModal} />
     </>
   );
 }

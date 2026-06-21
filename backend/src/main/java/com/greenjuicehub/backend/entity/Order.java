@@ -56,16 +56,31 @@ public class Order {
     @Column(name = "cancel_reason")
     private String cancelReason;
 
+    @Column(name = "ghn_order_code", length = 50)
+    private String ghnOrderCode;
+
     @Column(name = "created_at", updatable = false)
     private LocalDateTime createdAt;
 
     @Column(name = "updated_at")
     private LocalDateTime updatedAt;
 
+    @Column(name = "expires_at")
+    private LocalDateTime expiresAt;
+
+    @Enumerated(EnumType.STRING)
+    @Column(name = "cancelled_by")
+    private CancelledBy cancelledBy;
+
     @PrePersist
     protected void onCreate() {
         createdAt = LocalDateTime.now();
         updatedAt = LocalDateTime.now();
+    }
+
+
+    public enum CancelledBy {
+        CUSTOMER, SYSTEM
     }
 
     @PreUpdate

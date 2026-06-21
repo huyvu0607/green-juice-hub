@@ -1,6 +1,10 @@
     # Frontend
     frontend/node_modules/
     frontend/.env
+    frontend/.env.local
+    frontend/.env.production
+    frontend/.env.railway
+    frontend/.env.development
     frontend/dist/
     frontend/.vite/
 
