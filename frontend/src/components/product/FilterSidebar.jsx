@@ -23,7 +23,7 @@ function Section({ title, children, maxVisible = 6 }) {
         }
       </button>
       {open && (
-        <div className="space-y-2">
+        <div className="space-y-2.5">
           {visible}
           {hasMore && (
             <button
@@ -41,13 +41,13 @@ function Section({ title, children, maxVisible = 6 }) {
 
 function RadioItem({ name, checked, onChange, label }) {
   return (
-    <label className="flex items-center gap-2 cursor-pointer group">
+    <label className="flex items-center gap-2.5 cursor-pointer group py-0.5">
       <input
         type="radio"
         name={name}
         checked={checked}
         onChange={onChange}
-        className="accent-[var(--color-primary)] w-4 h-4"
+        className="accent-[var(--color-primary)] w-4 h-4 shrink-0"
       />
       <span className="text-sm text-[var(--color-text-secondary)]
                        group-hover:text-[var(--color-text-primary)] transition-colors">
@@ -59,12 +59,12 @@ function RadioItem({ name, checked, onChange, label }) {
 
 function CheckItem({ checked, onChange, label }) {
   return (
-    <label className="flex items-center gap-2 cursor-pointer group">
+    <label className="flex items-center gap-2.5 cursor-pointer group py-0.5">
       <input
         type="checkbox"
         checked={checked}
         onChange={onChange}
-        className="accent-[var(--color-primary)] w-4 h-4 rounded"
+        className="accent-[var(--color-primary)] w-4 h-4 rounded shrink-0"
       />
       <span className="text-sm text-[var(--color-text-secondary)]
                        group-hover:text-[var(--color-text-primary)] transition-colors">
@@ -87,6 +87,36 @@ export default function FilterSidebar({ filter, categories, flavors, sizes, onCh
     <div className="rounded-2xl border border-[var(--color-border-subtle)]
                     bg-[var(--color-bg-card)] p-4 w-full">
 
+      {/* ── Khoảng giá (shown inside sidebar/modal on mobile) ── */}
+      <div className="border-b border-[var(--color-border-subtle)] pb-4 mb-4">
+        <p className="text-sm font-semibold text-[var(--color-text-primary)] mb-3">
+          Khoảng giá
+        </p>
+        <div className="flex items-center gap-2">
+          <input
+            type="number"
+            placeholder="Từ đ"
+            value={filter.minPrice ?? ""}
+            onChange={e => onChange({ minPrice: e.target.value })}
+            className="flex-1 px-2.5 py-1.5 text-sm rounded-lg
+                       border border-[var(--color-border-subtle)] bg-transparent
+                       text-[var(--color-text-primary)]
+                       focus:outline-none focus:ring-1 focus:ring-[var(--color-primary)]"
+          />
+          <span className="text-[var(--color-text-muted)] text-xs shrink-0">—</span>
+          <input
+            type="number"
+            placeholder="Đến đ"
+            value={filter.maxPrice ?? ""}
+            onChange={e => onChange({ maxPrice: e.target.value })}
+            className="flex-1 px-2.5 py-1.5 text-sm rounded-lg
+                       border border-[var(--color-border-subtle)] bg-transparent
+                       text-[var(--color-text-primary)]
+                       focus:outline-none focus:ring-1 focus:ring-[var(--color-primary)]"
+          />
+        </div>
+      </div>
+
       {/* ── Danh mục ── */}
       <Section title="Danh mục">
         {[{ id: null, name: "Tất cả" }, ...categories].map(cat => (
@@ -107,7 +137,7 @@ export default function FilterSidebar({ filter, categories, flavors, sizes, onCh
             <CheckItem
               key={f.id}
               checked={flavorIds.includes(f.id)}
-              onChange={e => toggleList("flavorIds", f.id)}
+              onChange={() => toggleList("flavorIds", f.id)}
               label={f.name}
             />
           ))}
@@ -121,7 +151,7 @@ export default function FilterSidebar({ filter, categories, flavors, sizes, onCh
             <CheckItem
               key={s.id}
               checked={sizeIds.includes(s.id)}
-              onChange={e => toggleList("sizeIds", s.id)}
+              onChange={() => toggleList("sizeIds", s.id)}
               label={s.name}
             />
           ))}
@@ -169,7 +199,7 @@ export default function FilterSidebar({ filter, categories, flavors, sizes, onCh
       {/* ── Reset ── */}
       <button
         onClick={onReset}
-        className="w-full mt-4 py-2 rounded-xl border border-[var(--color-border-subtle)]
+        className="w-full mt-2 py-2 rounded-xl border border-[var(--color-border-subtle)]
                    text-sm text-[var(--color-text-secondary)]
                    hover:bg-[var(--color-bg-muted)] transition-colors"
       >

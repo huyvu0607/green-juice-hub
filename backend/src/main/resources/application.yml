@@ -79,4 +79,18 @@ ghn:
   from-district-id: 1454
   from-ward-code: "21201"
   service-type-id: 2
+
+  # Dùng cho TẠO ĐƠN — staging khi test, đổi sang production khi live
+  order-base-url: ${GHN_ORDER_BASE_URL:https://dev-online-gateway.ghn.vn}
+  order-token: ${GHN_ORDER_TOKEN:}
+  order-shop-id: ${GHN_ORDER_SHOP_ID:0}
+
+  # Bảo mật webhook
   webhook-token: ${GHN_WEBHOOK_TOKEN:}
+
+vnpay:
+  tmn-code: YOUR_TMN_CODE
+  hash-secret: YOUR_HASH_SECRET
+  pay-url: https://sandbox.vnpayment.vn/paymentv2/vpcpay.html
+  return-url: https://YOUR-APP.railway.app/api/payment/vnpay/callback
+  ipn-url: https://YOUR-APP.railway.app/api/payment/vnpay/ipn

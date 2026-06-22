@@ -1,6 +1,6 @@
 import { ShoppingCart } from "lucide-react";
 import { useState } from "react";
-import useCartStore from '@/store/useCartStore'
+import useCartStore from '@/store/useCartStore';
 import { Link, useNavigate } from "react-router-dom";
 import useAuthStore from "@/store/authStore";
 
@@ -33,9 +33,28 @@ export default function ProductCard({ product }) {
 
   const [imgLoaded, setImgLoaded] = useState(false);
   const [imgError, setImgError] = useState(false);
-  const { addItem, loading } = useCartStore()
+  const [adding, setAdding] = useState(false);
+  const { addItem } = useCartStore();
   const navigate = useNavigate();
   const { isLoggedIn } = useAuthStore();
+
+  const handleAddToCart = async (e) => {
+    e.preventDefault();
+    if (!isLoggedIn) { navigate("/login"); return; }
+
+    const variantId = product.defaultVariantId ?? product.variants?.[0]?.id;
+    if (!variantId) return;
+
+    setAdding(true);
+    try {
+      await addItem(product.id, variantId, 1);
+      window.dispatchEvent(new CustomEvent("cart:item-added", {
+        detail: { imageUrl: product.primaryImage },
+      }));
+    } finally {
+      setAdding(false);
+    }
+  };
 
   return (
     <Link
@@ -46,9 +65,8 @@ export default function ProductCard({ product }) {
                  transition-all duration-200 flex flex-col"
     >
       {/* ── Image area ── */}
-      <div className="relative aspect-[4/3] overflow-hidden bg-[var(--color-bg-muted)]">
+      <div className="relative aspect-square overflow-hidden bg-[var(--color-bg-muted)]">
 
-        {/* Skeleton */}
         {!imgLoaded && !imgError && <ImageSkeleton />}
 
         {primaryImage && !imgError ? (
@@ -58,7 +76,7 @@ export default function ProductCard({ product }) {
             loading="lazy"
             decoding="async"
             width={400}
-            height={300}
+            height={400}
             onLoad={() => setImgLoaded(true)}
             onError={() => setImgError(true)}
             className={`w-full h-full object-cover group-hover:scale-105
@@ -70,11 +88,11 @@ export default function ProductCard({ product }) {
         )}
 
         {/* Tags — top left */}
-        <div className="absolute top-2 left-2 flex flex-wrap gap-1">
-          {tags.slice(0, 2).map(tag => (
+        <div className="absolute top-1.5 left-1.5 flex flex-wrap gap-1">
+          {tags.slice(0, 1).map(tag => (
             <span
               key={tag}
-              className={`text-[10px] font-semibold px-2 py-0.5 rounded-full
+              className={`text-[9px] sm:text-[10px] font-semibold px-1.5 py-0.5 rounded-full
                          ${TAG_STYLE[tag] ?? "bg-gray-400 text-white"}`}
             >
               {TAG_LABEL[tag] ?? tag}
@@ -84,8 +102,8 @@ export default function ProductCard({ product }) {
 
         {/* Discount — top right */}
         {maxDiscountPercent > 0 && (
-          <span className="absolute top-2 right-2 bg-red-500 text-white
-                           text-[11px] font-bold px-2 py-0.5 rounded-full">
+          <span className="absolute top-1.5 right-1.5 bg-red-500 text-white
+                           text-[9px] sm:text-[11px] font-bold px-1.5 py-0.5 rounded-full">
             -{maxDiscountPercent}%
           </span>
         )}
@@ -93,53 +111,80 @@ export default function ProductCard({ product }) {
         {/* Out of stock overlay */}
         {!inStock && (
           <div className="absolute inset-0 bg-black/40 flex items-center justify-center">
-            <span className="bg-black/70 text-white text-sm font-medium
-                             px-4 py-1.5 rounded-full">
+            <span className="bg-black/70 text-white text-xs font-medium
+                             px-3 py-1 rounded-full">
               Hết hàng
             </span>
           </div>
         )}
 
-        {/* Add to cart — slide up on hover */}
+        {/*
+          Add to cart:
+          - Mobile: always visible at bottom of image (small icon button, no text)
+          - Desktop: slide up on hover with full text
+        */}
         {inStock && (
-          <button
-            onClick={(e) => {
-              e.preventDefault();
-              if (!isLoggedIn) { navigate("/login"); return; }
+          <>
+            {/* Mobile add button — always visible, bottom-right corner */}
+            <button
+              onClick={handleAddToCart}
+              disabled={adding}
+              className="
+                md:hidden
+                absolute bottom-2 right-2 z-10
+                w-8 h-8 rounded-full
+                bg-[var(--color-primary)] text-white
+                flex items-center justify-center
+                shadow-[0_2px_8px_rgba(0,0,0,0.2)]
+                active:scale-90 transition-transform
+                disabled:opacity-60
+              "
+              aria-label="Thêm vào giỏ hàng"
+            >
+              {adding
+                ? <span className="w-3.5 h-3.5 border-2 border-white/40 border-t-white rounded-full animate-spin" />
+                : <ShoppingCart size={14} />
+              }
+            </button>
 
-              // Ưu tiên defaultVariantId, fallback sang id đầu tiên trong variants
-              const variantId = product.defaultVariantId ?? product.variants?.[0]?.id
-              if (!variantId) return;
-
-              addItem(product.id, variantId, 1).then(() => {
-                window.dispatchEvent(new CustomEvent('cart:item-added', {
-                  detail: { imageUrl: product.primaryImage }
-                }))
-              })
-            }}
-            className="absolute bottom-0 inset-x-0 bg-[var(--color-primary)] text-white
-        py-2.5 text-sm font-medium flex items-center justify-center gap-2
-        translate-y-full group-hover:translate-y-0
-        transition-transform duration-200"
-          >
-            <ShoppingCart size={15} />
-            Thêm vào giỏ
-          </button>
+            {/* Desktop slide-up button */}
+            <button
+              onClick={handleAddToCart}
+              disabled={adding}
+              className="
+                hidden md:flex
+                absolute bottom-0 inset-x-0
+                bg-[var(--color-primary)] text-white
+                py-2.5 text-sm font-medium items-center justify-center gap-2
+                translate-y-full group-hover:translate-y-0
+                transition-transform duration-200
+                disabled:opacity-70
+              "
+            >
+              {adding
+                ? <span className="w-4 h-4 border-2 border-white/40 border-t-white rounded-full animate-spin" />
+                : <ShoppingCart size={15} />
+              }
+              Thêm vào giỏ
+            </button>
+          </>
         )}
       </div>
 
       {/* ── Info area ── */}
-      <div className="p-3 flex flex-col gap-1">
-        <p className="text-[11px] text-[var(--color-text-muted)]">{categoryName}</p>
+      <div className="p-2 sm:p-3 flex flex-col gap-0.5 sm:gap-1 flex-1">
+        <p className="text-[10px] sm:text-[11px] text-[var(--color-text-muted)] truncate">
+          {categoryName}
+        </p>
 
-        <h3 className="text-sm font-semibold text-[var(--color-text-primary)]
+        <h3 className="text-xs sm:text-sm font-semibold text-[var(--color-text-primary)]
                        line-clamp-2 leading-snug">
           {name}
         </h3>
 
         {/* Rating */}
-        <div className="flex items-center gap-1 text-xs text-[var(--color-text-secondary)]">
-          <span className="text-yellow-400">★</span>
+        <div className="flex items-center gap-1 text-[10px] sm:text-xs text-[var(--color-text-secondary)]">
+          <span className="text-yellow-400 text-xs">★</span>
           <span className="font-medium text-[var(--color-text-primary)]">
             {avgRating?.toFixed(1)}
           </span>
@@ -147,13 +192,13 @@ export default function ProductCard({ product }) {
         </div>
 
         {/* Price */}
-        <div className="flex items-center gap-2 mt-0.5 flex-wrap">
-          <span className="text-[var(--color-primary)] font-bold text-sm">
+        <div className="flex items-center gap-1.5 mt-0.5 flex-wrap">
+          <span className="text-[var(--color-primary)] font-bold text-xs sm:text-sm">
             {Number(minSalePrice)?.toLocaleString("vi-VN")}đ
           </span>
         </div>
       </div>
-    </Link >
+    </Link>
   );
 }
 
@@ -161,12 +206,12 @@ export function ProductCardSkeleton() {
   return (
     <div className="rounded-2xl overflow-hidden border border-[var(--color-border-subtle)]
                     bg-[var(--color-bg-card)] flex flex-col animate-pulse">
-      <div className="aspect-[4/3] bg-[var(--color-bg-muted)]" />
-      <div className="p-3 flex flex-col gap-2">
+      <div className="aspect-square bg-[var(--color-bg-muted)]" />
+      <div className="p-2 sm:p-3 flex flex-col gap-2">
+        <div className="h-2.5 w-1/3 bg-[var(--color-bg-muted)] rounded" />
+        <div className="h-3.5 w-3/4 bg-[var(--color-bg-muted)] rounded" />
+        <div className="h-2.5 w-1/4 bg-[var(--color-bg-muted)] rounded" />
         <div className="h-3 w-1/3 bg-[var(--color-bg-muted)] rounded" />
-        <div className="h-4 w-3/4 bg-[var(--color-bg-muted)] rounded" />
-        <div className="h-3 w-1/4 bg-[var(--color-bg-muted)] rounded" />
-        <div className="h-4 w-1/3 bg-[var(--color-bg-muted)] rounded" />
       </div>
     </div>
   );
