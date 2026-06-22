@@ -35,6 +35,7 @@ ghn:
   token: bf423246-64f6-11f1-9753-025d30e7fa67
   shop-id: 6483687
   base-url: https://online-gateway.ghn.vn
+  order-base-url: ${GHN_ORDER_BASE_URL:https://dev-online-gateway.ghn.vn}
   from-district-id: 1454
   from-ward-code: "21201"
   service-type-id: 2
