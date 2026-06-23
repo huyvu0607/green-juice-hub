@@ -80,9 +80,13 @@ ghn:
   from-ward-code: "21201"
   service-type-id: 2
 
-  # Bảo mật webhook
+  # Bảo mật webhookf=
   webhook-token: ${GHN_WEBHOOK_TOKEN:}
 
+logging:
+  level:
+    org.hibernate.SQL: WARN           # tắt SQL log
+    org.hibernate.orm.jdbc: WARN      # tắt SQL binding log
 vnpay:
   tmn-code: ${VNPAY_TMN_CODE:CYVAY8D1}
   hash-secret: ${VNPAY_HASH_SECRET:6VWURSRQBLV4X26RVB1DBCBJSJ839Z9C}
