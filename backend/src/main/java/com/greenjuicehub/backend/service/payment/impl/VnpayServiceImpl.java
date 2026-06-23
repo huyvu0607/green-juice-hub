@@ -64,9 +64,13 @@ public class VnpayServiceImpl implements IVnpayService {
         long   vnpAmount    = order.getTotalAmount()
                 .multiply(BigDecimal.valueOf(100)) // VNPay nhân 100
                 .longValue();
-        String vnpCreateDate = new SimpleDateFormat("yyyyMMddHHmmss").format(new Date());
-        String vnpExpireDate = new SimpleDateFormat("yyyyMMddHHmmss")
-                .format(new Date(System.currentTimeMillis() + 15 * 60 * 1000L)); // +15 phút
+        SimpleDateFormat sdf = new SimpleDateFormat("yyyyMMddHHmmss");
+        sdf.setTimeZone(TimeZone.getTimeZone("Asia/Ho_Chi_Minh")); // ← thêm dòng này
+
+        String vnpCreateDate = sdf.format(new Date());
+        String vnpExpireDate = sdf.format(
+                new Date(System.currentTimeMillis() + 15 * 60 * 1000L)
+        ); // +15 phút
 
         Map<String, String> vnpParams = new TreeMap<>();
         vnpParams.put("vnp_Version",    "2.1.0");
