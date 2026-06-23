@@ -1,6 +1,6 @@
 import { useEffect, useState, useCallback, useRef } from "react";
 import adminPromotionApi from "@/api/adminPromotionApi";
-import PromotionFormModal from "./PromotionFormModal"; // ← tách ra rồi
+import PromotionFormModal from "./Promotionformmodal"; // ← tách ra rồi
 import { useAdminRole } from "@/hooks/useAdminRole";
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
