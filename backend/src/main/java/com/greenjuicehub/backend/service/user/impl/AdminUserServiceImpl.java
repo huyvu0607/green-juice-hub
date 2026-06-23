@@ -15,6 +15,7 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.http.HttpStatus;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -43,18 +44,36 @@ public class AdminUserServiceImpl implements IAdminUserService {
     @Override
     @Transactional
     public AdminUserResponse toggleUserActive(Long userId) {
+        Long currentUserId = getCurrentUserId();
         User user = findOrThrow(userId);
+
+        if (user.getId().equals(currentUserId)) {
+            throw new AppException(HttpStatus.FORBIDDEN, "Không thể khoá chính mình");
+        }
+        if (user.getRole() == User.Role.ADMIN) {
+            throw new AppException(HttpStatus.FORBIDDEN, "Không thể khoá tài khoản Admin khác");
+        }
+
         user.setIsActive(!user.getIsActive());
         userRepository.save(user);
         return toResponse(user);
     }
+
 
     // ── Update role ───────────────────────────────────────────────────────────
 
     @Override
     @Transactional
     public AdminUserResponse updateRole(Long userId, UpdateUserRoleRequest request) {
+        Long currentUserId = getCurrentUserId();
         User user = findOrThrow(userId);
+
+        if (user.getId().equals(currentUserId)) {
+            throw new AppException(HttpStatus.FORBIDDEN, "Không thể thay đổi quyền của chính mình");
+        }
+        if (user.getRole() == User.Role.ADMIN) {
+            throw new AppException(HttpStatus.FORBIDDEN, "Không thể thay đổi quyền của Admin khác");
+        }
 
         User.Role newRole;
         try {
@@ -67,6 +86,7 @@ public class AdminUserServiceImpl implements IAdminUserService {
         userRepository.save(user);
         return toResponse(user);
     }
+
 
     // ── Create personal promo ─────────────────────────────────────────────────
 
@@ -115,6 +135,13 @@ public class AdminUserServiceImpl implements IAdminUserService {
     }
 
     // ── Helpers ───────────────────────────────────────────────────────────────
+
+    private Long getCurrentUserId() {
+        Object principal = SecurityContextHolder.getContext()
+                .getAuthentication().getPrincipal();
+        if (principal instanceof Long id) return id;
+        throw new AppException(HttpStatus.UNAUTHORIZED, "Không xác định được người dùng");
+    }
 
     private User findOrThrow(Long userId) {
         return userRepository.findById(userId)

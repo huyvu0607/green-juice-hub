@@ -1,5 +1,7 @@
 import { useEffect, useState, useCallback } from 'react'
 import adminUserApi from '@/api/adminUserApi'
+import useAuthStore from '@/store/authStore'
+
 
 // ─── Helpers ────────────────────────────────────────────────────────────────
 
@@ -26,8 +28,8 @@ function formatCurrency(value) {
 
 const ROLE_LABELS = {
   CUSTOMER: { label: 'Khách hàng', cls: 'bg-blue-50 text-blue-700 border-blue-200' },
-  STAFF:    { label: 'Nhân viên',  cls: 'bg-amber-50 text-amber-700 border-amber-200' },
-  ADMIN:    { label: 'Quản trị',   cls: 'bg-purple-50 text-purple-700 border-purple-200' },
+  STAFF: { label: 'Nhân viên', cls: 'bg-amber-50 text-amber-700 border-amber-200' },
+  ADMIN: { label: 'Quản trị', cls: 'bg-purple-50 text-purple-700 border-purple-200' },
 }
 
 // ─── Sub-components ──────────────────────────────────────────────────────────
@@ -73,6 +75,7 @@ function RoleModal({ user, onClose, onSaved }) {
   const [error, setError] = useState('')
 
   const handleSave = async () => {
+    if (user.role === 'ADMIN') { onClose(); return }
     if (role === user.role) { onClose(); return }
     setLoading(true); setError('')
     try {
@@ -98,9 +101,8 @@ function RoleModal({ user, onClose, onSaved }) {
           {Object.entries(ROLE_LABELS).map(([value, cfg]) => (
             <label
               key={value}
-              className={`flex cursor-pointer items-center gap-3 rounded-xl border px-4 py-3 transition ${
-                role === value ? 'border-green-500 bg-green-50' : 'border-gray-200 hover:border-gray-300'
-              }`}
+              className={`flex cursor-pointer items-center gap-3 rounded-xl border px-4 py-3 transition ${role === value ? 'border-green-500 bg-green-50' : 'border-gray-200 hover:border-gray-300'
+                }`}
             >
               <input
                 type="radio" name="role" value={value}
@@ -267,24 +269,37 @@ function PersonalPromoModal({ user, onClose, onCreated }) {
 // ─── Main Page ───────────────────────────────────────────────────────────────
 
 export default function AdminUsersPage() {
-  const [users, setUsers]       = useState([])
-  const [total, setTotal]       = useState(0)
-  const [page, setPage]         = useState(0)
-  const PAGE_SIZE               = 20
+  const currentUser = useAuthStore(state => state.user)
 
-  const [keyword, setKeyword]   = useState('')
-  const [role, setRole]         = useState('')
+  const [users, setUsers] = useState([])
+  const [total, setTotal] = useState(0)
+  const [page, setPage] = useState(0)
+  const PAGE_SIZE = 20
+
+  const [keyword, setKeyword] = useState('')
+  const [debouncedKeyword, setDebouncedKeyword] = useState('')
+  const [role, setRole] = useState('')
   const [isActive, setIsActive] = useState('')
 
-  const [loading, setLoading]   = useState(false)
-  const [error, setError]       = useState('')
+  const [loading, setLoading] = useState(false)
+  const [error, setError] = useState('')
 
   // Modals
-  const [roleModal, setRoleModal]   = useState(null)   // user object
+  const [roleModal, setRoleModal] = useState(null)   // user object
   const [promoModal, setPromoModal] = useState(null)   // user object
-  const [toggling, setToggling]     = useState(null)   // userId being toggled
+  const [toggling, setToggling] = useState(null)   // userId being toggled
 
+  //helper 
+  const isProtected = (user) =>
+    user.role === 'ADMIN' || user.id === currentUser?.id
   // ── Fetch ──────────────────────────────────────────────────────────────────
+
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setDebouncedKeyword(keyword)
+    }, 400)
+    return () => clearTimeout(timer)
+  }, [keyword])
 
   const fetchUsers = useCallback(async () => {
     setLoading(true); setError('')
@@ -293,7 +308,7 @@ export default function AdminUsersPage() {
         page,
         size: PAGE_SIZE,
         ...(keyword.trim() && { keyword: keyword.trim() }),
-        ...(role           && { role }),
+        ...(role && { role }),
         ...(isActive !== '' && { isActive: isActive === 'true' }),
       }
       const res = await adminUserApi.getUsers(params)
@@ -304,12 +319,12 @@ export default function AdminUsersPage() {
     } finally {
       setLoading(false)
     }
-  }, [page, keyword, role, isActive])
+  }, [page, debouncedKeyword, role, isActive])
 
   useEffect(() => { fetchUsers() }, [fetchUsers])
 
   // Reset về trang 0 khi filter thay đổi
-  useEffect(() => { setPage(0) }, [keyword, role, isActive])
+  useEffect(() => { setPage(0) }, [debouncedKeyword, role, isActive])
 
   // ── Actions ────────────────────────────────────────────────────────────────
 
@@ -471,7 +486,9 @@ export default function AdminUsersPage() {
                         {/* Gán quyền */}
                         <button
                           onClick={() => setRoleModal(user)}
-                          className="rounded-lg border border-gray-200 bg-white px-3 py-1.5 text-xs font-medium text-gray-600 hover:bg-gray-50 transition"
+                          disabled={user.role === 'ADMIN'}
+                          title={user.role === 'ADMIN' ? 'Không thể thay đổi quyền Admin' : undefined}
+                          className="rounded-lg border border-gray-200 bg-white px-3 py-1.5 text-xs font-medium text-gray-600 hover:bg-gray-50 transition disabled:opacity-40 disabled:cursor-not-allowed"
                         >
                           Quyền
                         </button>
@@ -515,11 +532,10 @@ export default function AdminUsersPage() {
               return (
                 <button key={pageNum}
                   onClick={() => setPage(pageNum)}
-                  className={`rounded-lg px-3 py-1.5 transition ${
-                    page === pageNum
-                      ? 'bg-green-600 text-white'
-                      : 'border border-gray-200 hover:bg-gray-100'
-                  }`}
+                  className={`rounded-lg px-3 py-1.5 transition ${page === pageNum
+                    ? 'bg-green-600 text-white'
+                    : 'border border-gray-200 hover:bg-gray-100'
+                    }`}
                 >
                   {pageNum + 1}
                 </button>
@@ -537,8 +553,8 @@ export default function AdminUsersPage() {
       )}
 
       {/* Modals */}
-      {roleModal  && <RoleModal user={roleModal} onClose={() => setRoleModal(null)} onSaved={handleRoleSaved} />}
-      {promoModal && <PersonalPromoModal user={promoModal} onClose={() => setPromoModal(null)} onCreated={() => {}} />}
+      {roleModal && <RoleModal user={roleModal} onClose={() => setRoleModal(null)} onSaved={handleRoleSaved} />}
+      {promoModal && <PersonalPromoModal user={promoModal} onClose={() => setPromoModal(null)} onCreated={() => { }} />}
     </div>
   )
 }

@@ -85,7 +85,7 @@ export default function FilterSidebar({ filter, categories, flavors, sizes, onCh
 
   return (
     <div className="rounded-2xl border border-[var(--color-border-subtle)]
-                    bg-[var(--color-bg-card)] p-4 w-full">
+                bg-[var(--color-bg-card)] p-4 w-full overflow-hidden">
 
       {/* ── Khoảng giá (shown inside sidebar/modal on mobile) ── */}
       <div className="border-b border-[var(--color-border-subtle)] pb-4 mb-4">
@@ -98,7 +98,7 @@ export default function FilterSidebar({ filter, categories, flavors, sizes, onCh
             placeholder="Từ đ"
             value={filter.minPrice ?? ""}
             onChange={e => onChange({ minPrice: e.target.value })}
-            className="flex-1 px-2.5 py-1.5 text-sm rounded-lg
+            className="flex-1 min-w-0  px-2.5 py-1.5 text-sm rounded-lg
                        border border-[var(--color-border-subtle)] bg-transparent
                        text-[var(--color-text-primary)]
                        focus:outline-none focus:ring-1 focus:ring-[var(--color-primary)]"
@@ -109,7 +109,7 @@ export default function FilterSidebar({ filter, categories, flavors, sizes, onCh
             placeholder="Đến đ"
             value={filter.maxPrice ?? ""}
             onChange={e => onChange({ maxPrice: e.target.value })}
-            className="flex-1 px-2.5 py-1.5 text-sm rounded-lg
+            className="flex-1  min-w-0  px-2.5 py-1.5 text-sm rounded-lg
                        border border-[var(--color-border-subtle)] bg-transparent
                        text-[var(--color-text-primary)]
                        focus:outline-none focus:ring-1 focus:ring-[var(--color-primary)]"

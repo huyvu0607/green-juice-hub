@@ -51,8 +51,9 @@ export default function OrdersListPage() {
   const tabRef = useRef(null)
   const debounceRef = useRef(null)
   const searchRef = useRef(null)
+  // ref để scroll lên đầu content khi đổi tab
+  const contentTopRef = useRef(null)
 
-  // ✅ FIX 2: đổi tên state thành reviewItems (số nhiều), kiểu array | null
   const [reviewItems, setReviewItems] = useState(null)
   const { addItem } = useCartStore()
 
@@ -61,6 +62,7 @@ export default function OrdersListPage() {
     fetchStatusCounts()
   }, [])
 
+  // Scroll tab active vào giữa thanh tab
   useEffect(() => {
     if (!tabRef.current) return
     const activeEl = tabRef.current.querySelector('[data-active="true"]')
@@ -82,6 +84,9 @@ export default function OrdersListPage() {
     debounceRef.current = setTimeout(() => {
       fetchMyOrders(0, 10, key === 'ALL' ? null : key)
     }, 300)
+
+    // Scroll lên đầu trang khi đổi tab
+    window.scrollTo({ top: 0, behavior: 'smooth' })
   }
 
   const handleSearch = (e) => setSearchQuery(e.target.value)
@@ -104,21 +109,23 @@ export default function OrdersListPage() {
         className="sticky top-16 z-10"
         style={{ background: 'var(--color-bg-surface)', borderBottom: '0.5px solid var(--color-border-subtle)' }}
       >
-        <div className="max-w-6xl mx-auto px-6 pt-5 pb-3">
+        <div className="max-w-6xl mx-auto px-4 sm:px-6 pt-4 sm:pt-5 pb-3">
 
-          <nav className="flex items-center gap-1.5 text-sm mb-3" style={{ color: 'var(--color-text-muted)' }}>
+          {/* Breadcrumb — ẩn trên mobile để tiết kiệm không gian */}
+          <nav className="hidden sm:flex items-center gap-1.5 text-sm mb-3" style={{ color: 'var(--color-text-muted)' }}>
             <Link to="/" className="hover:text-[var(--color-primary)] transition-colors">Trang chủ</Link>
             <span className="opacity-50">/</span>
             <span className="font-medium" style={{ color: 'var(--color-text-primary)' }}>Đơn hàng của tôi</span>
           </nav>
 
-          <div className="flex items-end justify-between gap-4 mb-4">
+          {/* Title + Search: stack trên mobile, hàng ngang trên desktop */}
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-4">
             <div>
               <h1
                 className="font-bold"
                 style={{
                   color: 'var(--color-text-primary)',
-                  fontSize: '1.6rem',
+                  fontSize: 'clamp(1.25rem, 4vw, 1.6rem)',
                   letterSpacing: '-0.02em',
                   lineHeight: 1.2,
                   fontFamily: '"Be Vietnam Pro", "Inter", system-ui, sans-serif',
@@ -131,10 +138,10 @@ export default function OrdersListPage() {
               </p>
             </div>
 
+            {/* Search box: full-width trên mobile */}
             <div
-              className="flex items-center gap-2 px-3 py-2 rounded-[var(--radius-lg)] transition-all flex-shrink-0"
+              className="flex items-center gap-2 px-3 py-2 rounded-[var(--radius-lg)] transition-all w-full sm:w-[260px] flex-shrink-0"
               style={{
-                width: 260,
                 background: 'var(--color-bg-elevated)',
                 border: '1px solid var(--color-border-subtle)',
               }}
@@ -165,10 +172,11 @@ export default function OrdersListPage() {
             </div>
           </div>
 
+          {/* Tab bar */}
           {!isSearching && (
             <div
               ref={tabRef}
-              className="flex gap-1 p-1 overflow-x-auto -mx-6 px-6"
+              className="flex gap-1 p-1 overflow-x-auto -mx-4 sm:-mx-6 px-4 sm:px-6"
               style={{
                 background: 'var(--color-bg-muted)',
                 borderRadius: 'var(--radius-lg)',
@@ -183,11 +191,11 @@ export default function OrdersListPage() {
                     key={tab.key}
                     data-active={isActive}
                     onClick={() => handleTabChange(tab.key)}
-                    className="flex-shrink-0 flex items-center gap-1.5 text-sm cursor-pointer transition-all whitespace-nowrap"
+                    className="flex-shrink-0 flex items-center gap-1.5 text-xs sm:text-sm cursor-pointer transition-all whitespace-nowrap"
                     style={{
                       borderRadius: 'var(--radius-md)',
                       fontWeight: isActive ? 600 : 400,
-                      padding: '8px 12px',
+                      padding: '7px 10px',
                       background: isActive ? 'var(--color-bg-elevated)' : 'transparent',
                       color: isActive ? 'var(--color-text-primary)' : 'var(--color-text-secondary)',
                       border: isActive ? '0.5px solid var(--color-border-subtle)' : '0.5px solid transparent',
@@ -227,7 +235,7 @@ export default function OrdersListPage() {
       </div>
 
       {/* ── Content ── */}
-      <div className="max-w-6xl mx-auto px-6 py-4">
+      <div ref={contentTopRef} className="max-w-6xl mx-auto px-4 sm:px-6 py-4">
 
         {loading && orders.length === 0 && (
           <div className="flex justify-center py-16">
@@ -292,7 +300,6 @@ export default function OrdersListPage() {
             const unreviewedCount = unreviewedItems.length
 
             return (
-              // ✅ FIX 1: đổi <button> thành <div> để tránh nested button
               <div
                 key={order.id}
                 onClick={() => navigate(`/orders/${order.id}`)}
@@ -309,7 +316,7 @@ export default function OrdersListPage() {
               >
                 {/* Top: mã đơn + status */}
                 <div
-                  className="flex items-center justify-between px-4 py-3"
+                  className="flex items-center justify-between px-3 sm:px-4 py-2.5 sm:py-3"
                   style={{
                     borderBottom: '0.5px solid var(--color-border-subtle)',
                     background: 'var(--color-bg-muted)',
@@ -356,7 +363,7 @@ export default function OrdersListPage() {
                 </div>
 
                 {/* Middle: thumbnails + tên SP + action buttons */}
-                <div className="flex items-center gap-3 px-4 py-3">
+                <div className="flex items-center gap-2 sm:gap-3 px-3 sm:px-4 py-3">
                   {/* Thumbnails */}
                   <div className="flex items-center -space-x-2 flex-shrink-0">
                     {order.items?.slice(0, 3).map((item, idx) => (
@@ -364,13 +371,13 @@ export default function OrdersListPage() {
                         key={item.id}
                         src={item.imageUrl || '/placeholder.png'}
                         alt={item.productName}
-                        className="w-11 h-11 object-cover rounded-[var(--radius-sm)]"
+                        className="w-10 h-10 sm:w-11 sm:h-11 object-cover rounded-[var(--radius-sm)]"
                         style={{ border: '2px solid var(--color-bg-elevated)', zIndex: 3 - idx }}
                       />
                     ))}
                     {(order.items?.length ?? 0) > 3 && (
                       <div
-                        className="w-11 h-11 rounded-[var(--radius-sm)] flex items-center justify-center text-xs font-medium"
+                        className="w-10 h-10 sm:w-11 sm:h-11 rounded-[var(--radius-sm)] flex items-center justify-center text-xs font-medium"
                         style={{
                           background: 'var(--color-bg-muted)',
                           color: 'var(--color-text-muted)',
@@ -386,7 +393,7 @@ export default function OrdersListPage() {
                   {/* Tên sản phẩm */}
                   <div className="flex-1 min-w-0">
                     <p
-                      className="text-sm font-medium"
+                      className="text-xs sm:text-sm font-medium"
                       style={{
                         color: 'var(--color-text-primary)',
                         whiteSpace: 'nowrap',
@@ -397,7 +404,7 @@ export default function OrdersListPage() {
                       {previewNames}
                       {extraItems > 0 && (
                         <span style={{ color: 'var(--color-text-muted)', fontWeight: 400 }}>
-                          {' '}· {extraItems} sản phẩm khác
+                          {' '}· {extraItems} SP khác
                         </span>
                       )}
                     </p>
@@ -406,10 +413,10 @@ export default function OrdersListPage() {
                     </p>
                   </div>
 
-                  {/* Action buttons — stopPropagation để không trigger navigate */}
+                  {/* Action buttons */}
                   <div className="flex flex-col gap-1.5 flex-shrink-0" onClick={e => e.stopPropagation()}>
 
-                    {/* ✅ FIX 2: Nút "Đánh giá" — truyền items array (tất cả unreviewed) */}
+                    {/* Nút "Đánh giá" */}
                     {order.status === 'DELIVERED' && unreviewedCount > 0 && (
                       <button
                         onClick={(e) => {
@@ -425,7 +432,7 @@ export default function OrdersListPage() {
                           }))
                           if (items.length > 0) setReviewItems(items)
                         }}
-                        className="text-xs font-semibold px-3 py-1.5 rounded-[var(--radius-md)] cursor-pointer transition-all whitespace-nowrap"
+                        className="text-xs font-semibold px-2.5 sm:px-3 py-1.5 rounded-[var(--radius-md)] cursor-pointer transition-all whitespace-nowrap"
                         style={{
                           background: 'var(--color-primary-subtle)',
                           color: 'var(--color-primary)',
@@ -443,17 +450,15 @@ export default function OrdersListPage() {
                           e.stopPropagation()
                           if (!order.items?.length) return
                           try {
-                            // Thêm tuần tự từng sản phẩm
                             for (const item of order.items) {
                               await addItem(item.productId, item.variantId, item.quantity ?? 1)
                             }
-                            // Dispatch event 1 lần sau khi thêm hết
                             window.dispatchEvent(new CustomEvent('cart:item-added', {
                               detail: { imageUrl: order.items[0]?.imageUrl ?? null }
                             }))
                           } catch { }
                         }}
-                        className="text-xs font-medium px-3 py-1.5 rounded-[var(--radius-md)] cursor-pointer transition-all whitespace-nowrap"
+                        className="text-xs font-medium px-2.5 sm:px-3 py-1.5 rounded-[var(--radius-md)] cursor-pointer transition-all whitespace-nowrap"
                         style={{
                           background: 'var(--color-bg-muted)',
                           color: 'var(--color-text-secondary)',
@@ -464,21 +469,21 @@ export default function OrdersListPage() {
                       </button>
                     )}
 
-                    {/* Nút "Xem chi tiết" cho các trạng thái khác */}
+                    {/* Nút "Xem chi tiết" */}
                     {!['DELIVERED', 'CANCELLED'].includes(order.status) && (
                       <button
                         onClick={(e) => {
                           e.stopPropagation()
                           navigate(`/orders/${order.id}`)
                         }}
-                        className="text-xs font-medium px-3 py-1.5 rounded-[var(--radius-md)] cursor-pointer transition-all whitespace-nowrap"
+                        className="text-xs font-medium px-2.5 sm:px-3 py-1.5 rounded-[var(--radius-md)] cursor-pointer transition-all whitespace-nowrap"
                         style={{
                           background: 'var(--color-bg-muted)',
                           color: 'var(--color-text-secondary)',
                           border: '1px solid var(--color-border-subtle)',
                         }}
                       >
-                        Xem chi tiết →
+                        Chi tiết →
                       </button>
                     )}
                   </div>
@@ -486,7 +491,7 @@ export default function OrdersListPage() {
 
                 {/* Bottom: date + price */}
                 <div
-                  className="flex items-center justify-between px-4 py-2.5"
+                  className="flex items-center justify-between px-3 sm:px-4 py-2.5"
                   style={{ borderTop: '0.5px solid var(--color-border-subtle)' }}
                 >
                   <span className="text-xs flex items-center gap-1" style={{ color: 'var(--color-text-muted)' }}>
@@ -524,7 +529,6 @@ export default function OrdersListPage() {
 
       </div>
 
-      {/* ✅ FIX 2: prop đúng tên "items", truyền array */}
       {reviewItems && reviewItems.length > 0 && (
         <ReviewFormPopup
           items={reviewItems}
