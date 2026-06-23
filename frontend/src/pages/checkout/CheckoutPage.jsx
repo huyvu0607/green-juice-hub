@@ -11,6 +11,7 @@ import BankTransferModal from '@/components/order/BankTransferModal'
 import OrderSuccessModal from '@/components/order/OrderSuccessModal'
 import orderApi from '@/api/orderApi'
 import useProfileModalStore from '@/store/useProfileModalStore'
+import paymentApi from '@/api/paymentApi'
 
 
 
@@ -841,6 +842,7 @@ export default function CheckoutPage() {
   const [promoCode, setPromoCode] = useState('')
   const [bankTransferOrder, setBankTransferOrder] = useState(null)
   const [orderPlaced, setOrderPlaced] = useState(false)
+  const [vnpayLoading, setVnpayLoading] = useState(false)
 
   // ── Dùng frozenItems nếu đã đặt hàng, tránh mất data khi fetchCart cập nhật ──
   const displayItems = frozenItems ?? selectedItems
@@ -981,6 +983,15 @@ export default function CheckoutPage() {
       }
       if (paymentMethod === 'BANK_TRANSFER') {
         setBankTransferOrder(order)
+      } else if (paymentMethod === 'VNPAY') {
+        setVnpayLoading(true)
+        try {
+          const res = await paymentApi.createVnpayUrl(order.id)
+          window.location.href = res.data.paymentUrl
+        } catch {
+          setVnpayLoading(false)
+          setSuccessOrder(order) // fallback nếu lỗi tạo URL
+        }
       } else {
         setSuccessOrder(order)
       }
@@ -1103,14 +1114,17 @@ export default function CheckoutPage() {
               </Card>
 
               <button onClick={handleSubmit}
-                disabled={placing || !addressId || displayItems.length === 0 || shippingLoading}
+                disabled={placing || vnpayLoading || !addressId || displayItems.length === 0 || shippingLoading}
                 className="w-full py-3.5 rounded-[var(--radius-md)] font-semibold text-sm text-white flex items-center justify-center gap-2 transition-colors cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
                 style={{ background: 'var(--color-primary)' }}
                 onMouseEnter={(e) => { if (!placing) e.currentTarget.style.background = 'var(--color-primary-hover)' }}
                 onMouseLeave={(e) => { e.currentTarget.style.background = 'var(--color-primary)' }}
               >
-                {placing ? (
-                  <><div className="w-4 h-4 rounded-full border-2 border-white border-t-transparent animate-spin" />Đang xử lý...</>
+                {placing || vnpayLoading ? (
+                  <>
+                    <div className="w-4 h-4 rounded-full border-2 border-white border-t-transparent animate-spin" />
+                    {vnpayLoading ? 'Đang chuyển đến VNPay...' : 'Đang xử lý...'}
+                  </>
                 ) : (
                   <>Đặt hàng · {fmt(total)}<Icon.ChevronRight /></>
                 )}

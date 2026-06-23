@@ -209,6 +209,7 @@ public class VnpayServiceImpl implements IVnpayService {
     // ─────────────────────────────────────────────────────────────────────────
 
     @Override
+    @Transactional
     public Map<String, Object> processReturn(Map<String, String> params) {
         String vnpSecureHash = params.get("vnp_SecureHash");
 
@@ -227,16 +228,38 @@ public class VnpayServiceImpl implements IVnpayService {
             hashData.deleteCharAt(hashData.length() - 1);
         }
 
-        String calculatedHash = hmacSHA512(vnpayProperties.getHashSecret(), hashData.toString());
-        boolean isValid       = calculatedHash.equalsIgnoreCase(vnpSecureHash);
+        String  calculatedHash = hmacSHA512(vnpayProperties.getHashSecret(), hashData.toString());
+        boolean isValid        = calculatedHash.equalsIgnoreCase(vnpSecureHash);
+        String  responseCode   = params.get("vnp_ResponseCode");
+        String  orderCode      = params.get("vnp_TxnRef");
+        String  transactionId  = params.get("vnp_TransactionNo");
+        boolean isSuccess      = isValid && "00".equals(responseCode);
 
-        String  responseCode = params.get("vnp_ResponseCode");
-        String  orderCode    = params.get("vnp_TxnRef");
-        boolean isSuccess    = isValid && "00".equals(responseCode);
+        // ── Update DB nếu thành công ─────────────────────────────────────────
+        Order order = orderRepository.findByOrderCode(orderCode).orElse(null);
 
+        if (isSuccess && order != null
+                && order.getPaymentStatus() != Order.PaymentStatus.PAID) {
+
+            order.setPaymentStatus(Order.PaymentStatus.PAID);
+            orderRepository.save(order);
+
+            paymentRepository.findTopByOrderIdOrderByCreatedAtDesc(order.getId())
+                    .ifPresent(payment -> {
+                        payment.setStatus(Payment.PaymentStatus.SUCCESS);
+                        payment.setTransactionId(transactionId);
+                        payment.setPaidAt(LocalDateTime.now());
+                        paymentRepository.save(payment);
+                    });
+
+            log.info("[VNPay Return] Cập nhật PAID - orderCode={}", orderCode);
+        }
+
+        // ── Trả về FE ────────────────────────────────────────────────────────
         Map<String, Object> result = new HashMap<>();
         result.put("success",      isSuccess);
         result.put("orderCode",    orderCode);
+        result.put("orderId",      order != null ? order.getId() : null); // FE dùng redirect
         result.put("responseCode", responseCode);
         result.put("message",      isSuccess ? "Thanh toán thành công" : "Thanh toán thất bại hoặc bị huỷ");
 

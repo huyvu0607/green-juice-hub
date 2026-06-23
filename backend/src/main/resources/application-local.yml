@@ -40,5 +40,9 @@ ghn:
   from-ward-code: "21201"
   service-type-id: 2
   webhook-token: 55b08740c1ffe46b86ea203cce68cad7debe96a6447b86e9
+  
+vnpay:
+  return-url: http://localhost:5173/payment/vnpay/result
+  ipn-url:  https://boarishly-ruthenious-versie.ngrok-free.dev/api/payment/vnpay/ipn
 
 
