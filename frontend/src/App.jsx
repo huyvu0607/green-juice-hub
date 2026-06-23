@@ -30,12 +30,12 @@ import AdminOrdersPage from '@/pages/admin/order/AdminOrdersPage'
 import AdminOrderDetailPage from '@/pages/admin/order/AdminOrderDetailPage'
 import AdminProductsPage from '@/pages/admin/product/AdminProductsPage'
 import AdminProductFormPage from '@/pages/admin/product/AdminProductFormPage'
-import AdminPromotionsPage from '@/pages/admin/promotion/AdminPromotionsPage'   // ← thêm
+import AdminPromotionsPage from '@/pages/admin/promotion/Adminpromotionspage'   // ← thêm
 import AdminUsersPage from '@/pages/admin/user/AdminUsersPage'                       // ← thêm
 import AdminReviewsPage from './pages/admin/reviews/AdminReviewsPage'
 import AdminContactsPage from '@/pages/admin/contact/AdminContactsPage'
 import AdminBannersPage from '@/pages/admin/banners/AdminBannersPage'
-import AdminPoliciesPage from '@/pages/admin/policy/AdminPoliciesPage'
+import AdminPoliciesPage from '@/pages/admin/policy/Adminpoliciespage'
 
 function ScrollToTop() {
   const { pathname, search } = useLocation()

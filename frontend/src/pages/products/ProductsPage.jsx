@@ -81,7 +81,6 @@ function FilterModal({ open, onClose, filter, categories, flavors, sizes, onChan
   const [mounted, setMounted] = useState(false);
   const [visible, setVisible] = useState(false);
 
-  // Effect 1: điều khiển mount/unmount — KHÔNG set visible ở đây
   useEffect(() => {
     if (open) {
       setMounted(true);
@@ -94,9 +93,6 @@ function FilterModal({ open, onClose, filter, categories, flavors, sizes, onChan
     }
   }, [open]);
 
-  // Effect 2: trigger animation SAU KHI component được paint vào DOM
-  // Khi mounted đổi từ false → true, component đã render ở translateY(100%)
-  // RAF chạy sau khi browser paint → set visible=true → transition slide lên
   useEffect(() => {
     if (!mounted) return;
     const raf = requestAnimationFrame(() => setVisible(true));
@@ -107,7 +103,7 @@ function FilterModal({ open, onClose, filter, categories, flavors, sizes, onChan
 
   return (
     <>
-      {/* Backdrop — fade in/out */}
+      {/* Backdrop */}
       <div
         onClick={onClose}
         style={{
@@ -118,7 +114,7 @@ function FilterModal({ open, onClose, filter, categories, flavors, sizes, onChan
         className="fixed inset-0 z-40 bg-black/50"
       />
 
-      {/* Bottom sheet — slide up/down */}
+      {/* Bottom sheet */}
       <div
         style={{
           transition: visible
@@ -201,7 +197,7 @@ function SortDropdown({ value, onChange }) {
       <button
         onClick={() => setOpen(!open)}
         className={`flex items-center gap-1.5 px-2.5 py-1.5 text-xs sm:text-sm rounded-lg
-            border transition-colors min-w-[100px] sm:min-w-[130px] justify-between
+            border transition-colors min-w-[110px] sm:min-w-[130px] justify-between
             ${open
               ? "border-[var(--color-primary)] text-[var(--color-primary)] bg-[var(--color-primary-subtle)]"
               : "border-[var(--color-border-subtle)] text-[var(--color-text-secondary)] bg-[var(--color-bg-surface)] hover:bg-[var(--color-bg-muted)]"
@@ -334,86 +330,120 @@ export default function ProductsPage() {
     <div className="max-w-screen-xl mx-auto px-4 sm:px-0 py-0 pb-28 md:pb-4">
 
       {/* ── Toolbar sticky ── */}
-      <div className="sticky top-[65px] z-10 -mx-4 sm:-mx-6 px-3 sm:px-6 py-2 mb-4
+      <div className="sticky top-[65px] z-10 -mx-4 sm:-mx-6 px-3 sm:px-6 mb-4
                       bg-[var(--color-bg-surface)]
                       border-b border-[var(--color-border-subtle)]
-                      flex items-center gap-2 flex-wrap">
+                      flex flex-col md:flex-row md:items-center md:flex-wrap md:gap-2">
 
-        {/* Desktop: sidebar toggle */}
-        <button
-          onClick={() => setSidebarOpen(!sidebarOpen)}
-          className={`hidden md:flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm
-                      border transition-colors shrink-0
-                      ${sidebarOpen
-                        ? "border-[var(--color-primary)] text-[var(--color-primary)] bg-[var(--color-primary-subtle)]"
-                        : "border-[var(--color-border-subtle)] text-[var(--color-text-secondary)] hover:bg-[var(--color-bg-muted)]"
-                      }`}
-        >
-          <SlidersHorizontal size={14} />
-          Bộ lọc
-        </button>
+        {/* ── Hàng 1: Title (mobile) / Filter toggle (desktop) + Tags ── */}
+        <div className="flex items-center gap-2 py-2 w-full md:w-auto md:flex-1 min-w-0">
 
-        {/* Mobile: page title */}
-        <span className="md:hidden text-sm font-semibold text-[var(--color-text-primary)] shrink-0">
-          Sản phẩm
-        </span>
-
-        <div className="flex-1" />
-
-        {/* Tag chips — scrollable trên mobile */}
-        <div className="flex items-center gap-1.5 overflow-x-auto scrollbar-none shrink-0
-                        max-w-[calc(100vw-200px)] sm:max-w-none">
-          {tags.map(({ key, label }) => (
-            <button
-              key={key}
-              onClick={() => toggleTag(key)}
-              className={`px-2.5 py-1 rounded-full text-xs font-medium border transition-colors shrink-0
-                          ${(filter.tags ?? []).includes(key)
-                            ? "bg-[var(--color-primary)] border-[var(--color-primary)] text-white"
-                            : "border-[var(--color-border-subtle)] text-[var(--color-text-secondary)] hover:bg-[var(--color-bg-muted)]"
-                          }`}
-            >
-              {label}
-            </button>
-          ))}
-        </div>
-
-        {/* Price range — ẩn trên mobile nhỏ, dùng modal thay */}
-        <div className="hidden sm:flex items-center gap-1 shrink-0">
-          <input
-            type="number" placeholder="Từ đ"
-            value={filter.minPrice ?? ""}
-            onChange={e => updateFilter({ minPrice: e.target.value })}
-            className="w-16 sm:w-20 px-2 py-1.5 text-sm rounded-lg
-                       border border-[var(--color-border-subtle)] bg-transparent
-                       text-[var(--color-text-primary)]
-                       focus:outline-none focus:ring-1 focus:ring-[var(--color-primary)]"
-          />
-          <span className="text-[var(--color-text-muted)] text-xs">—</span>
-          <input
-            type="number" placeholder="Đến đ"
-            value={filter.maxPrice ?? ""}
-            onChange={e => updateFilter({ maxPrice: e.target.value })}
-            className="w-16 sm:w-20 px-2 py-1.5 text-sm rounded-lg
-                       border border-[var(--color-border-subtle)] bg-transparent
-                       text-[var(--color-text-primary)]
-                       focus:outline-none focus:ring-1 focus:ring-[var(--color-primary)]"
-          />
-        </div>
-
-        {/* Sort */}
-        <SortDropdown value={filter.sortBy} onChange={(val) => updateFilter({ sortBy: val })} />
-
-        {/* Reset */}
-        {activeFilterCount > 0 && (
+          {/* Desktop: sidebar toggle */}
           <button
-            onClick={resetFilter}
-            className="flex items-center gap-1 text-xs text-[var(--color-text-muted)]
-                       hover:text-[var(--color-text-primary)] transition-colors shrink-0"
+            onClick={() => setSidebarOpen(!sidebarOpen)}
+            className={`hidden md:flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm
+                        border transition-colors shrink-0
+                        ${sidebarOpen
+                          ? "border-[var(--color-primary)] text-[var(--color-primary)] bg-[var(--color-primary-subtle)]"
+                          : "border-[var(--color-border-subtle)] text-[var(--color-text-secondary)] hover:bg-[var(--color-bg-muted)]"
+                        }`}
           >
-            <X size={13} /> Xoá lọc
+            <SlidersHorizontal size={14} />
+            Bộ lọc
           </button>
-        )}
+
+          {/* Mobile: page title */}
+          <span className="md:hidden text-sm font-semibold text-[var(--color-text-primary)] shrink-0">
+            Sản phẩm
+          </span>
+
+          {/* Tag chips — scrollable */}
+          <div className="flex items-center gap-1.5 overflow-x-auto scrollbar-none flex-1 min-w-0">
+            {tags.map(({ key, label }) => (
+              <button
+                key={key}
+                onClick={() => toggleTag(key)}
+                className={`px-2.5 py-1 rounded-full text-xs font-medium border transition-colors shrink-0
+                            ${(filter.tags ?? []).includes(key)
+                              ? "bg-[var(--color-primary)] border-[var(--color-primary)] text-white"
+                              : "border-[var(--color-border-subtle)] text-[var(--color-text-secondary)] hover:bg-[var(--color-bg-muted)]"
+                            }`}
+              >
+                {label}
+              </button>
+            ))}
+          </div>
+
+          {/* Desktop: spacer */}
+          <div className="hidden md:block flex-1" />
+
+          {/* Desktop: price range */}
+          <div className="hidden md:flex items-center gap-1 shrink-0">
+            <input
+              type="number" placeholder="Từ đ"
+              value={filter.minPrice ?? ""}
+              onChange={e => updateFilter({ minPrice: e.target.value })}
+              className="w-20 px-2 py-1.5 text-sm rounded-lg
+                         border border-[var(--color-border-subtle)] bg-transparent
+                         text-[var(--color-text-primary)]
+                         focus:outline-none focus:ring-1 focus:ring-[var(--color-primary)]"
+            />
+            <span className="text-[var(--color-text-muted)] text-xs">—</span>
+            <input
+              type="number" placeholder="Đến đ"
+              value={filter.maxPrice ?? ""}
+              onChange={e => updateFilter({ maxPrice: e.target.value })}
+              className="w-20 px-2 py-1.5 text-sm rounded-lg
+                         border border-[var(--color-border-subtle)] bg-transparent
+                         text-[var(--color-text-primary)]
+                         focus:outline-none focus:ring-1 focus:ring-[var(--color-primary)]"
+            />
+          </div>
+
+          {/* Desktop: Sort */}
+          <div className="hidden md:block shrink-0">
+            <SortDropdown value={filter.sortBy} onChange={(val) => updateFilter({ sortBy: val })} />
+          </div>
+
+          {/* Desktop: Reset */}
+          {activeFilterCount > 0 && (
+            <button
+              onClick={resetFilter}
+              className="hidden md:flex items-center gap-1 text-xs text-[var(--color-text-muted)]
+                         hover:text-[var(--color-text-primary)] transition-colors shrink-0"
+            >
+              <X size={13} /> Xoá lọc
+            </button>
+          )}
+        </div>
+
+        {/* ── Hàng 2 (mobile only): Số sp / Reset bên trái — Sort bên phải ── */}
+        <div className="flex items-center justify-between pb-2 md:hidden">
+          {activeFilterCount > 0 ? (
+            <button
+              onClick={resetFilter}
+              className="flex items-center gap-1 text-xs text-[var(--color-text-muted)]
+                         hover:text-[var(--color-text-primary)] transition-colors"
+            >
+              <X size={13} />
+              Xoá lọc
+              <span className="ml-0.5 w-4 h-4 rounded-full
+                               bg-[var(--color-primary)] text-white
+                               text-[9px] font-bold
+                               flex items-center justify-center">
+                {activeFilterCount}
+              </span>
+            </button>
+          ) : (
+            <span className="text-xs text-[var(--color-text-secondary)]">
+              {totalElements} sản phẩm
+            </span>
+          )}
+
+          {/* Sort dropdown — luôn bên phải trên mobile */}
+          <SortDropdown value={filter.sortBy} onChange={(val) => updateFilter({ sortBy: val })} />
+        </div>
+
       </div>
 
       {/* ── Body ── */}

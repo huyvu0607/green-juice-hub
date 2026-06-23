@@ -17,11 +17,6 @@ public class GhnProperties {
     private Integer fromDistrictId;
     private String fromWardCode;
     private Integer serviceTypeId = 2;
-    // ── Dùng cho TẠO ĐƠN GHN (có thể staging khi test, production khi live) ──
-    private String orderBaseUrl;   // vd: https://dev-online-gateway.ghn.vn (test) hoặc https://online-gateway.ghn.vn (live)
-    private String orderToken;     // token staging hoặc production riêng cho tạo đơn
-    private Integer orderShopId;   // shop ID staging hoặc production riêng cho tạo đơn
-
     // ── Bảo mật webhook ──
     private String webhookToken;
 }
