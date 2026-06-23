@@ -50,7 +50,9 @@ public class SecurityConfig {
                                 "/api/contacts",
                                 "/api/policies/**",
                                 "/api/shipping/**",
-                                "/api/banners"
+                                "/api/banners",
+                                "/api/payment/vnpay/ipn",
+                                "/api/payment/vnpay/return"
                         ).permitAll()
                         // Tất cả còn lại phải authenticated
                         .anyRequest().authenticated()
