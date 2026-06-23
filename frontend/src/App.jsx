@@ -36,6 +36,8 @@ import AdminReviewsPage from './pages/admin/reviews/AdminReviewsPage'
 import AdminContactsPage from '@/pages/admin/contact/AdminContactsPage'
 import AdminBannersPage from '@/pages/admin/banners/AdminBannersPage'
 import AdminPoliciesPage from '@/pages/admin/policy/Adminpoliciespage'
+import VnpayResultPage from '@/pages/payment/VnpayResultPage'
+
 
 function ScrollToTop() {
   const { pathname, search } = useLocation()
@@ -139,6 +141,7 @@ function AppRoutes() {
         <Route path="/products/:slug" element={<MainLayout><ProductDetailPage /></MainLayout>} />
         <Route path="/contact" element={<MainLayout><ContactPage /></MainLayout>} />
         <Route path="/policies/:type" element={<MainLayout><PolicyPage /></MainLayout>} />
+        <Route path="/payment/vnpay/result" element={<VnpayResultPage />} />
 
         {/* ── Customer only ── */}
         

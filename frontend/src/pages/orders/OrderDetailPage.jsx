@@ -11,6 +11,7 @@ import {
 } from './orderHelpers'
 import useCartStore from '@/store/useCartStore'
 import ReviewFormPopup from '@/components/product/ReviewFormPopup'
+import paymentApi from '@/api/paymentApi'
 
 // ── Order Status Stepper ───────────────────────────────────────────
 const STATUS_STEPS = [
@@ -90,6 +91,18 @@ function PaymentModal({ order, onClose }) {
   const [closing, setClosing] = useState(false)
   const { fetchOrderDetail } = useOrderStore()
   const paidRef = useRef(false)
+
+  const [vnpayLoading, setVnpayLoading] = useState(false)
+
+  const handleVnpayRedirect = async () => {
+    setVnpayLoading(true)
+    try {
+      const res = await paymentApi.createVnpayUrl(order.id)
+      window.location.href = res.data.paymentUrl
+    } catch {
+      setVnpayLoading(false)
+    }
+  }
 
   // ── Đếm ngược hạn thanh toán ────────────────────────────────────
   const [timeLeft, setTimeLeft] = useState(() => getSecondsUntil(order.expiresAt))
@@ -321,105 +334,152 @@ function PaymentModal({ order, onClose }) {
               </p>
             </div>
           </div>
-        ) : (
-          <>
-            <div className="px-5 pt-4">
-              <div
-                className="flex rounded-[var(--radius-md)] overflow-hidden"
-                style={{ border: '1px solid var(--color-border-subtle)', background: 'var(--color-bg-muted)' }}
-              >
-                {[{ key: true, label: '📷 Quét QR' }, { key: false, label: '🏦 Thủ công' }].map(({ key, label }) => (
-                  <button
-                    key={String(key)}
-                    onClick={() => setShowQr(key)}
-                    className="flex-1 py-2 text-xs font-medium cursor-pointer transition-all"
-                    style={{
-                      background: showQr === key ? 'var(--color-primary)' : 'transparent',
-                      color: showQr === key ? '#fff' : 'var(--color-text-secondary)',
-                    }}
-                  >
-                    {label}
-                  </button>
-                ))}
-              </div>
-            </div>
-
-            <div className="p-5 flex flex-col gap-4">
-              {showQr ? (
-                <div className="flex flex-col items-center gap-3">
-                  <div
-                    className="rounded-[var(--radius-md)] overflow-hidden flex items-center justify-center"
-                    style={{ width: 220, height: qrLoaded ? 'auto' : 220, background: '#fff', border: '1.5px solid var(--color-border-subtle)' }}
-                  >
-                    {qrError ? (
-                      <div className="flex flex-col items-center gap-2 p-4 text-center">
-                        <span style={{ fontSize: 28 }}>⚠️</span>
-                        <p className="text-xs" style={{ color: 'var(--color-text-muted)' }}>Không tải được QR</p>
-                      </div>
-                    ) : (
-                      <>
-                        {!qrLoaded && (
-                          <div className="w-full h-full flex items-center justify-center">
-                            <div className="w-6 h-6 rounded-full border-2 animate-spin"
-                              style={{ borderColor: 'var(--color-primary)', borderTopColor: 'transparent' }} />
-                          </div>
-                        )}
-                        <img src={qrUrl} alt="VietQR"
-                          style={{ width: 220, display: qrLoaded ? 'block' : 'none' }}
-                          onLoad={() => setQrLoaded(true)}
-                          onError={() => setQrError(true)}
-                        />
-                      </>
-                    )}
-                  </div>
-                  <p className="text-xs text-center" style={{ color: 'var(--color-text-muted)' }}>
-                    Hỗ trợ tất cả app ngân hàng Việt Nam
+        ) : order.paymentMethod === 'VNPAY' ? (
+              <div className="p-5 flex flex-col items-center gap-4">
+                <div
+                  className="w-16 h-16 rounded-[var(--radius-md)] flex items-center justify-center"
+                  style={{ background: '#f0f9ff', border: '1px solid #bae6fd' }}
+                >
+                  <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="#0369a1" strokeWidth="1.5" strokeLinecap="round">
+                    <rect x="1" y="4" width="22" height="16" rx="2" />
+                    <line x1="1" y1="10" x2="23" y2="10" />
+                  </svg>
+                </div>
+                <div className="text-center">
+                  <p className="text-sm font-semibold mb-1" style={{ color: 'var(--color-text-primary)' }}>
+                    Thanh toán qua VNPay
+                  </p>
+                  <p className="text-xs leading-relaxed" style={{ color: 'var(--color-text-muted)' }}>
+                    Bạn sẽ được chuyển sang cổng thanh toán VNPay để hoàn tất giao dịch.
                   </p>
                 </div>
-              ) : (
-                <div className="flex flex-col gap-2.5">
-                  {[
-                    { label: 'Ngân hàng', value: BANK_NAME },
-                    { label: 'Số tài khoản', value: ACCOUNT_NUMBER, mono: true },
-                    { label: 'Chủ tài khoản', value: ACCOUNT_NAME },
-                    { label: 'Số tiền', value: fmt(order.totalAmount), highlight: true },
-                  ].map(({ label, value, mono, highlight }) => (
-                    <div key={label} className="flex justify-between items-center py-1.5"
-                      style={{ borderBottom: '0.5px solid var(--color-border-subtle)' }}>
-                      <span className="text-sm" style={{ color: 'var(--color-text-muted)' }}>{label}</span>
-                      <span className={`text-sm font-semibold ${mono ? 'font-mono' : ''}`}
-                        style={{ color: highlight ? 'var(--color-primary)' : 'var(--color-text-primary)' }}>
-                        {value}
-                      </span>
-                    </div>
-                  ))}
-                </div>
-              )}
-
-              <div
-                className="flex justify-between items-center px-3 py-2.5 rounded-[var(--radius-md)]"
-                style={{ background: 'var(--color-primary-subtle)', border: '1.5px solid var(--color-primary)' }}
-              >
-                <div>
-                  <p className="text-xs" style={{ color: 'var(--color-text-muted)' }}>Nội dung chuyển khoản</p>
-                  <p className="font-mono font-bold text-sm mt-0.5" style={{ color: 'var(--color-primary)' }}>
-                    {order.orderCode}
-                  </p>
+                <div
+                  className="w-full flex justify-between items-center px-3 py-2.5 rounded-[var(--radius-md)]"
+                  style={{ background: 'var(--color-primary-subtle)', border: '1.5px solid var(--color-primary)' }}
+                >
+                  <span className="text-xs" style={{ color: 'var(--color-text-secondary)' }}>Số tiền thanh toán</span>
+                  <span className="font-bold text-sm" style={{ color: 'var(--color-primary)' }}>
+                    {fmt(order.totalAmount)}
+                  </span>
                 </div>
                 <button
-                  onClick={handleCopy}
-                  className="text-xs font-medium px-3 py-1.5 rounded-[var(--radius-sm)] cursor-pointer transition-all flex-shrink-0"
-                  style={{ background: copied ? '#16a34a' : 'var(--color-primary)', color: '#fff' }}
+                  onClick={handleVnpayRedirect}
+                  disabled={vnpayLoading}
+                  className="w-full py-3 rounded-[var(--radius-md)] text-sm font-semibold text-white cursor-pointer disabled:opacity-60 transition-opacity"
+                  style={{ background: '#0f6abf' }}
                 >
-                  {copied ? '✓ Đã copy' : 'Copy'}
+                  {vnpayLoading ? (
+                    <span className="flex items-center justify-center gap-2">
+                      <div className="w-4 h-4 rounded-full border-2 border-white border-t-transparent animate-spin" />
+                      Đang chuyển hướng...
+                    </span>
+                  ) : (
+                    '🔒 Thanh toán ngay với VNPay'
+                  )}
                 </button>
+                <p className="text-xs text-center" style={{ color: 'var(--color-text-muted)' }}>
+                  Giao dịch được bảo mật bởi VNPay
+                </p>
               </div>
-
-              <p className="text-xs text-center" style={{ color: '#b45309' }}>
-                ⚠️ Ghi đúng nội dung để đơn được xác nhận tự động
-              </p>
+        ) : (
+        <>
+          <div className="px-5 pt-4">
+            <div
+              className="flex rounded-[var(--radius-md)] overflow-hidden"
+              style={{ border: '1px solid var(--color-border-subtle)', background: 'var(--color-bg-muted)' }}
+            >
+              {[{ key: true, label: '📷 Quét QR' }, { key: false, label: '🏦 Thủ công' }].map(({ key, label }) => (
+                <button
+                  key={String(key)}
+                  onClick={() => setShowQr(key)}
+                  className="flex-1 py-2 text-xs font-medium cursor-pointer transition-all"
+                  style={{
+                    background: showQr === key ? 'var(--color-primary)' : 'transparent',
+                    color: showQr === key ? '#fff' : 'var(--color-text-secondary)',
+                  }}
+                >
+                  {label}
+                </button>
+              ))}
             </div>
-          </>
+          </div>
+
+          <div className="p-5 flex flex-col gap-4">
+            {showQr ? (
+              <div className="flex flex-col items-center gap-3">
+                <div
+                  className="rounded-[var(--radius-md)] overflow-hidden flex items-center justify-center"
+                  style={{ width: 220, height: qrLoaded ? 'auto' : 220, background: '#fff', border: '1.5px solid var(--color-border-subtle)' }}
+                >
+                  {qrError ? (
+                    <div className="flex flex-col items-center gap-2 p-4 text-center">
+                      <span style={{ fontSize: 28 }}>⚠️</span>
+                      <p className="text-xs" style={{ color: 'var(--color-text-muted)' }}>Không tải được QR</p>
+                    </div>
+                  ) : (
+                    <>
+                      {!qrLoaded && (
+                        <div className="w-full h-full flex items-center justify-center">
+                          <div className="w-6 h-6 rounded-full border-2 animate-spin"
+                            style={{ borderColor: 'var(--color-primary)', borderTopColor: 'transparent' }} />
+                        </div>
+                      )}
+                      <img src={qrUrl} alt="VietQR"
+                        style={{ width: 220, display: qrLoaded ? 'block' : 'none' }}
+                        onLoad={() => setQrLoaded(true)}
+                        onError={() => setQrError(true)}
+                      />
+                    </>
+                  )}
+                </div>
+                <p className="text-xs text-center" style={{ color: 'var(--color-text-muted)' }}>
+                  Hỗ trợ tất cả app ngân hàng Việt Nam
+                </p>
+              </div>
+            ) : (
+              <div className="flex flex-col gap-2.5">
+                {[
+                  { label: 'Ngân hàng', value: BANK_NAME },
+                  { label: 'Số tài khoản', value: ACCOUNT_NUMBER, mono: true },
+                  { label: 'Chủ tài khoản', value: ACCOUNT_NAME },
+                  { label: 'Số tiền', value: fmt(order.totalAmount), highlight: true },
+                ].map(({ label, value, mono, highlight }) => (
+                  <div key={label} className="flex justify-between items-center py-1.5"
+                    style={{ borderBottom: '0.5px solid var(--color-border-subtle)' }}>
+                    <span className="text-sm" style={{ color: 'var(--color-text-muted)' }}>{label}</span>
+                    <span className={`text-sm font-semibold ${mono ? 'font-mono' : ''}`}
+                      style={{ color: highlight ? 'var(--color-primary)' : 'var(--color-text-primary)' }}>
+                      {value}
+                    </span>
+                  </div>
+                ))}
+              </div>
+            )}
+
+            <div
+              className="flex justify-between items-center px-3 py-2.5 rounded-[var(--radius-md)]"
+              style={{ background: 'var(--color-primary-subtle)', border: '1.5px solid var(--color-primary)' }}
+            >
+              <div>
+                <p className="text-xs" style={{ color: 'var(--color-text-muted)' }}>Nội dung chuyển khoản</p>
+                <p className="font-mono font-bold text-sm mt-0.5" style={{ color: 'var(--color-primary)' }}>
+                  {order.orderCode}
+                </p>
+              </div>
+              <button
+                onClick={handleCopy}
+                className="text-xs font-medium px-3 py-1.5 rounded-[var(--radius-sm)] cursor-pointer transition-all flex-shrink-0"
+                style={{ background: copied ? '#16a34a' : 'var(--color-primary)', color: '#fff' }}
+              >
+                {copied ? '✓ Đã copy' : 'Copy'}
+              </button>
+            </div>
+
+            <p className="text-xs text-center" style={{ color: '#b45309' }}>
+              ⚠️ Ghi đúng nội dung để đơn được xác nhận tự động
+            </p>
+          </div>
+        </>
         )}
       </div>
 
