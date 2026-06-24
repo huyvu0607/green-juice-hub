@@ -3,7 +3,7 @@ import axios from 'axios'
 let isRefreshing = false
 let queue = []
 
-const BASE_URL = import.meta.env.VITE_API_URL 
+const BASE_URL = import.meta.env.VITE_API_URL
 
 const api = axios.create({
   baseURL: BASE_URL,
@@ -58,7 +58,7 @@ api.interceptors.response.use(
       }
 
       try {
-        const res = await axios.post('${BASE_URL}/api/auth/refresh', null, {
+        const res = await axios.post(`${BASE_URL}/api/auth/refresh`, null, { // ← backtick
           headers: { Authorization: `Bearer ${refreshToken}` },
         })
 
