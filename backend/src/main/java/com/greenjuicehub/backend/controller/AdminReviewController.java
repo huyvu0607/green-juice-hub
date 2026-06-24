@@ -1,5 +1,6 @@
 package com.greenjuicehub.backend.controller;
 
+import com.greenjuicehub.backend.dto.PageResponse;
 import com.greenjuicehub.backend.dto.review.response.ReviewResponse;
 import com.greenjuicehub.backend.service.review.IReviewService;
 import jakarta.validation.constraints.NotBlank;
@@ -23,12 +24,13 @@ public class AdminReviewController {
 
     /** GET /api/admin/reviews?isApproved=&rating=&page=&size= */
     @GetMapping
-    public ResponseEntity<Page<ReviewResponse>> getAllReviews(
+    public ResponseEntity<PageResponse<ReviewResponse>> getAllReviews(
             @RequestParam(required = false) Boolean isApproved,
             @RequestParam(required = false) Integer rating,
             @PageableDefault(size = 10, sort = "createdAt", direction = Sort.Direction.DESC) Pageable pageable) {
-        return ResponseEntity.ok(reviewService.getAllReviews(isApproved, rating, pageable));
-    }
+        return ResponseEntity.ok(
+                PageResponse.from(reviewService.getAllReviews(isApproved, rating, pageable))
+        );    }
 
     /** PATCH /api/admin/reviews/{id}/toggle — bật/tắt hiển thị */
     @PatchMapping("/{id}/toggle")

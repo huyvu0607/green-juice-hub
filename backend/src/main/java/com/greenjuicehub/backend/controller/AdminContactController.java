@@ -1,5 +1,6 @@
 package com.greenjuicehub.backend.controller;
 
+import com.greenjuicehub.backend.dto.PageResponse;
 import com.greenjuicehub.backend.dto.contact.request.ReplyContactRequest;
 import com.greenjuicehub.backend.dto.contact.response.ContactResponse;
 import com.greenjuicehub.backend.dto.contact.response.ContactStatsResponse;
@@ -24,11 +25,12 @@ public class AdminContactController {
     private final IAdminContactService adminContactService;
 
     @GetMapping
-    public ResponseEntity<Page<ContactResponse>> getContacts(
+    public ResponseEntity<PageResponse<ContactResponse>> getContacts(
             @RequestParam(required = false) String status,
             @PageableDefault(size = 10, sort = "createdAt") Pageable pageable) {
-        return ResponseEntity.ok(adminContactService.getContacts(status, pageable));
-    }
+        return ResponseEntity.ok(
+                PageResponse.from(adminContactService.getContacts(status, pageable))
+        );    }
 
     @GetMapping("/stats")
     public ResponseEntity<ContactStatsResponse> getStats() {

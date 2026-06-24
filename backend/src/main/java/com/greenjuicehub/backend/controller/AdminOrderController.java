@@ -1,6 +1,7 @@
 // controller/AdminOrderController.java
 package com.greenjuicehub.backend.controller;
 
+import com.greenjuicehub.backend.dto.PageResponse;
 import com.greenjuicehub.backend.dto.adminOrder.request.AdminRefundRequest;
 import com.greenjuicehub.backend.dto.adminOrder.request.AdminUpdateOrderStatusRequest;
 import com.greenjuicehub.backend.dto.adminOrder.response.TopProductResponse;
@@ -29,7 +30,7 @@ public class AdminOrderController {
      * GET /api/admin/orders?page=0&size=15&status=PENDING&paymentStatus=REFUND_PENDING&search=GJH-xxx
      */
     @GetMapping
-    public ResponseEntity<Page<OrderResponse>> getOrders(
+    public ResponseEntity<PageResponse<OrderResponse>> getOrders(
             @RequestParam(defaultValue = "0")  int page,
             @RequestParam(defaultValue = "15") int size,
             @RequestParam(required = false) String status,
@@ -40,7 +41,7 @@ public class AdminOrderController {
     ) {
         Pageable pageable = PageRequest.of(page, size);
         return ResponseEntity.ok(
-                adminOrderService.getOrders(status, paymentStatus, search, dateFrom, dateTo, pageable)
+                PageResponse.from(adminOrderService.getOrders(status, paymentStatus, search, dateFrom, dateTo, pageable))
         );
     }
 

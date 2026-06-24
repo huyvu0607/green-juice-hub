@@ -1,5 +1,6 @@
     package com.greenjuicehub.backend.controller;
 
+    import com.greenjuicehub.backend.dto.PageResponse;
     import com.greenjuicehub.backend.dto.adminProduct.request.*;
     import com.greenjuicehub.backend.dto.adminProduct.response.*;
     import com.greenjuicehub.backend.dto.product.response.CategoryResponse;
@@ -27,7 +28,7 @@
         // ── Products ──────────────────────────────────────────────────────────────
 
         @GetMapping
-        public ResponseEntity<Page<AdminProductRowResponse>> getProducts(
+        public ResponseEntity<PageResponse<AdminProductRowResponse>> getProducts(
                 @RequestParam(required = false) String keyword,
                 @RequestParam(required = false) Long categoryId,
                 @RequestParam(required = false) Boolean isActive,
@@ -36,7 +37,8 @@
                 @RequestParam(defaultValue = "0") int page,
                 @RequestParam(defaultValue = "20") int size) {
             return ResponseEntity.ok(
-                    adminProductService.getProductsForAdmin(keyword, categoryId, isActive, stock, tag, page, size));
+                    PageResponse.from(adminProductService.getProductsForAdmin(keyword, categoryId, isActive, stock, tag, page, size))
+            );
         }
 
         @GetMapping("/{id}")
