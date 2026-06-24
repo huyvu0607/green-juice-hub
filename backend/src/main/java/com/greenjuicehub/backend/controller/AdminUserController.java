@@ -1,5 +1,6 @@
 package com.greenjuicehub.backend.controller;
 
+import com.greenjuicehub.backend.dto.PageResponse;
 import com.greenjuicehub.backend.dto.adminPromotion.response.AdminPromotionResponse;
 import com.greenjuicehub.backend.dto.adminUser.request.CreatePersonalPromoRequest;
 import com.greenjuicehub.backend.dto.adminUser.request.UpdateUserRoleRequest;
@@ -27,7 +28,7 @@ public class AdminUserController {
      * Danh sách user với filter + phân trang
      */
     @GetMapping
-    public ResponseEntity<Page<AdminUserResponse>> getUsers(
+    public ResponseEntity<PageResponse<AdminUserResponse>> getUsers(
             @RequestParam(required = false) String keyword,
             @RequestParam(required = false) String role,
             @RequestParam(required = false) Boolean isActive,
@@ -35,7 +36,9 @@ public class AdminUserController {
             @RequestParam(defaultValue = "20") int size
     ) {
         Pageable pageable = PageRequest.of(page, size);
-        return ResponseEntity.ok(adminUserService.getUsers(keyword, role, isActive, pageable));
+        return ResponseEntity.ok(
+                PageResponse.from(adminUserService.getUsers(keyword, role, isActive, pageable))
+        );
     }
 
     /**

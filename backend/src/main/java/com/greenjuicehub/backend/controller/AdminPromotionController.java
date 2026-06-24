@@ -1,5 +1,6 @@
 package com.greenjuicehub.backend.controller;
 
+import com.greenjuicehub.backend.dto.PageResponse;
 import com.greenjuicehub.backend.dto.adminPromotion.request.SavePromotionRequest;
 import com.greenjuicehub.backend.dto.adminPromotion.response.AdminPromotionResponse;
 import com.greenjuicehub.backend.dto.adminPromotion.response.PromotionUsageResponse;
@@ -22,14 +23,15 @@ public class AdminPromotionController {
     private final IAdminPromotionService adminPromotionService;
 
     @GetMapping
-    public ResponseEntity<Page<AdminPromotionResponse>> getPromotions(
+    public ResponseEntity<PageResponse<AdminPromotionResponse>> getPromotions(
             @RequestParam(required = false) String keyword,
             @RequestParam(required = false) Promotion.Target target,
             @RequestParam(required = false) Boolean isActive,
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "20") int size) {
         return ResponseEntity.ok(
-                adminPromotionService.getPromotionsForAdmin(keyword, target, isActive, page, size));
+                PageResponse.from(adminPromotionService.getPromotionsForAdmin(keyword, target, isActive, page, size))
+        );
     }
 
     @GetMapping("/{id}")
@@ -58,10 +60,12 @@ public class AdminPromotionController {
     }
 
     @GetMapping("/{id}/usages")
-    public ResponseEntity<Page<PromotionUsageResponse>> getUsageHistory(
+    public ResponseEntity<PageResponse<PromotionUsageResponse>> getUsageHistory(
             @PathVariable Long id,
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "20") int size) {
-        return ResponseEntity.ok(adminPromotionService.getUsageHistory(id, page, size));
+        return ResponseEntity.ok(
+                PageResponse.from(adminPromotionService.getUsageHistory(id, page, size))
+        );
     }
 }
