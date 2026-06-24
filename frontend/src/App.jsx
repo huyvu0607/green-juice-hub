@@ -194,12 +194,11 @@ function App() {
   const { fetchCart } = useCartStore()
 
   useEffect(() => {
-    if (isLoggedIn) { fetchMe(); fetchCart() }
-  }, [isLoggedIn])
-
-  useEffect(() => {
-    if (isLoggedIn) { fetchMe(); fetchCart() }
-  }, [])
+    if (isLoggedIn) {
+      fetchMe()
+      fetchCart()
+    }
+  }, []) // ← Chỉ chạy 1 lần khi app mount, bỏ useEffect thứ 2
 
   return <AppRoutes />
 }
