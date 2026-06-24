@@ -237,7 +237,7 @@ export default function ReviewList({ productId, deliveredOrderId: propOrderId = 
                 </p>
             ) : (
                 <div className="flex flex-col gap-3">
-                    {reviews.map((r) => (
+                    {reviews.filter(r => r.comment && r.comment.trim() !== "").map((r) => (
                         <div
                             key={r.id}
                             className="p-4 rounded-[var(--radius-md)] bg-surface border border-subtle flex flex-col gap-2"
