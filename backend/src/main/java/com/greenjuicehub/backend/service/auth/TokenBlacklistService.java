@@ -18,6 +18,10 @@ public class TokenBlacklistService {
     }
 
     public boolean isBlacklisted(String token) {
+    try {
         return Boolean.TRUE.equals(redis.hasKey(PREFIX + token));
+    } catch (Exception e) {
+        return false; // ← Redis lỗi thì cho qua, đừng crash
     }
+}
 }
