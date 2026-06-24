@@ -1,5 +1,6 @@
 package com.greenjuicehub.backend.exception;
 
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
@@ -10,6 +11,7 @@ import java.util.HashMap;
 import java.util.Map;
 
 @RestControllerAdvice
+@Slf4j  
 public class GlobalExceptionHandler {
 
     @ExceptionHandler(AppException.class)
@@ -28,6 +30,7 @@ public class GlobalExceptionHandler {
 
     @ExceptionHandler(Exception.class)
     public ResponseEntity<Map<String, Object>> handleGeneral(Exception ex) {
+        log.error("Unhandled exception: {}", ex.getMessage(), ex);  // ← thêm dòng này
         return ResponseEntity.internalServerError().body(errorBody(500, "Lỗi hệ thống"));
     }
 
@@ -38,5 +41,4 @@ public class GlobalExceptionHandler {
         body.put("timestamp", LocalDateTime.now().toString());
         return body;
     }
-
 }
