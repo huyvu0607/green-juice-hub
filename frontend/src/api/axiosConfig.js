@@ -58,7 +58,7 @@ api.interceptors.response.use(
       }
 
       try {
-        const res = await axios.post(`${BASE_URL}/api/auth/refresh`, null, { // ← backtick
+        const res = await axios.post(`${BASE_URL}/api/auth/refresh`, null, {
           headers: { Authorization: `Bearer ${refreshToken}` },
         })
 
