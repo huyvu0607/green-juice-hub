@@ -68,11 +68,10 @@ api.interceptors.response.use(
         localStorage.setItem('accessToken', newAccess)
         localStorage.setItem('refreshToken', newRefresh)
 
-        // Cập nhật Zustand store
         const { default: useAuthStore } = await import('../store/authStore')
         useAuthStore.setState({
           accessToken: newAccess,
-          refreshToken: newRefresh, // ← thêm dòng này
+          refreshToken: newRefresh,
           isLoggedIn: true
         })
         queue.forEach((p) => p.resolve(newAccess))
@@ -80,20 +79,27 @@ api.interceptors.response.use(
 
         original.headers.Authorization = `Bearer ${newAccess}`
         return api(original)
-      }
-      catch {
-        queue.forEach((p) => p.reject())
+
+      } catch (refreshError) {
+        queue.forEach((p) => p.reject(refreshError))
         queue = []
-        localStorage.removeItem('accessToken')
-        localStorage.removeItem('refreshToken')
-        localStorage.removeItem('role')
 
-        // Reset cart trước khi redirect
-        const { default: useCartStore } = await import('../store/useCartStore')
-        useCartStore.getState().resetCart()
+        // ✅ Chỉ logout khi refresh token thực sự bị từ chối (401/403)
+        // Không logout khi BE đang cold start (network error, timeout)
+        const status = refreshError.response?.status
+        if (status === 401 || status === 403) {
+          localStorage.removeItem('accessToken')
+          localStorage.removeItem('refreshToken')
+          localStorage.removeItem('role')
 
-        window.location.href = '/login'
-        return Promise.reject(error)
+          const { default: useCartStore } = await import('../store/useCartStore')
+          useCartStore.getState().resetCart()
+
+          window.location.href = '/login'
+        }
+        // Nếu không có status (network error) → giữ nguyên token, không logout
+
+        return Promise.reject(refreshError)
       } finally {
         isRefreshing = false
       }
