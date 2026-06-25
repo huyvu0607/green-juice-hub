@@ -53,5 +53,7 @@ logging:
 vnpay:
   return-url: http://localhost:5173/payment/vnpay/result
   ipn-url:  https://boarishly-ruthenious-versie.ngrok-free.dev/api/payment/vnpay/ipn
+  tmn-code: CYVAY8D1
+  hash-secret: 6VWURSRQBLV4X26RVB1DBCBJSJ839Z9C
 
 

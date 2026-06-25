@@ -93,10 +93,11 @@ logging:
     org.springframework.web: WARN
 
 vnpay:
-  tmn-code: ${VNPAY_TMN_CODE:CYVAY8D1}
-  hash-secret: ${VNPAY_HASH_SECRET:6VWURSRQBLV4X26RVB1DBCBJSJ839Z9C}
+  tmn-code: ${VNPAY_TMN_CODE}
+  hash-secret: ${VNPAY_HASH_SECRET}
   pay-url: ${VNPAY_PAY_URL:https://sandbox.vnpayment.vn/paymentv2/vpcpay.html}
   # Return URL → FE Vercel (trang hiển thị kết quả cho user)
   return-url: ${VNPAY_RETURN_URL:https://green-juice-hub.vercel.app/payment/vnpay/result}
   # IPN URL → BE Railway (VNPay gọi server-to-server để xác nhận)
   ipn-url: ${VNPAY_IPN_URL:https://green-juice-hub-production.up.railway.app/api/payment/vnpay/ipn}
+
