@@ -29,20 +29,17 @@ const useAuthStore = create((set) => ({
   setUser: (user) => set({ user }),
 
   fetchMe: async () => {
-    try {
-        const res = await userApi.getMe()
-        set({ user: res.data })
-    } catch (err) {
-        const status = err.response?.status
-        // Chỉ logout khi 401 (token hết hạn, refresh cũng fail) hoặc 403
-        // Giữ nguyên login khi server lỗi 500/503 hoặc network error
-        if (status === 401 || status === 403) {
-            localStorage.removeItem('accessToken')
-            localStorage.removeItem('refreshToken')
-            localStorage.removeItem('role')
-            set({ accessToken: null, refreshToken: null, user: null, isLoggedIn: false })
-        }
+  try {
+    const res = await userApi.getMe()
+    set({ user: res.data })
+  } catch (err) {
+    const status = err.response?.status
+    if (status === 401 || status === 403) {
+      // Dùng lại logout() thay vì duplicate code
+      useAuthStore.getState().logout()
     }
+    // Network error / 500 / cold start → giữ nguyên, không làm gì
+  }
 },
 
   logout: async () => {
