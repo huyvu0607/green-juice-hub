@@ -791,6 +791,8 @@ function OrderSummary({ items, subtotal, discount, shipping, shippingLoading, to
               <div className="w-3 h-3 rounded-full border-2 border-[var(--color-primary)] border-t-transparent animate-spin" />
               Đang tính...
             </span>
+          ) : shipping === null ? (
+            <span style={{ color: 'var(--color-text-muted)' }}>Đang tính...</span>
           ) : (
             <span style={{ color: shipping === 0 ? '#16a34a' : 'var(--color-text-primary)' }}>
               {shipping === 0 ? 'Miễn phí' : fmt(shipping)}
@@ -822,7 +824,7 @@ export default function CheckoutPage() {
   const [frozenItems, setFrozenItems] = useState(null)
   const [frozenPrices, setFrozenPrices] = useState(null)
   // ── Shipping fee từ GHN ──────────────────────────────────────────
-  const [shipping, setShipping] = useState(30000)
+  const [shipping, setShipping] = useState(null)
   const [shippingLoading, setShippingLoading] = useState(false)
 
 
@@ -864,8 +866,10 @@ export default function CheckoutPage() {
 
   // ── Dùng frozenPrices nếu có (sau khi đặt hàng thành công) ──
   const discount = frozenPrices?.discount ?? promoResult?.discountAmount ?? 0
-  const displayShipping = frozenPrices?.shipping ?? shipping
-  const total = frozenPrices?.total ?? (subtotal - discount + displayShipping)
+  const displayShipping = frozenPrices?.shipping ?? shipping          // vẫn có thể null
+  const total = frozenPrices?.total ?? (
+    displayShipping === null ? null : subtotal - discount + displayShipping
+  )
 
   useEffect(() => {
     if (!addressId) return
@@ -880,7 +884,7 @@ export default function CheckoutPage() {
         const res = await orderApi.calculateShippingFee(payload)
         setShipping(res.data.shippingFee)
       } catch {
-        setShipping(30000) // fallback
+        setShipping(null) // fallback
       } finally {
         setShippingLoading(false)
       }
@@ -920,7 +924,7 @@ export default function CheckoutPage() {
           const res = await orderApi.calculateShippingFee(payload)
           setShipping(res.data.shippingFee)
         } catch {
-          setShipping(30000)
+          setShipping(null)
         } finally {
           setShippingLoading(false)
         }
@@ -1114,7 +1118,7 @@ export default function CheckoutPage() {
               </Card>
 
               <button onClick={handleSubmit}
-                disabled={placing || vnpayLoading || !addressId || displayItems.length === 0 || shippingLoading}
+                disabled={placing || vnpayLoading || !addressId || displayItems.length === 0 || shippingLoading || displayShipping === null}
                 className="w-full py-3.5 rounded-[var(--radius-md)] font-semibold text-sm text-white flex items-center justify-center gap-2 transition-colors cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
                 style={{ background: 'var(--color-primary)' }}
                 onMouseEnter={(e) => { if (!placing) e.currentTarget.style.background = 'var(--color-primary-hover)' }}
