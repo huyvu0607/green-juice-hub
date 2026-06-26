@@ -72,9 +72,10 @@ public class SePayWebhookServiceImpl implements ISePayWebhookService {
             return;
         }
 
-        // Thêm check BANK_TRANSFER
-        if (payment.getMethod() != Payment.PaymentMethod.BANK_TRANSFER) {
-            log.warn("SePay: đơn {} không phải BANK_TRANSFER, bỏ qua", orderCode);
+        //6. Check sepay đơn Momo hoặc là đơn Bank
+        if (payment.getMethod() != Payment.PaymentMethod.BANK_TRANSFER
+                && payment.getMethod() != Payment.PaymentMethod.MOMO) {
+            log.warn("SePay: đơn {} không phải BANK_TRANSFER/MOMO, bỏ qua", orderCode);
             return;
         }
 
@@ -85,7 +86,7 @@ public class SePayWebhookServiceImpl implements ISePayWebhookService {
 
         // 7. Cập nhật Order
         order.setPaymentStatus(Order.PaymentStatus.PAID);
-//        order.setStatus(Order.OrderStatus.CONFIRMED);
+        // order.setStatus(Order.OrderStatus.CONFIRMED);
         orderRepository.save(order);
 
         log.info("SePay: xác nhận thanh toán thành công - orderCode={}, amount={}",
@@ -94,7 +95,8 @@ public class SePayWebhookServiceImpl implements ISePayWebhookService {
 
     // ── Helper: tìm pattern GJH-XXXXXXXX trong content ──────────────────────
     private String extractOrderCode(String content) {
-        if (content == null) return null;
+        if (content == null)
+            return null;
         Pattern pattern = Pattern.compile("GJH-[A-Z0-9]{8}");
         Matcher matcher = pattern.matcher(content.toUpperCase());
         return matcher.find() ? matcher.group() : null;

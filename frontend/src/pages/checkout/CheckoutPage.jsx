@@ -12,6 +12,7 @@ import OrderSuccessModal from '@/components/order/OrderSuccessModal'
 import orderApi from '@/api/orderApi'
 import useProfileModalStore from '@/store/useProfileModalStore'
 import paymentApi from '@/api/paymentApi'
+import MomoTransferModal from '@/components/order/MomoTransferModal'
 
 
 
@@ -845,6 +846,7 @@ export default function CheckoutPage() {
   const [bankTransferOrder, setBankTransferOrder] = useState(null)
   const [orderPlaced, setOrderPlaced] = useState(false)
   const [vnpayLoading, setVnpayLoading] = useState(false)
+  const [momoTransferOrder, setMomoTransferOrder] = useState(null)
 
   // ── Dùng frozenItems nếu đã đặt hàng, tránh mất data khi fetchCart cập nhật ──
   const displayItems = frozenItems ?? selectedItems
@@ -987,6 +989,8 @@ export default function CheckoutPage() {
       }
       if (paymentMethod === 'BANK_TRANSFER') {
         setBankTransferOrder(order)
+      } else if (paymentMethod === 'MOMO') {
+        setMomoTransferOrder(order)
       } else if (paymentMethod === 'VNPAY') {
         setVnpayLoading(true)
         try {
@@ -1012,6 +1016,12 @@ export default function CheckoutPage() {
         <BankTransferModal
           order={bankTransferOrder}
           onClose={() => navigate('/orders/' + bankTransferOrder.id, { state: { fromCheckout: true } })}
+        />
+      )}
+      {momoTransferOrder && (                                        // ← thêm từ đây
+        <MomoTransferModal
+          order={momoTransferOrder}
+          onClose={() => navigate('/orders/' + momoTransferOrder.id, { state: { fromCheckout: true } })}
         />
       )}
       {successOrder && (
