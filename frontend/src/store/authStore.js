@@ -1,8 +1,11 @@
 import { create } from 'zustand'
 import authApi from '../api/authApi'
 import userApi from '../api/userApi'
-import useCartStore from './useCartStore' // ← thêm dòng này
+import useCartStore from './useCartStore'
 
+const isNetworkError = (err) =>
+  !err.response &&
+  (err.code === 'ERR_NETWORK' || err.code === 'ECONNABORTED' || !err.code)
 
 const useAuthStore = create((set) => ({
   user: localStorage.getItem('role') ? { role: localStorage.getItem('role') } : null,
@@ -16,7 +19,6 @@ const useAuthStore = create((set) => ({
     localStorage.setItem('role', role)
     set({ accessToken, refreshToken, user: { role }, isLoggedIn: true })
 
-    // Fetch thông tin user ngay sau khi login
     try {
       const res = await userApi.getMe()
       set({ user: res.data })
@@ -25,22 +27,28 @@ const useAuthStore = create((set) => ({
     }
   },
 
-
   setUser: (user) => set({ user }),
 
   fetchMe: async () => {
-  try {
-    const res = await userApi.getMe()
-    set({ user: res.data })
-  } catch (err) {
-    const status = err.response?.status
-    if (status === 401 || status === 403) {
-      // Dùng lại logout() thay vì duplicate code
-      useAuthStore.getState().logout()
+    try {
+      const res = await userApi.getMe()
+      set({ user: res.data })
+    } catch (err) {
+      const status = err.response?.status
+
+      // Network error hoặc cold start → server chưa boot xong, giữ nguyên state
+      if (isNetworkError(err)) return
+
+      // Còn refreshToken → axiosConfig đang tự xử lý refresh, không cần logout
+      const hasRefreshToken = !!localStorage.getItem('refreshToken')
+      if (hasRefreshToken) return
+
+      // Không còn refreshToken + 401/403 → thực sự hết phiên → logout
+      if (status === 401 || status === 403) {
+        useAuthStore.getState().logout()
+      }
     }
-    // Network error / 500 / cold start → giữ nguyên, không làm gì
-  }
-},
+  },
 
   logout: async () => {
     try {

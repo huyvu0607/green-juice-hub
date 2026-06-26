@@ -4,7 +4,7 @@ let isRefreshing = false
 let queue = []
 
 const BASE_URL = import.meta.env.VITE_API_URL
-const COLD_START_RETRY_DELAY_MS = 8000  // Railway cold start thường mất 5-10s
+const COLD_START_RETRY_DELAY_MS = 12000  // Railway cold start thường mất 10-15s
 
 const api = axios.create({
   baseURL: BASE_URL,
@@ -33,21 +33,30 @@ api.interceptors.response.use(
     const isAuthRequest =
       requestUrl.startsWith('/auth/') || requestUrl.includes('/api/auth/')
 
-    // ── Cold start: network error trên request thường (không phải auth) ──
+    // ── Cold start: network error trên mọi request ─────────────────
     // Server chưa boot xong → đợi rồi retry 1 lần, KHÔNG đụng đến token
-    if (isNetworkError(error) && !isAuthRequest && !original._coldRetry) {
+    if (isNetworkError(error) && !original._coldRetry) {
       original._coldRetry = true
       await sleep(COLD_START_RETRY_DELAY_MS)
       return api(original)
     }
 
+    // Auth request lỗi → trả về luôn, không retry
     if (isAuthRequest) return Promise.reject(error)
 
     // ── 401: access token hết hạn → thử refresh ───────────────────
     if (error.response?.status === 401 && original && !original._retry) {
       original._retry = true
 
-      // Nếu đang refresh rồi thì xếp hàng chờ
+      const refreshToken = localStorage.getItem('refreshToken')
+
+      // Không có refreshToken → logout luôn
+      if (!refreshToken) {
+        forceLogout()
+        return Promise.reject(error)
+      }
+
+      // Đang refresh rồi → xếp hàng chờ
       if (isRefreshing) {
         return new Promise((resolve, reject) => {
           queue.push({ resolve, reject })
@@ -58,18 +67,11 @@ api.interceptors.response.use(
       }
 
       isRefreshing = true
-      const refreshToken = localStorage.getItem('refreshToken')
-
-      if (!refreshToken) {
-        forceLogout()
-        return Promise.reject(error)
-      }
 
       try {
         const res = await axios.post(`${BASE_URL}/api/auth/refresh`, null, {
           headers: { Authorization: `Bearer ${refreshToken}` },
-          // timeout ngắn để phân biệt "refresh bị từ chối" vs "server chưa boot"
-          timeout: 10000,
+          timeout: 15000, // tăng lên 15s để chờ cold start
         })
 
         const newAccess = res.data.accessToken
@@ -92,13 +94,13 @@ api.interceptors.response.use(
         const status = refreshError.response?.status
 
         if (status === 401 || status === 403) {
-          // Refresh token thực sự hết hạn / bị blacklist → logout
+          // Refresh token thực sự hết hạn / invalid → logout
           queue.forEach((p) => p.reject(refreshError))
           queue = []
           forceLogout()
         } else {
-          // Network error hoặc server đang cold start trong lúc refresh
-          // → KHÔNG logout, reset _retry để các request có thể thử lại sau
+          // Network error hoặc server vẫn đang boot → KHÔNG logout
+          // Reset _retry để request có thể thử lại khi user reload
           original._retry = false
           queue.forEach((p) => p.reject(refreshError))
           queue = []
