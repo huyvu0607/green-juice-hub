@@ -37,6 +37,9 @@ import AdminContactsPage from '@/pages/admin/contact/AdminContactsPage'
 import AdminBannersPage from '@/pages/admin/banners/AdminBannersPage'
 import AdminPoliciesPage from '@/pages/admin/policy/Adminpoliciespage'
 import VnpayResultPage from '@/pages/payment/VnpayResultPage'
+import SettingsPage from '@/pages/settings/SettingsPage'
+import NotFoundPage from '@/pages/NotFoundPage'
+
 
 
 function ScrollToTop() {
@@ -144,7 +147,7 @@ function AppRoutes() {
         <Route path="/payment/vnpay/result" element={<VnpayResultPage />} />
 
         {/* ── Customer only ── */}
-        
+
         <Route path="/checkout" element={
           <ProtectedRoute allowedRoles={['CUSTOMER']}>
             <MainLayout><CheckoutPage /></MainLayout>   {/* ← sửa */}
@@ -159,6 +162,12 @@ function AppRoutes() {
         <Route path="/orders/:orderId" element={
           <ProtectedRoute allowedRoles={['CUSTOMER']}>
             <MainLayout><OrderDetailPage /></MainLayout>
+          </ProtectedRoute>
+        } />
+
+        <Route path="/settings" element={
+          <ProtectedRoute allowedRoles={['CUSTOMER']}>
+            <MainLayout><SettingsPage /></MainLayout>
           </ProtectedRoute>
         } />
 
@@ -179,11 +188,14 @@ function AppRoutes() {
           <Route path="reviews" element={<AdminReviewsPage />} />
           <Route path="contacts" element={<AdminContactsPage />} />
           <Route path="banners" element={<AdminBannersPage />} />
-          <Route path="policies" element={<AdminPoliciesPage />} /> 
+          <Route path="policies" element={<AdminPoliciesPage />} />
 
 
 
         </Route>
+
+        <Route path="/404" element={<MainLayout><NotFoundPage /></MainLayout>} />
+        <Route path="*" element={<MainLayout><NotFoundPage /></MainLayout>} />
       </Routes>
     </>
   )

@@ -19,7 +19,9 @@ const isNetworkError = (error) =>
 // ── Request interceptor ────────────────────────────────────────────
 api.interceptors.request.use((config) => {
   const token = localStorage.getItem('accessToken')
-  if (token) config.headers.Authorization = `Bearer ${token}`
+  if (token && !config.headers?.Authorization) {
+    config.headers = { ...config.headers, Authorization: `Bearer ${token}` }
+  }
   return config
 })
 
@@ -69,7 +71,7 @@ api.interceptors.response.use(
       isRefreshing = true
 
       try {
-        const res = await axios.post(`${BASE_URL}/api/auth/refresh`, null, {
+        const res = await api.post('/api/auth/refresh', null, {
           headers: { Authorization: `Bearer ${refreshToken}` },
           timeout: 15000, // tăng lên 15s để chờ cold start
         })
