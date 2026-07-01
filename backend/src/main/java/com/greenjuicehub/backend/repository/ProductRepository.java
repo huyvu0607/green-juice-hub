@@ -63,6 +63,47 @@ public interface ProductRepository extends JpaRepository<Product, Long>,
             Pageable pageable
     );
 
+    @Query(value = """
+    SELECT p.* FROM products p
+    JOIN (
+        SELECT product_id, MAX(discount_percent) AS max_discount
+        FROM product_variants
+        WHERE is_active = true
+        GROUP BY product_id
+    ) v ON v.product_id = p.id
+    WHERE p.is_active = true
+      AND v.max_discount > 0
+      AND (:categoryId IS NULL OR p.category_id = :categoryId)
+    ORDER BY v.max_discount DESC
+    """,
+            countQuery = """
+    SELECT COUNT(*) FROM products p
+    JOIN (
+        SELECT product_id, MAX(discount_percent) AS max_discount
+        FROM product_variants
+        WHERE is_active = true
+        GROUP BY product_id
+    ) v ON v.product_id = p.id
+    WHERE p.is_active = true
+      AND v.max_discount > 0
+      AND (:categoryId IS NULL OR p.category_id = :categoryId)
+    """,
+            nativeQuery = true)
+    Page<Product> findAllOrderByMaxDiscountDesc(@Param("categoryId") Long categoryId, Pageable pageable);
+
+    @Query(value = """
+    SELECT DISTINCT c.id AS id, c.name AS name, c.slug AS slug
+    FROM categories c
+    JOIN products p ON p.category_id = c.id
+    JOIN product_variants v ON v.product_id = p.id
+    WHERE p.is_active = true
+      AND c.is_active = true
+      AND v.is_active = true
+      AND v.discount_percent > 0
+    ORDER BY c.name ASC
+    """, nativeQuery = true)
+    List<Object[]> findCategoriesWithActiveDeals();
+
     // ── Admin-side (thêm mới) ──────────────────────────────────────────────────
 
     // Tìm tất cả sản phẩm (cả active lẫn inactive) theo keyword + category

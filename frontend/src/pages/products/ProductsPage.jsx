@@ -4,6 +4,7 @@ import { useProducts } from "@/hooks/useProducts";
 import FilterSidebar from "@/components/product/FilterSidebar";
 import ProductCard, { ProductCardSkeleton } from "@/components/product/ProductCard";
 import { sharedObserver } from "@/utils/sharedObserver";
+import HotDealsSection from "@/components/product/HotDealsSection";
 
 const SORT_OPTIONS = [
   { value: "newest",     label: "Mới nhất" },
@@ -445,6 +446,8 @@ export default function ProductsPage() {
         </div>
 
       </div>
+      {/* ── Deal Sốc ── */}
+      <HotDealsSection />
 
       {/* ── Body ── */}
       <div className="flex gap-5 items-start">

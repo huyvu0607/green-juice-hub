@@ -189,13 +189,78 @@ function Breadcrumb({ isBuyNow }) {
   )
 }
 
+// ── ResponsiveOverlay ────────────────────────────────────────────────────────
+// Overlay dùng chung cho cả AddressPicker và PromoFullPage:
+// - Mobile (< sm breakpoint, 640px): full-page, trượt lên từ dưới + fade.
+// - Desktop (>= sm): modal nhỏ căn giữa màn hình, fade + scale nhẹ.
+// Dùng thuần CSS/Tailwind responsive classes (không dựa vào window.innerWidth)
+// để tránh lệch khi resize hoặc SSR.
+function ResponsiveOverlay({ visible, onRequestClose, headerContent, footerContent, children, closeDuration = 200 }) {
+  return (
+    <div
+      className="fixed inset-0 z-50 flex items-end sm:items-center justify-center sm:p-4"
+      style={{
+        background: 'rgba(0,0,0,0.5)',
+        opacity: visible ? 1 : 0,
+        transition: `opacity ${closeDuration}ms ease`,
+        pointerEvents: visible ? 'auto' : 'none',
+      }}
+      onClick={onRequestClose}
+    >
+      <div
+        className="w-full h-full sm:h-auto sm:max-h-[85vh] sm:max-w-md flex flex-col overflow-hidden sm:rounded-[var(--radius-lg)]"
+        style={{
+          background: 'var(--color-bg-elevated)',
+          border: '1px solid var(--color-border-subtle)',
+          opacity: visible ? 1 : 0,
+          transform: visible
+            ? 'translateY(0) scale(1)'
+            : 'translateY(10px) scale(1)',
+          transition: `opacity ${closeDuration}ms ease, transform ${closeDuration}ms ease`,
+        }}
+        onClick={(e) => e.stopPropagation()}
+      >
+        {headerContent && (
+          <div
+            className="flex-shrink-0"
+            style={{
+              borderBottom: '1px solid var(--color-border-subtle)',
+              background: 'var(--color-bg-elevated)',
+            }}
+          >
+            {headerContent}
+          </div>
+        )}
+
+        <div className="flex-1 overflow-y-auto">
+          {children}
+        </div>
+
+        {footerContent && (
+          <div
+            className="flex-shrink-0"
+            style={{
+              borderTop: '1px solid var(--color-border-subtle)',
+              background: 'var(--color-bg-surface)',
+            }}
+          >
+            {footerContent}
+          </div>
+        )}
+      </div>
+    </div>
+  )
+}
+
 // ── Address selector ────────────────────────────────────────────────────────
 function AddressSelector({ selectedId, onSelect }) {
   const [addresses, setAddresses] = useState([])
   const [loading, setLoading] = useState(true)
   const [showPicker, setShowPicker] = useState(false)
+  const [pickerVisible, setPickerVisible] = useState(false) // điều khiển fade in/out
   const isProfileModalOpen = useProfileModalStore((s) => s.isOpen)
   const wasOpenRef = useRef(false)
+  const CLOSE_DURATION = 200
 
   const fetchAddresses = () => {
     setLoading(true)
@@ -221,6 +286,30 @@ function AddressSelector({ selectedId, onSelect }) {
 
   const selected = addresses.find((a) => a.id === selectedId)
 
+  // Mở picker: mount trước rồi fade-in ngay sau đó (giống PromoFullPage)
+  const openPicker = () => {
+    setShowPicker(true)
+    document.body.style.overflow = 'hidden'
+    requestAnimationFrame(() => setPickerVisible(true))
+  }
+
+  // Đóng picker: fade-out trước, rồi mới unmount
+  const closePicker = () => {
+    setPickerVisible(false)
+    document.body.style.overflow = ''
+    setTimeout(() => setShowPicker(false), CLOSE_DURATION)
+  }
+
+  useEffect(() => {
+    if (!showPicker) return
+    const h = (e) => { if (e.key === 'Escape') closePicker() }
+    window.addEventListener('keydown', h)
+    return () => window.removeEventListener('keydown', h)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [showPicker])
+
+  useEffect(() => () => { document.body.style.overflow = '' }, [])
+
   if (loading) {
     return (
       <div className="flex justify-center py-6">
@@ -243,6 +332,40 @@ function AddressSelector({ selectedId, onSelect }) {
       </p>
     )
   }
+
+  const header = (
+    <div
+      className="flex items-center gap-2 px-3"
+      style={{
+        paddingTop: 'max(0.625rem, env(safe-area-inset-top))',
+        paddingBottom: '0.625rem',
+      }}
+    >
+      <button
+        onClick={closePicker}
+        aria-label="Quay lại trang thanh toán"
+        className="w-9 h-9 flex items-center justify-center rounded-full cursor-pointer flex-shrink-0 transition-colors sm:hidden"
+        style={{ color: 'var(--color-text-secondary)' }}
+        onMouseEnter={(e) => e.currentTarget.style.background = 'var(--color-bg-muted)'}
+        onMouseLeave={(e) => e.currentTarget.style.background = 'transparent'}
+      >
+        <Icon.ArrowLeft />
+      </button>
+      <p className="font-semibold text-sm flex-1" style={{ color: 'var(--color-text-primary)' }}>
+        Chọn địa chỉ giao hàng
+      </p>
+      <button
+        onClick={closePicker}
+        aria-label="Đóng"
+        className="w-9 h-9 items-center justify-center rounded-full cursor-pointer flex-shrink-0 transition-colors hidden sm:flex"
+        style={{ color: 'var(--color-text-muted)' }}
+        onMouseEnter={(e) => e.currentTarget.style.background = 'var(--color-bg-muted)'}
+        onMouseLeave={(e) => e.currentTarget.style.background = 'transparent'}
+      >
+        <Icon.X />
+      </button>
+    </div>
+  )
 
   return (
     <>
@@ -272,7 +395,7 @@ function AddressSelector({ selectedId, onSelect }) {
           </div>
           {addresses.length > 1 && (
             <button
-              onClick={() => setShowPicker(true)}
+              onClick={openPicker}
               className="text-xs font-medium flex-shrink-0 px-2.5 py-1.5 rounded-[var(--radius-sm)] cursor-pointer transition-colors"
               style={{ color: 'var(--color-primary)', background: 'var(--color-bg-elevated)', border: '1px solid var(--color-primary)' }}
             >
@@ -283,22 +406,12 @@ function AddressSelector({ selectedId, onSelect }) {
       )}
 
       {showPicker && (
-        <div
-          className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-4"
-          style={{ background: 'rgba(0,0,0,0.5)' }}
-          onClick={() => setShowPicker(false)}
+        <ResponsiveOverlay
+          visible={pickerVisible}
+          onRequestClose={closePicker}
+          headerContent={header}
         >
-          <div
-            className="w-full max-w-md rounded-[var(--radius-lg)] p-5 flex flex-col gap-3 max-h-[80vh] overflow-y-auto"
-            style={{ background: 'var(--color-bg-elevated)', border: '1px solid var(--color-border-subtle)' }}
-            onClick={(e) => e.stopPropagation()}
-          >
-            <div className="flex items-center justify-between mb-1">
-              <p className="font-semibold text-sm" style={{ color: 'var(--color-text-primary)' }}>Chọn địa chỉ giao hàng</p>
-              <button onClick={() => setShowPicker(false)} style={{ color: 'var(--color-text-muted)' }}>
-                <Icon.X />
-              </button>
-            </div>
+          <div className="flex flex-col gap-3 p-4">
             {addresses.map((addr) => (
               <label
                 key={addr.id}
@@ -307,7 +420,7 @@ function AddressSelector({ selectedId, onSelect }) {
                   border: selectedId === addr.id ? '1.5px solid var(--color-primary)' : '1.5px solid var(--color-border-subtle)',
                   background: selectedId === addr.id ? 'var(--color-primary-subtle)' : 'var(--color-bg-muted)',
                 }}
-                onClick={() => { onSelect(addr.id); setShowPicker(false) }}
+                onClick={() => { onSelect(addr.id); closePicker() }}
               >
                 <div
                   className="w-4 h-4 rounded-full border-2 flex items-center justify-center flex-shrink-0 mt-0.5"
@@ -335,30 +448,49 @@ function AddressSelector({ selectedId, onSelect }) {
               </label>
             ))}
           </div>
-        </div>
+        </ResponsiveOverlay>
       )}
     </>
   )
 }
-// ── Promo Picker Modal ──────────────────────────────────────────────────────
-// ── Promo Picker Modal ──────────────────────────────────────────────────────
-function PromoPickerModal({ onClose, onSelect, promoPayload, subtotal, currentCode }) {
+
+// ── Trang chọn mã khuyến mãi ─────────────────────────────────────────────────
+// Responsive: mobile -> full-page trượt lên từ dưới; desktop (sm:) -> modal nhỏ
+// căn giữa màn hình, dùng chung ResponsiveOverlay với AddressSelector.
+function PromoFullPage({ onClose, onSelect, promoPayload, subtotal, currentCode }) {
   const { fetchAvailablePromos, applyPromo } = useOrderStore()
   const [promos, setPromos] = useState([])
   const [loading, setLoading] = useState(true)
   const [search, setSearch] = useState('')
   const [applying, setApplying] = useState(null)
+  const [visible, setVisible] = useState(false) // false -> true ngay sau mount = fade in
+  const searchInputRef = useRef(null)
+  const CLOSE_DURATION = 200 // ms, phải khớp với transition trong ResponsiveOverlay
 
+  // Fade-in ngay khi mount + khoá scroll nền
   useEffect(() => {
     document.body.style.overflow = 'hidden'
-    return () => { document.body.style.overflow = '' }
+    const raf = requestAnimationFrame(() => setVisible(true))
+    return () => {
+      document.body.style.overflow = ''
+      cancelAnimationFrame(raf)
+    }
   }, [])
 
+  // Đóng: fade-out trước, sau đó mới thực sự unmount (gọi onClose của cha)
+  const handleClose = () => {
+    setVisible(false)
+    setTimeout(() => {
+      onClose()
+    }, CLOSE_DURATION)
+  }
+
   useEffect(() => {
-    const h = (e) => { if (e.key === 'Escape') onClose() }
+    const h = (e) => { if (e.key === 'Escape') handleClose() }
     window.addEventListener('keydown', h)
     return () => window.removeEventListener('keydown', h)
-  }, [onClose])
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
 
   useEffect(() => {
     const load = async () => {
@@ -373,6 +505,7 @@ function PromoPickerModal({ onClose, onSelect, promoPayload, subtotal, currentCo
       }
     }
     load()
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
   const filtered = promos.filter(
@@ -385,12 +518,17 @@ function PromoPickerModal({ onClose, onSelect, promoPayload, subtotal, currentCo
   const ineligible = filtered.filter((p) => !p.isEligible)
   const sorted = [...eligible, ...ineligible]
 
+  // Cho phép áp mã gõ tay khi không có trong danh sách hiển thị (giữ lại tính năng
+  // nhập mã thủ công vốn có ở ô input cũ, nay chuyển vào thanh search của trang này)
+  const exactMatch = promos.find((p) => p.code.toLowerCase() === search.trim().toLowerCase())
+  const showManualApply = search.trim().length > 0 && !exactMatch
+
   const handleApply = async (code) => {
     setApplying(code)
     try {
       const result = await applyPromo(code, promoPayload)
       onSelect(result)
-      onClose()
+      handleClose()
     } catch {
     } finally {
       setApplying(null)
@@ -403,248 +541,255 @@ function PromoPickerModal({ onClose, onSelect, promoPayload, subtotal, currentCo
     return ''
   }
 
-  return (
+  const header = (
     <div
-      className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-4"
-      style={{ background: 'rgba(0,0,0,0.5)', backdropFilter: 'blur(4px)', animation: 'fadeIn 0.2s ease' }}
-      onClick={onClose}
+      className="flex items-center gap-2 px-3"
+      style={{
+        paddingTop: 'max(0.625rem, env(safe-area-inset-top))',
+        paddingBottom: '0.625rem',
+      }}
     >
-      {/* ── Tăng max-w lên xl (576px), padding rộng hơn ── */}
-      <div
-        className="w-full max-w-xl rounded-[var(--radius-lg)] overflow-hidden shadow-2xl flex flex-col"
-        style={{
-          background: 'var(--color-bg-elevated)',
-          border: '1px solid var(--color-border-subtle)',
-          maxHeight: '85vh',
-          animation: 'slideUp 0.25s cubic-bezier(0.16,1,0.3,1)',
-        }}
-        onClick={(e) => e.stopPropagation()}
+      <button
+        onClick={handleClose}
+        aria-label="Quay lại trang thanh toán"
+        className="w-9 h-9 flex items-center justify-center rounded-full cursor-pointer flex-shrink-0 transition-colors sm:hidden"
+        style={{ color: 'var(--color-text-secondary)' }}
+        onMouseEnter={(e) => e.currentTarget.style.background = 'var(--color-bg-muted)'}
+        onMouseLeave={(e) => e.currentTarget.style.background = 'transparent'}
       >
-        {/* Header */}
-        <div
-          className="flex items-center justify-between px-6 py-4 flex-shrink-0"
-          style={{ borderBottom: '1px solid var(--color-border-subtle)' }}
-        >
-          <div>
-            <p
-              className="font-bold text-base"
-              style={{
-                color: 'var(--color-text-primary)',
-                fontFamily: '"Be Vietnam Pro", "Inter", system-ui, sans-serif',
-                letterSpacing: '-0.02em',
-              }}
-            >
-              Mã khuyến mãi
-            </p>
-            <p className="text-xs mt-0.5" style={{ color: 'var(--color-text-muted)' }}>
-              {eligible.length} mã khả dụng
-            </p>
+        <Icon.ArrowLeft />
+      </button>
+
+      <div className="relative flex-1">
+        <span className="absolute left-3 top-1/2 -translate-y-1/2" style={{ color: 'var(--color-text-muted)' }}>
+          <Icon.Search />
+        </span>
+        <input
+          ref={searchInputRef}
+          autoFocus
+          value={search}
+          onChange={(e) => setSearch(e.target.value.toUpperCase())}
+          onKeyDown={(e) => e.key === 'Enter' && showManualApply && handleApply(search.trim().toUpperCase())}
+          placeholder="Tìm hoặc nhập mã khuyến mãi..."
+          className="w-full pl-9 pr-3 py-2 rounded-full text-sm outline-none transition-all"
+          style={{
+            background: 'var(--color-bg-muted)',
+            border: '1.5px solid var(--color-border-subtle)',
+            color: 'var(--color-text-primary)',
+          }}
+          onFocus={(e) => { e.target.style.borderColor = 'var(--color-primary)' }}
+          onBlur={(e) => { e.target.style.borderColor = 'var(--color-border-subtle)' }}
+        />
+      </div>
+
+      <button
+        onClick={handleClose}
+        aria-label="Đóng"
+        className="w-9 h-9 items-center justify-center rounded-full cursor-pointer flex-shrink-0 transition-colors hidden sm:flex"
+        style={{ color: 'var(--color-text-muted)' }}
+        onMouseEnter={(e) => e.currentTarget.style.background = 'var(--color-bg-muted)'}
+        onMouseLeave={(e) => e.currentTarget.style.background = 'transparent'}
+      >
+        <Icon.X />
+      </button>
+    </div>
+  )
+
+  const footer = (
+    <div
+      className="px-4 py-3"
+      style={{ paddingBottom: 'max(0.75rem, env(safe-area-inset-bottom))' }}
+    >
+      <p className="text-xs text-center" style={{ color: 'var(--color-text-muted)' }}>
+        Giá trị đơn hàng hiện tại:{' '}
+        <span style={{ color: 'var(--color-text-primary)', fontWeight: 600 }}>{fmt(subtotal)}</span>
+      </p>
+    </div>
+  )
+
+  return (
+    <ResponsiveOverlay
+      visible={visible}
+      onRequestClose={handleClose}
+      headerContent={header}
+      footerContent={footer}
+      closeDuration={CLOSE_DURATION}
+    >
+      <div className="px-4 pt-3 pb-1">
+        <p className="text-xs" style={{ color: 'var(--color-text-muted)' }}>
+          {eligible.length} mã khả dụng
+        </p>
+      </div>
+
+      {/* List */}
+      <div className="px-4 py-3 flex flex-col gap-3">
+        {loading ? (
+          <div className="flex items-center justify-center py-10">
+            <div className="w-6 h-6 rounded-full border-2 border-[var(--color-primary)] border-t-transparent animate-spin" />
           </div>
-          <button
-            onClick={onClose}
-            className="w-8 h-8 flex items-center justify-center rounded-full cursor-pointer transition-colors"
-            style={{ background: 'var(--color-bg-muted)', color: 'var(--color-text-secondary)' }}
-            onMouseEnter={(e) => e.currentTarget.style.background = 'var(--color-border-subtle)'}
-            onMouseLeave={(e) => e.currentTarget.style.background = 'var(--color-bg-muted)'}
-          >
-            <Icon.X />
-          </button>
-        </div>
+        ) : (
+          <>
+            {showManualApply && (
+              <button
+                disabled={applying === search.trim().toUpperCase()}
+                onClick={() => handleApply(search.trim().toUpperCase())}
+                className="flex items-center gap-3 px-4 py-3 rounded-[var(--radius-md)] text-left cursor-pointer transition-all"
+                style={{ border: '1.5px dashed var(--color-primary)', background: 'var(--color-primary-subtle)' }}
+              >
+                <span style={{ color: 'var(--color-primary)' }}><Icon.Tag /></span>
+                <span className="text-sm font-medium flex-1" style={{ color: 'var(--color-text-primary)' }}>
+                  {applying === search.trim().toUpperCase()
+                    ? 'Đang áp dụng...'
+                    : <>Áp dụng mã “{search.trim().toUpperCase()}”</>}
+                </span>
+              </button>
+            )}
 
-        {/* Search */}
-        <div className="px-6 py-3 flex-shrink-0" style={{ borderBottom: '1px solid var(--color-border-subtle)' }}>
-          <input
-            autoFocus
-            value={search}
-            onChange={(e) => setSearch(e.target.value.toUpperCase())}
-            placeholder="Tìm mã khuyến mãi..."
-            className="w-full px-3 py-2 rounded-[var(--radius-md)] text-sm outline-none transition-all"
-            style={{
-              background: 'var(--color-bg-muted)',
-              border: '1.5px solid var(--color-border-subtle)',
-              color: 'var(--color-text-primary)',
-            }}
-            onFocus={(e) => { e.target.style.borderColor = 'var(--color-primary)' }}
-            onBlur={(e) => { e.target.style.borderColor = 'var(--color-border-subtle)' }}
-          />
-        </div>
+            {sorted.length === 0 ? (
+              <div className="py-10 text-center">
+                <p className="text-sm" style={{ color: 'var(--color-text-muted)' }}>
+                  {search ? 'Không tìm thấy mã phù hợp' : 'Chưa có mã khuyến mãi nào'}
+                </p>
+              </div>
+            ) : (
+              sorted.map((promo) => {
+                const isActive = currentCode === promo.code
+                const isApplying = applying === promo.code
 
-        {/* List */}
-        <div className="flex-1 overflow-y-auto px-6 py-4 flex flex-col gap-3"
-          style={{ minHeight: 0 }}>
-          {loading ? (
-            <div className="flex items-center justify-center py-10">
-              <div className="w-6 h-6 rounded-full border-2 border-[var(--color-primary)] border-t-transparent animate-spin" />
-            </div>
-          ) : sorted.length === 0 ? (
-            <div className="py-10 text-center">
-              <p className="text-sm" style={{ color: 'var(--color-text-muted)' }}>
-                {search ? 'Không tìm thấy mã phù hợp' : 'Chưa có mã khuyến mãi nào'}
-              </p>
-            </div>
-          ) : (
-            sorted.map((promo) => {
-              const isActive = currentCode === promo.code
-              const isApplying = applying === promo.code
-
-              return (
-                <div key={promo.code} className="flex flex-col">
-                  {/* ── Stripe top — để ngoài wrapper overflow ── */}
-                  <div
-                    style={{
-                      height: 3,
-                      borderRadius: '6px 6px 0 0',
-                      background: promo.isEligible
-                        ? 'linear-gradient(90deg, var(--color-primary), var(--color-primary-hover))'
-                        : 'var(--color-border-subtle)',
-                      flexShrink: 0,
-                    }}
-                  />
-
-                  {/* ── Card body ── */}
-                  <div
-                    className="flex items-center gap-4 px-4 py-3 transition-all"
-                    style={{
-                      border: isActive
-                        ? '1.5px solid var(--color-primary)'
-                        : '1.5px solid var(--color-border-subtle)',
-                      borderTop: 'none',           // stripe đã làm top rồi
-                      borderRadius: '0 0 var(--radius-md) var(--radius-md)',
-                      opacity: promo.isEligible ? 1 : 0.55,
-                      background: isActive
-                        ? 'var(--color-primary-subtle)'
-                        : promo.isEligible
-                          ? 'var(--color-bg-muted)'
-                          : 'var(--color-bg-surface)',
-                    }}
-                  >
-                    {/* Icon */}
+                return (
+                  <div key={promo.code} className="flex flex-col">
+                    {/* Stripe top */}
                     <div
-                      className="flex-shrink-0 w-10 h-10 rounded-[var(--radius-sm)] flex items-center justify-center"
                       style={{
-                        background: promo.isEligible ? 'var(--color-primary-muted)' : 'var(--color-bg-surface)',
-                        border: '1px solid var(--color-border-subtle)',
-                        color: promo.isEligible ? 'var(--color-primary)' : 'var(--color-text-muted)',
+                        height: 3,
+                        borderRadius: '6px 6px 0 0',
+                        background: promo.isEligible
+                          ? 'linear-gradient(90deg, var(--color-primary), var(--color-primary-hover))'
+                          : 'var(--color-border-subtle)',
+                        flexShrink: 0,
+                      }}
+                    />
+
+                    {/* Card body */}
+                    <div
+                      className="flex items-center gap-4 px-4 py-3 transition-all"
+                      style={{
+                        border: isActive
+                          ? '1.5px solid var(--color-primary)'
+                          : '1.5px solid var(--color-border-subtle)',
+                        borderTop: 'none',
+                        borderRadius: '0 0 var(--radius-md) var(--radius-md)',
+                        opacity: promo.isEligible ? 1 : 0.55,
+                        background: isActive
+                          ? 'var(--color-primary-subtle)'
+                          : promo.isEligible
+                            ? 'var(--color-bg-muted)'
+                            : 'var(--color-bg-surface)',
                       }}
                     >
-                      <Icon.Percent />
-                    </div>
+                      {/* Icon */}
+                      <div
+                        className="flex-shrink-0 w-10 h-10 rounded-[var(--radius-sm)] flex items-center justify-center"
+                        style={{
+                          background: promo.isEligible ? 'var(--color-primary-muted)' : 'var(--color-bg-surface)',
+                          border: '1px solid var(--color-border-subtle)',
+                          color: promo.isEligible ? 'var(--color-primary)' : 'var(--color-text-muted)',
+                        }}
+                      >
+                        <Icon.Percent />
+                      </div>
 
-                    {/* Info */}
-                    <div className="flex-1 min-w-0">
-                      <div className="flex items-center gap-2 flex-wrap">
-                        <span
-                          className="font-mono font-bold text-sm tracking-wide"
-                          style={{ color: promo.isEligible ? 'var(--color-primary)' : 'var(--color-text-muted)' }}
+                      {/* Info */}
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-center gap-2 flex-wrap">
+                          <span
+                            className="font-mono font-bold text-sm tracking-wide"
+                            style={{ color: promo.isEligible ? 'var(--color-primary)' : 'var(--color-text-muted)' }}
+                          >
+                            {promo.code}
+                          </span>
+                          {isActive && (
+                            <span
+                              className="text-xs px-1.5 py-0.5 rounded-full font-medium"
+                              style={{ background: 'var(--color-primary)', color: '#fff' }}
+                            >
+                              Đang dùng
+                            </span>
+                          )}
+                          {!promo.isEligible && (
+                            <span
+                              className="text-xs px-1.5 py-0.5 rounded-full font-medium"
+                              style={{
+                                background: 'var(--color-bg-surface)',
+                                color: 'var(--color-text-muted)',
+                                border: '1px solid var(--color-border-subtle)',
+                              }}
+                            >
+                              Không đủ điều kiện
+                            </span>
+                          )}
+                        </div>
+
+                        <p
+                          className="text-xs mt-1 font-semibold"
+                          style={{ color: promo.isEligible ? 'var(--color-text-primary)' : 'var(--color-text-muted)' }}
                         >
-                          {promo.code}
-                        </span>
-                        {isActive && (
-                          <span
-                            className="text-xs px-1.5 py-0.5 rounded-full font-medium"
-                            style={{ background: 'var(--color-primary)', color: '#fff' }}
-                          >
-                            Đang dùng
-                          </span>
+                          {fmtDiscount(promo)}
+                          {promo.minOrderValue > 0 && (
+                            <span className="font-normal ml-1" style={{ color: 'var(--color-text-muted)' }}>
+                              · Đơn tối thiểu {fmt(promo.minOrderValue)}
+                            </span>
+                          )}
+                        </p>
+
+                        {promo.description && (
+                          <p className="text-xs mt-0.5" style={{ color: 'var(--color-text-muted)' }}>
+                            {promo.description}
+                          </p>
                         )}
-                        {!promo.isEligible && (
-                          <span
-                            className="text-xs px-1.5 py-0.5 rounded-full font-medium"
-                            style={{
-                              background: 'var(--color-bg-surface)',
-                              color: 'var(--color-text-muted)',
-                              border: '1px solid var(--color-border-subtle)',
-                            }}
-                          >
-                            Không đủ điều kiện
-                          </span>
+
+                        {!promo.isEligible && promo.reason && (
+                          <p className="text-xs mt-1" style={{ color: '#ef4444' }}>
+                            ⚠ {promo.reason}
+                          </p>
                         )}
                       </div>
 
-                      <p
-                        className="text-xs mt-1 font-semibold"
-                        style={{ color: promo.isEligible ? 'var(--color-text-primary)' : 'var(--color-text-muted)' }}
+                      {/* Button */}
+                      <button
+                        disabled={!promo.isEligible || isApplying}
+                        onClick={() => promo.isEligible && handleApply(promo.code)}
+                        className="flex-shrink-0 w-16 py-1.5 rounded-[var(--radius-sm)] text-xs font-semibold transition-all text-center"
+                        style={
+                          !promo.isEligible
+                            ? { background: 'var(--color-bg-surface)', color: 'var(--color-text-muted)', cursor: 'not-allowed', border: '1px solid var(--color-border-subtle)' }
+                            : isActive
+                              ? { background: '#ef444415', color: '#ef4444', border: '1px solid #ef444430', cursor: 'pointer' }
+                              : { background: 'var(--color-primary)', color: '#fff', cursor: 'pointer' }
+                        }
                       >
-                        {fmtDiscount(promo)}
-                        {promo.minOrderValue > 0 && (
-                          <span className="font-normal ml-1" style={{ color: 'var(--color-text-muted)' }}>
-                            · Đơn tối thiểu {fmt(promo.minOrderValue)}
-                          </span>
-                        )}
-                      </p>
-
-                      {promo.description && (
-                        <p className="text-xs mt-0.5" style={{ color: 'var(--color-text-muted)' }}>
-                          {promo.description}
-                        </p>
-                      )}
-
-                      {!promo.isEligible && promo.reason && (
-                        <p className="text-xs mt-1" style={{ color: '#ef4444' }}>
-                          ⚠ {promo.reason}
-                        </p>
-                      )}
+                        {isApplying ? '...' : isActive ? 'Bỏ' : 'Dùng'}
+                      </button>
                     </div>
-
-                    {/* Button */}
-                    <button
-                      disabled={!promo.isEligible || isApplying}
-                      onClick={() => promo.isEligible && handleApply(promo.code)}
-                      className="flex-shrink-0 w-16 py-1.5 rounded-[var(--radius-sm)] text-xs font-semibold transition-all text-center"
-                      style={
-                        !promo.isEligible
-                          ? { background: 'var(--color-bg-surface)', color: 'var(--color-text-muted)', cursor: 'not-allowed', border: '1px solid var(--color-border-subtle)' }
-                          : isActive
-                            ? { background: '#ef444415', color: '#ef4444', border: '1px solid #ef444430', cursor: 'pointer' }
-                            : { background: 'var(--color-primary)', color: '#fff', cursor: 'pointer' }
-                      }
-                    >
-                      {isApplying ? '...' : isActive ? 'Bỏ' : 'Dùng'}
-                    </button>
                   </div>
-                </div>
-              )
-            })
-          )}
-        </div>
-
-        {/* Footer */}
-        <div
-          className="px-6 py-3 flex-shrink-0"
-          style={{ borderTop: '1px solid var(--color-border-subtle)', background: 'var(--color-bg-surface)' }}
-        >
-          <p className="text-xs text-center" style={{ color: 'var(--color-text-muted)' }}>
-            Giá trị đơn hàng hiện tại:{' '}
-            <span style={{ color: 'var(--color-text-primary)', fontWeight: 600 }}>{fmt(subtotal)}</span>
-          </p>
-        </div>
+                )
+              })
+            )}
+          </>
+        )}
       </div>
-
-      <style>{`
-        @keyframes fadeIn  { from { opacity: 0 } to { opacity: 1 } }
-        @keyframes slideUp { from { opacity: 0; transform: translateY(16px) scale(0.97) } to { opacity: 1; transform: none } }
-      `}</style>
-    </div>
+    </ResponsiveOverlay>
   )
 }
 
 // ── Promo input ─────────────────────────────────────────────────────────────
+// Ô này giờ đóng vai trò như 1 "thanh search" trigger: bấm vào sẽ mở PromoFullPage
+// (mobile: full-page trượt lên; desktop: modal nhỏ căn giữa) thay vì gõ trực tiếp tại đây.
 function PromoInput({ promoPayload, onApplied, onCleared, subtotal }) {
-  const { applyPromo, clearPromo, promoResult, promoLoading, promoError } = useOrderStore()
-  const [code, setCode] = useState('')
+  const { clearPromo, promoResult, promoError } = useOrderStore()
   const [showPicker, setShowPicker] = useState(false)
 
-  const handleApply = async (codeToApply) => {
-    const c = codeToApply ?? code.trim()
-    if (!c) return
-    try {
-      const result = await applyPromo(c, promoPayload)
-      onApplied?.(result)
-    } catch { }
-  }
-
   const handleClear = () => {
-    setCode('')
     clearPromo()
     onCleared?.()
   }
@@ -657,24 +802,23 @@ function PromoInput({ promoPayload, onApplied, onCleared, subtotal }) {
     <>
       <div className="flex flex-col gap-2">
         <div className="flex gap-2">
-          <div className="relative flex-1">
+          <div
+            className="relative flex-1 cursor-pointer"
+            onClick={() => !promoResult && setShowPicker(true)}
+          >
             <span className="absolute left-3 top-1/2 -translate-y-1/2" style={{ color: 'var(--color-text-muted)' }}>
               <Icon.Tag />
             </span>
             <input
-              value={promoResult ? promoResult.promoCode || code : code}
-              onChange={(e) => setCode(e.target.value.toUpperCase())}
-              onKeyDown={(e) => e.key === 'Enter' && handleApply()}
-              disabled={!!promoResult}
-              placeholder="Nhập mã khuyến mãi"
-              className="w-full pl-9 pr-3 py-2 rounded-[var(--radius-md)] text-sm outline-none transition-all"
+              readOnly
+              value={promoResult ? promoResult.promoCode : ''}
+              placeholder="Chọn hoặc nhập mã khuyến mãi"
+              className="w-full pl-9 pr-3 py-2 rounded-[var(--radius-md)] text-sm outline-none transition-all cursor-pointer"
               style={{
                 background: 'var(--color-bg-muted)',
                 border: '1.5px solid var(--color-border-subtle)',
                 color: 'var(--color-text-primary)',
               }}
-              onFocus={(e) => { e.target.style.borderColor = 'var(--color-primary)' }}
-              onBlur={(e) => { e.target.style.borderColor = 'var(--color-border-subtle)' }}
             />
           </div>
 
@@ -688,26 +832,14 @@ function PromoInput({ promoPayload, onApplied, onCleared, subtotal }) {
             </button>
           ) : (
             <button
-              onClick={() => handleApply()}
-              disabled={promoLoading || !code.trim()}
-              className="px-4 py-2 rounded-[var(--radius-md)] text-sm font-medium cursor-pointer disabled:opacity-50"
+              onClick={() => setShowPicker(true)}
+              className="px-4 py-2 rounded-[var(--radius-md)] text-sm font-medium cursor-pointer whitespace-nowrap"
               style={{ background: 'var(--color-primary)', color: '#fff' }}
             >
-              {promoLoading ? '...' : 'Áp dụng'}
+              Chọn mã
             </button>
           )}
         </div>
-
-        {!promoResult && (
-          <button
-            onClick={() => setShowPicker(true)}
-            className="flex items-center gap-1.5 text-xs font-medium cursor-pointer transition-colors self-start"
-            style={{ color: 'var(--color-primary)' }}
-          >
-            <Icon.ChevronDown />
-            Xem tất cả mã khuyến mãi
-          </button>
-        )}
 
         {promoError && (
           <p className="text-xs px-3 py-1.5 rounded-[var(--radius-sm)]" style={{ background: '#ef444415', color: '#ef4444' }}>
@@ -723,12 +855,12 @@ function PromoInput({ promoPayload, onApplied, onCleared, subtotal }) {
       </div>
 
       {showPicker && (
-        <PromoPickerModal
+        <PromoFullPage
           onClose={() => setShowPicker(false)}
           onSelect={handlePickerSelect}
           promoPayload={promoPayload}
           subtotal={subtotal}
-          currentCode={promoResult?.promoCode || code}
+          currentCode={promoResult?.promoCode}
         />
       )}
     </>

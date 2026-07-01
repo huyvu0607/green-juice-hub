@@ -79,7 +79,7 @@ export default function ProductCard({ product }) {
       {/* Giảm giá — ribbon chờm ra ngoài mép trên-trái của card, giống ảnh mẫu,
           responsive đồng bộ ở mọi kích thước màn hình */}
       {maxDiscountPercent > 0 && (
-        <div className="absolute -top-1.5 sm:-top-2 left-2 sm:left-4.5 z-20">
+        <div className="absolute -top-1.5 sm:-top-2 left-4.5 sm:left-4.5 z-20">
           <div
             className="relative bg-red-600 text-white
                        rounded-tr-md rounded-br-md rounded-bl-md
