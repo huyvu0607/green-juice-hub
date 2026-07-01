@@ -31,6 +31,15 @@ export default function ProductCard({ product }) {
     tags = [], categoryName,
   } = product;
 
+  // Giá gốc (trước giảm) — dùng field có sẵn nếu backend trả về,
+  // nếu không thì suy ra từ % giảm tối đa.
+  const originalPrice =
+    product.originalPrice ??
+    product.listPrice ??
+    (maxDiscountPercent > 0
+      ? Math.round(minSalePrice / (1 - maxDiscountPercent / 100))
+      : null);
+
   const [imgLoaded, setImgLoaded] = useState(false);
   const [imgError, setImgError] = useState(false);
   const [adding, setAdding] = useState(false);
@@ -57,15 +66,41 @@ export default function ProductCard({ product }) {
   };
 
   return (
+    // LƯU Ý: KHÔNG thêm overflow-hidden ở đây — Ribbon cần chờm (-top-2)
+    // ra ngoài mép trên card giống hành vi desktop. Grid cha (ProductsPage)
+    // đã có gap-y đủ lớn để chừa chỗ, nên card này không cần cắt nội dung.
     <Link
       to={`/products/${slug}`}
-      className="group relative bg-[var(--color-bg-card)] rounded-2xl overflow-hidden
+      className="group relative bg-[var(--color-bg-card)] rounded-lg
                  border border-[var(--color-border-subtle)]
                  hover:shadow-xl hover:-translate-y-0.5
                  transition-all duration-200 flex flex-col"
     >
+      {/* Giảm giá — ribbon chờm ra ngoài mép trên-trái của card, giống ảnh mẫu,
+          responsive đồng bộ ở mọi kích thước màn hình */}
+      {maxDiscountPercent > 0 && (
+        <div className="absolute -top-1.5 sm:-top-2 left-2 sm:left-4.5 z-20">
+          <div
+            className="relative bg-red-600 text-white
+                       rounded-tr-md rounded-br-md rounded-bl-md
+                       py-1 px-1.5 sm:py-2 sm:px-3
+                       sm:min-w-[78px]
+                       flex items-center justify-center gap-[2px] sm:gap-0.5
+                       leading-none shadow-md whitespace-nowrap"
+          >
+            <span className="text-[7px] sm:text-[10px] font-semibold">Giảm</span>
+            <span className="text-[9px] sm:text-[12px] font-extrabold">{maxDiscountPercent}%</span>
+          </div>
+          {/* tam giác vuông nhỏ, chỉ ở nửa trên cạnh trái ribbon */}
+          <div
+            className="absolute right-full top-0 w-1 h-[5px] sm:w-2 sm:h-[8px] bg-red-900"
+            style={{ clipPath: "polygon(100% 0, 0 100%, 100% 100%)" }}
+          />
+        </div>
+      )}
+
       {/* ── Image area ── */}
-      <div className="relative aspect-square overflow-hidden bg-[var(--color-bg-muted)]">
+      <div className="relative aspect-square overflow-hidden rounded-t-lg bg-[var(--color-bg-muted)]">
 
         {!imgLoaded && !imgError && <ImageSkeleton />}
 
@@ -87,25 +122,22 @@ export default function ProductCard({ product }) {
           <div className="w-full h-full bg-gradient-to-br from-green-200 to-emerald-400" />
         )}
 
-        {/* Tags — top left */}
-        <div className="absolute top-1.5 left-1.5 flex flex-wrap gap-1">
-          {tags.slice(0, 1).map(tag => (
-            <span
-              key={tag}
-              className={`text-[9px] sm:text-[10px] font-semibold px-1.5 py-0.5 rounded-full
-                         ${TAG_STYLE[tag] ?? "bg-gray-400 text-white"}`}
-            >
-              {TAG_LABEL[tag] ?? tag}
-            </span>
-          ))}
-        </div>
-
-        {/* Discount — top right */}
-        {maxDiscountPercent > 0 && (
-          <span className="absolute top-1.5 right-1.5 bg-red-500 text-white
-                           text-[9px] sm:text-[11px] font-bold px-1.5 py-0.5 rounded-full">
-            -{maxDiscountPercent}%
-          </span>
+        {/* Tags — góc phải, dạng pill bo tròn bên trái, giống badge "Trả góp" trong ảnh mẫu,
+            responsive đồng bộ ở mọi kích thước màn hình */}
+        {tags.length > 0 && (
+          <div className="absolute top-1 sm:top-1.5 right-0 z-10 flex flex-col items-end gap-0.5 sm:gap-1">
+            {tags.slice(0, 2).map(tag => (
+              <span
+                key={tag}
+                className={`text-[8px] sm:text-[10px] font-semibold
+                           pl-1.5 pr-2 sm:pl-2 sm:pr-2.5 py-0.5 sm:py-1
+                           rounded-l-full shadow-sm whitespace-nowrap
+                           ${TAG_STYLE[tag] ?? "bg-gray-400 text-white"}`}
+              >
+                {TAG_LABEL[tag] ?? tag}
+              </span>
+            ))}
+          </div>
         )}
 
         {/* Out of stock overlay */}
@@ -172,7 +204,7 @@ export default function ProductCard({ product }) {
       </div>
 
       {/* ── Info area ── */}
-      <div className="p-2 sm:p-3 flex flex-col gap-0.5 sm:gap-1 flex-1">
+      <div className="p-2 sm:p-3 rounded-b-xl flex flex-col gap-0.5 sm:gap-1 flex-1">
         <p className="text-[10px] sm:text-[11px] text-[var(--color-text-muted)] truncate">
           {categoryName}
         </p>
@@ -191,11 +223,16 @@ export default function ProductCard({ product }) {
           <span>({reviewCount})</span>
         </div>
 
-        {/* Price */}
-        <div className="flex items-center gap-1.5 mt-0.5 flex-wrap">
-          <span className="text-[var(--color-primary)] font-bold text-xs sm:text-sm">
+        {/* Price — số tiền to & đậm hơn, kèm giá gốc gạch ngang màu xám */}
+        <div className="flex items-baseline gap-1.5 mt-0.5 flex-wrap">
+          <span className="text-[var(--color-primary)] font-bold text-base sm:text-lg">
             {Number(minSalePrice)?.toLocaleString("vi-VN")}đ
           </span>
+          {originalPrice > minSalePrice && (
+            <span className="text-[var(--color-text-muted)] text-[10px] sm:text-xs line-through">
+              {Number(originalPrice)?.toLocaleString("vi-VN")}đ
+            </span>
+          )}
         </div>
       </div>
     </Link>
@@ -204,7 +241,7 @@ export default function ProductCard({ product }) {
 
 export function ProductCardSkeleton() {
   return (
-    <div className="rounded-2xl overflow-hidden border border-[var(--color-border-subtle)]
+    <div className="rounded-xl overflow-hidden border border-[var(--color-border-subtle)]
                     bg-[var(--color-bg-card)] flex flex-col animate-pulse">
       <div className="aspect-square bg-[var(--color-bg-muted)]" />
       <div className="p-2 sm:p-3 flex flex-col gap-2">
