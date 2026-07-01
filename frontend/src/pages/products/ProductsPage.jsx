@@ -473,14 +473,17 @@ export default function ProductsPage() {
         {/* Product grid */}
         <div className="flex-1 min-w-0 w-full">
 
-          <p className="text-xs sm:text-sm text-[var(--color-text-secondary)] mb-3">
+          <p className="text-xs sm:text-sm text-[var(--color-text-secondary)] mb-5 sm:mb-4">
             Tìm thấy{" "}
             <strong className="text-[var(--color-text-primary)]">{totalElements}</strong>{" "}
             sản phẩm
           </p>
 
           {loading ? (
-            <div className={`grid gap-2.5 sm:gap-4 grid-cols-2
+            /* NOTE: gap-x-2.5 / gap-y-6 (thay vì gap-2.5 sm:gap-4) để chừa đủ khoảng
+               cách dọc cho Ribbon "chờm" ra khỏi card mà không bị hàng trên đè lên,
+               giống hành vi trên desktop. */
+            <div className={`grid gap-x-2.5 gap-y-6 sm:gap-x-4 sm:gap-y-6 grid-cols-2
                             ${sidebarOpen ? "md:grid-cols-3" : "md:grid-cols-4"}`}>
               {Array.from({ length: 12 }).map((_, i) => <ProductCardSkeleton key={i} />)}
             </div>
@@ -497,7 +500,7 @@ export default function ProductsPage() {
 
           ) : (
             <>
-              <div className={`grid gap-2.5 sm:gap-4 grid-cols-2
+              <div className={`grid gap-x-2.5 gap-y-6 sm:gap-x-4 sm:gap-y-6 grid-cols-2
                               ${sidebarOpen ? "md:grid-cols-3" : "md:grid-cols-4"}`}>
                 {products.map((p, i) => (
                   <AnimatedCard key={p.id} colIndex={i % cols}>
