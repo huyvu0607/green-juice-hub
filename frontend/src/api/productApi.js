@@ -17,3 +17,6 @@ export const getSizes = () =>
 
 export const getTags = () => 
   api.get("/products/tags").then(r => r.data);
+
+export const getDealCategories = () =>
+  api.get("/products/deal-categories").then(r => r.data);

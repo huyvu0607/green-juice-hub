@@ -8,6 +8,12 @@ import { useCartAnimation } from '@/hooks/useCartAnimation'
 import useProfileModalStore from '@/store/useProfileModalStore'
 import { LOGO_URL } from "@/constants/assets";
 
+function getBackTarget(pathname) {
+  if (/^\/products\/[^/]+$/.test(pathname)) return "/products";
+  if (/^\/orders\/[^/]+$/.test(pathname)) return "/orders";
+  if (pathname === "/checkout") return -1;
+  return null;
+}
 
 const NAV_LINKS = [
   { label: "Trang chủ", to: "/" },
@@ -186,7 +192,6 @@ function UserDropdown({ user, onLogout, onOpenProfile }) {
         className="hover:border-[var(--color-primary)] hover:bg-[var(--color-primary-subtle)]"
       >
         <Avatar name={user?.name} avatarUrl={user?.avatarUrl} size={26} />
-        {/* Ẩn tên & chevron trên mobile */}
         <span className="hidden sm:block" style={{
           fontSize: 13, fontWeight: 500, color: "var(--color-text-primary)",
           maxWidth: 120, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap"
@@ -269,17 +274,20 @@ function UserDropdown({ user, onLogout, onOpenProfile }) {
 function SearchBox({ onClose, initialQuery = "" }) {
   const navigate = useNavigate();
   const location = useLocation();
+  const backTarget = getBackTarget(location.pathname);
+  const handleBack = () => {
+    if (backTarget === -1) navigate(-1);
+    else navigate(backTarget);
+  };
   const inputRef = useRef(null);
   const debounceRef = useRef(null);
 
-  // FIX: Đọc keyword từ URL để đồng bộ khi mở overlay
   const [query, setQuery] = useState(() => {
     const p = new URLSearchParams(location.search);
     return p.get("keyword") ?? initialQuery;
   });
   const [isFocused, setIsFocused] = useState(false);
 
-  // Sync query với URL khi search param thay đổi từ bên ngoài
   useEffect(() => {
     if (!location.pathname.startsWith("/products")) {
       setQuery("");
@@ -340,7 +348,6 @@ function SearchBox({ onClose, initialQuery = "" }) {
 
   useEffect(() => () => clearTimeout(debounceRef.current), []);
 
-  // Auto-focus khi dùng trong mobile overlay
   useEffect(() => {
     if (onClose) {
       const t = setTimeout(() => inputRef.current?.focus(), 60);
@@ -410,19 +417,24 @@ export default function Header() {
   const navigate = useNavigate();
   const { totalQuantity, toggleCart } = useCartStore();
 
-  // FIX: Lấy keyword hiện tại từ URL để truyền vào overlay
+  // FIX: backTarget/handleBack thiếu ở đây trước đây, khiến Header
+  // ném ReferenceError khi render (biến này chỉ tồn tại trong SearchBox,
+  // không tự "leak" sang component khác được).
+  const backTarget = getBackTarget(location.pathname);
+  const handleBack = () => {
+    if (backTarget === -1) navigate(-1);
+    else navigate(backTarget);
+  };
+
   const currentKeyword = (() => {
     const p = new URLSearchParams(location.search);
     return p.get("keyword") ?? "";
   })();
 
-  // Search bar mobile hiện khi: đang gõ (mobileSearchOpen) HOẶC đã có keyword trong URL
   const mobileSearchActive = mobileSearchOpen || currentKeyword !== "";
 
-  // Đóng search input (không xoá keyword) — dùng khi blur ra ngoài
   const closeMobileSearch = () => setMobileSearchOpen(false);
 
-  // Xoá keyword và ẩn search bar
   const clearMobileSearch = useCallback(() => {
     setMobileSearchOpen(false);
     if (location.pathname.startsWith("/products")) {
@@ -434,7 +446,6 @@ export default function Header() {
     }
   }, [navigate, location]);
 
-  // Đóng overlay khi chuyển route
   useEffect(() => {
     setMobileSearchOpen(false);
   }, [location.pathname]);
@@ -484,7 +495,6 @@ export default function Header() {
     ? navTop + 8 + NAV_HEIGHT - BTN_SIZE / 2
     : navTop - 10;
 
-  // Icons cho bottom nav
   const NAV_ICONS = {
     "/": (
       <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
@@ -516,8 +526,6 @@ export default function Header() {
 
   return (
     <>
-      {/* Định nghĩa filter "goo" dùng cho hiệu ứng liquid pill (trước đây bị thiếu,
-          khiến lớp blob nền pill không merge mượt giữa các lần chuyển active) */}
       <svg width="0" height="0" style={{ position: "absolute" }} aria-hidden="true">
         <defs>
           <filter id="goo">
@@ -533,7 +541,6 @@ export default function Header() {
         </defs>
       </svg>
 
-      {/* ── HEADER sticky ── */}
       <div
         ref={headerRef}
         className="sticky top-0 transition-theme"
@@ -546,10 +553,8 @@ export default function Header() {
         <header>
           <div className="max-w-7xl mx-auto px-4 sm:px-6 h-16 flex items-center gap-3">
 
-            {/* ── MOBILE: search bar thay thế toàn bộ header row khi active ── */}
             {mobileSearchActive && (
               <div className="flex sm:hidden items-center gap-2 w-full">
-                {/* Nút back — bấm để xoá keyword và ẩn search */}
                 <button
                   onClick={clearMobileSearch}
                   style={{
@@ -567,17 +572,30 @@ export default function Header() {
                     <path d="M19 12H5M12 5l-7 7 7 7" />
                   </svg>
                 </button>
-                {/* SearchBox chiếm phần còn lại */}
                 <div style={{ flex: 1 }}>
                   <SearchBox onClose={closeMobileSearch} initialQuery={currentKeyword} />
                 </div>
               </div>
             )}
 
-            {/* ── Logo — ẩn khi mobile search active ── */}
+            {!mobileSearchActive && backTarget !== null && (
+              <button
+                onClick={handleBack}
+                className="flex items-center justify-center shrink-0 w-9 h-9 rounded-[var(--radius-md)]
+               text-[var(--color-text-secondary)] hover:text-[var(--color-text-primary)]
+               hover:bg-[var(--color-bg-muted)] transition-colors duration-[var(--duration-base)]"
+                aria-label="Quay lại"
+              >
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none"
+                  stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                  <path d="M19 12H5M12 5l-7 7 7 7" />
+                </svg>
+              </button>
+            )}
+
             <Link to="/"
               className={`items-center gap-2 shrink-0 text-[var(--color-primary)] hover:text-[var(--color-primary-hover)] transition-colors duration-[var(--duration-base)]
-                ${mobileSearchActive ? "hidden sm:flex" : "flex"}`}>
+    ${(mobileSearchActive || backTarget !== null) ? "hidden sm:flex" : "flex"}`}>
               <img src={LOGO_URL} alt="Green Juice Hub" className="w-8 h-8 object-contain" />
               <span
                 className="font-display font-semibold text-[var(--text-lg)] text-[var(--color-text-primary)] tracking-tight"
@@ -592,22 +610,17 @@ export default function Header() {
               </span>
             </Link>
 
-            {/* Search — chỉ desktop (sm+) */}
             <div className="hidden sm:flex flex-1 justify-center">
               <SearchBox />
             </div>
 
-            {/* Spacer mobile — ẩn khi search active (search box đã chiếm flex-1) */}
             {!mobileSearchActive && <div className="flex-1 sm:hidden" />}
 
-            {/* Right actions — ẩn khi mobile search active */}
             <div className={`items-center gap-1 sm:gap-2 shrink-0 ${mobileSearchActive ? "hidden sm:flex" : "flex"}`}>
-              {/* Theme toggle — chỉ desktop */}
               <span className="hidden sm:block">
                 <ThemeToggle />
               </span>
 
-              {/* Search icon — chỉ mobile, chỉ hiện khi search KHÔNG active */}
               <button
                 className="sm:hidden relative w-9 h-9 flex items-center justify-center rounded-[var(--radius-md)]
                            text-[var(--color-text-secondary)] hover:text-[var(--color-text-primary)]
@@ -621,7 +634,6 @@ export default function Header() {
                 </svg>
               </button>
 
-              {/* Cart */}
               <button
                 ref={cartBtnRef}
                 onClick={toggleCart}
@@ -643,12 +655,10 @@ export default function Header() {
                 )}
               </button>
 
-              {/* Auth */}
               {isLoggedIn && user ? (
                 <UserDropdown user={user} onLogout={handleLogout} onOpenProfile={() => openProfileModal('profile')} />
               ) : (
                 <>
-                  {/* Mobile: icon only */}
                   <Link to="/login"
                     className="sm:hidden w-9 h-9 flex items-center justify-center rounded-[var(--radius-md)]
                                text-[var(--color-text-secondary)] hover:text-[var(--color-text-primary)]
@@ -661,7 +671,6 @@ export default function Header() {
                       <circle cx="12" cy="7" r="4" />
                     </svg>
                   </Link>
-                  {/* Desktop: full button */}
                   <Link to="/login"
                     className="hidden sm:flex items-center gap-1.5 h-9 px-4 rounded-[var(--radius-pill)]
                                text-[var(--text-sm)] font-medium bg-[var(--color-primary)] text-white
@@ -680,7 +689,6 @@ export default function Header() {
         </header>
       </div>
 
-      {/* ── Desktop: Floating pill nav (sm+) ── */}
       <div
         className="hidden sm:block"
         style={{
@@ -704,10 +712,6 @@ export default function Header() {
           aria-label="Điều hướng chính"
           className="relative flex items-center justify-center gap-1 px-2 py-2 transition-theme"
           style={{
-            // FIX: width tường minh để nền pill luôn ôm sát đúng nội dung
-            // (trước đây thiếu width khiến flex container đôi khi đo hẹp hơn
-            // nội dung thật, làm item đầu/cuối "Trang chủ"/"Liên hệ" tràn ra
-            // ngoài phần nền bo tròn).
             width: "max-content",
             borderRadius: 9999,
             background: "var(--color-bg-elevated)",
@@ -757,12 +761,6 @@ export default function Header() {
         </nav>
       </div>
 
-      {/* ── Mobile: Bottom Tab Bar (<sm) ──
-          FIX: display giờ nằm trong className ("flex sm:hidden") thay vì
-          inline style, vì inline style luôn thắng tuyệt đối so với class CSS
-          (kể cả class có media query) — trước đây style={{display:"flex"}}
-          khiến sm:hidden không bao giờ ăn được, làm thanh tab hiện ở mọi
-          kích thước màn hình (tablet/desktop) chứ không riêng gì mobile. */}
       <nav
         aria-label="Điều hướng chính"
         style={{
@@ -801,9 +799,6 @@ export default function Header() {
                 transition: "color 0.2s ease",
               }}
             >
-              {/* Pill background cho item active — theo mẫu: pill rõ ràng,
-                  rộng rãi, icon/text giữ nguyên cỡ (không thu nhỏ icon như
-                  bản trước), bo tròn đều, nổi bật hẳn so với tab thường. */}
               <span style={{
                 display: "flex",
                 flexDirection: isActive ? "row" : "column",
@@ -840,7 +835,6 @@ export default function Header() {
         })}
       </nav>
 
-      {/* ── Toggle button — chỉ desktop ── */}
       <div
         className="hidden sm:block"
         style={{

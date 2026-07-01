@@ -12,4 +12,5 @@ public interface IProductService {
     List<FlavorResponse> getAllFlavors();
     List<SizeResponse> getAllSizes();
     List<TagDefinitionResponse> getAllTags();
+    List<CategoryResponse> getDealCategories();
 }

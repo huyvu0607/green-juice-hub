@@ -38,11 +38,14 @@ public class ProductServiceImpl implements IProductService {
         Specification<Product> spec = buildSpec(request);
         String sortBy = request.getSortBy();
 
-        if ("price_asc".equals(sortBy) || "price_desc".equals(sortBy)) {
+        if ("price_asc".equals(sortBy) || "price_desc".equals(sortBy) || "discount_desc".equals(sortBy)) {
             Pageable pageable = PageRequest.of(request.getPage(), request.getSize());
-            Page<Product> page = "price_asc".equals(sortBy)
-                    ? productRepository.findAllOrderByMinPriceAsc(pageable)
-                    : productRepository.findAllOrderByMinPriceDesc(pageable);
+            Page<Product> page = switch (sortBy) {
+                case "price_asc"     -> productRepository.findAllOrderByMinPriceAsc(pageable);
+                case "price_desc"    -> productRepository.findAllOrderByMinPriceDesc(pageable);
+                case "discount_desc" -> productRepository.findAllOrderByMaxDiscountDesc(request.getCategoryId(), pageable);
+                default -> throw new IllegalStateException("unreachable");
+            };
             return page.map(this::toSummary);
         }
 
@@ -51,6 +54,16 @@ public class ProductServiceImpl implements IProductService {
         return productRepository.findAll(spec, pageable).map(this::toSummary);
     }
 
+    @Override
+    public List<CategoryResponse> getDealCategories() {
+        return productRepository.findCategoriesWithActiveDeals().stream()
+                .map(row -> CategoryResponse.builder()
+                        .id(((Number) row[0]).longValue())
+                        .name((String) row[1])
+                        .slug((String) row[2])
+                        .build())
+                .toList();
+    }
     // ==================== GET PRODUCT DETAIL ====================
     @Override
     public ProductDetailResponse getProductBySlug(String slug) {

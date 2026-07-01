@@ -47,4 +47,9 @@ public class ProductController {
     public ResponseEntity<List<SizeResponse>> getSizes() {
         return ResponseEntity.ok(productService.getAllSizes());
     }
+
+    @GetMapping("/deal-categories")
+    public ResponseEntity<List<CategoryResponse>> getDealCategories() {
+        return ResponseEntity.ok(productService.getDealCategories());
+    }
 }
