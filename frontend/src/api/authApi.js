@@ -26,7 +26,7 @@ const authApi = {
     api.post('/auth/google', { idToken }),
 
   refresh: () =>
-    api.post('/auth/refresh'),
+    api.post('/auth/refresh', null, { skipAccessToken: true }),
   
   checkAccount: (phone) =>
   api.post('/auth/check-account', { phone }),

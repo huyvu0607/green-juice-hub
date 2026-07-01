@@ -18,8 +18,15 @@ const isNetworkError = (error) =>
 
 // ── Request interceptor ────────────────────────────────────────────
 api.interceptors.request.use((config) => {
+  if (config.skipAccessToken) {
+    return config
+  }
+
   const token = localStorage.getItem('accessToken')
-  if (token && !config.headers?.Authorization) {
+  const hasAuthHeader =
+    !!config.headers?.Authorization || !!config.headers?.authorization
+
+  if (token && !hasAuthHeader) {
     config.headers = { ...config.headers, Authorization: `Bearer ${token}` }
   }
   return config
@@ -73,6 +80,7 @@ api.interceptors.response.use(
       try {
         const res = await api.post('/api/auth/refresh', null, {
           headers: { Authorization: `Bearer ${refreshToken}` },
+          skipAccessToken: true,
           timeout: 15000, // tăng lên 15s để chờ cold start
         })
 
