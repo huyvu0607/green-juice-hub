@@ -35,6 +35,9 @@ public class Product {
     @Column(name = "review_count", nullable = false)
     private Integer reviewCount = 0;
 
+    @Column(name = "is_deleted", nullable = false)
+    private Boolean isDeleted = false;
+
     @Column(name = "is_active", nullable = false)
     private Boolean isActive = true;
 

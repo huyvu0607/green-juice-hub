@@ -27,6 +27,11 @@ const icons = {
       <path d="M3 6h18M8 6V4h8v2M19 6l-1 14H6L5 6" />
     </svg>
   ),
+  restore: (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M3 12a9 9 0 1 0 3-6.7M3 4v5h5" />
+    </svg>
+  ),
   chevronLeft: (
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
       <path d="M15 18l-6-6 6-6" />
@@ -51,14 +56,14 @@ function Badge({ active }) {
   );
 }
 
-function ConfirmModal({ message, onConfirm, onCancel }) {
+function ConfirmModal({ message, confirmLabel = "Xác nhận", confirmClassName = "bg-red-600 hover:bg-red-700", onConfirm, onCancel }) {
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40">
       <div className="w-full max-w-sm rounded-2xl bg-white p-6 shadow-xl">
         <p className="text-sm text-gray-700">{message}</p>
         <div className="mt-5 flex justify-end gap-3">
           <button onClick={onCancel} className="rounded-lg px-4 py-2 text-sm font-medium text-gray-600 hover:bg-gray-100">Huỷ</button>
-          <button onClick={onConfirm} className="rounded-lg bg-red-600 px-4 py-2 text-sm font-medium text-white hover:bg-red-700">Xác nhận</button>
+          <button onClick={onConfirm} className={`rounded-lg px-4 py-2 text-sm font-medium text-white ${confirmClassName}`}>{confirmLabel}</button>
         </div>
       </div>
     </div>
@@ -68,6 +73,8 @@ function ConfirmModal({ message, onConfirm, onCancel }) {
 export default function AdminProductsPage() {
   const navigate = useNavigate();
   const { canWrite } = useAdminRole(); // ← thêm
+
+  const [viewMode, setViewMode] = useState("active"); // "active" | "trash"
 
   const [products, setProducts] = useState([]);
   const [categories, setCategories] = useState([]);
@@ -86,6 +93,7 @@ export default function AdminProductsPage() {
   const [tagFilter, setTagFilter] = useState("");
 
   const [confirmDelete, setConfirmDelete] = useState(null);
+  const [confirmRestore, setConfirmRestore] = useState(null);
 
   const fetchProducts = useCallback(() => {
     setLoading(true);
@@ -96,6 +104,7 @@ export default function AdminProductsPage() {
         isActive: activeFilter !== "" ? activeFilter : undefined,
         stock: stockFilter || undefined,
         tag: tagFilter || undefined,
+        isDeleted: viewMode === "trash",
         page,
         size: PAGE_SIZE,
       })
@@ -105,13 +114,20 @@ export default function AdminProductsPage() {
       })
       .catch(() => setError("Không thể tải danh sách sản phẩm."))
       .finally(() => setLoading(false));
-  }, [keyword, categoryId, activeFilter, stockFilter, tagFilter, page]);
+  }, [keyword, categoryId, activeFilter, stockFilter, tagFilter, viewMode, page]);
 
   useEffect(() => { fetchProducts(); }, [fetchProducts]);
 
   useEffect(() => {
     adminProductApi.getCategories().then((res) => setCategories(res.data)).catch(() => { });
   }, []);
+
+  // Đổi tab thì reset về trang đầu
+  const handleSwitchView = (mode) => {
+    if (mode === viewMode) return;
+    setViewMode(mode);
+    setPage(0);
+  };
 
   const handleSearch = (e) => {
     e.preventDefault();
@@ -140,13 +156,26 @@ export default function AdminProductsPage() {
     }
   };
 
+  const handleRestore = async () => {
+    if (!confirmRestore || !canWrite) return;
+    try {
+      await adminProductApi.restoreProduct(confirmRestore.id);
+      setConfirmRestore(null);
+      fetchProducts();
+    } catch {
+      alert("Có lỗi xảy ra khi khôi phục sản phẩm.");
+    }
+  };
+
+  const isTrash = viewMode === "trash";
+
   return (
     <div className="space-y-4 p-6">
       {/* Header */}
       <div className="flex items-center justify-between">
         <h1 className="text-xl font-semibold text-gray-900">Quản lý sản phẩm</h1>
-        {/* ← chỉ ADMIN thấy nút Thêm */}
-        {canWrite && (
+        {/* ← chỉ ADMIN thấy nút Thêm, chỉ hiện ở tab Đang bán */}
+        {canWrite && !isTrash && (
           <button
             onClick={() => navigate("/admin/products/new")}
             className="flex items-center gap-2 rounded-lg bg-green-600 px-4 py-2 text-sm font-medium text-white hover:bg-green-700"
@@ -155,6 +184,25 @@ export default function AdminProductsPage() {
             Thêm sản phẩm
           </button>
         )}
+      </div>
+
+      {/* Tabs: Đang bán / Thùng rác */}
+      <div className="flex w-fit rounded-lg border border-gray-200 bg-gray-50 p-1">
+        <button
+          onClick={() => handleSwitchView("active")}
+          className={`rounded-md px-4 py-1.5 text-sm font-medium transition ${!isTrash ? "bg-white text-gray-900 shadow-sm" : "text-gray-500 hover:text-gray-700"
+            }`}
+        >
+          Đang bán
+        </button>
+        <button
+          onClick={() => handleSwitchView("trash")}
+          className={`flex items-center gap-1.5 rounded-md px-4 py-1.5 text-sm font-medium transition ${isTrash ? "bg-white text-gray-900 shadow-sm" : "text-gray-500 hover:text-gray-700"
+            }`}
+        >
+          <span className="h-3.5 w-3.5">{icons.trash}</span>
+          Thùng rác
+        </button>
       </div>
 
       {/* Filters */}
@@ -188,16 +236,18 @@ export default function AdminProductsPage() {
           ))}
         </select>
 
-        {/* Trạng thái */}
-        <select
-          value={activeFilter}
-          onChange={(e) => { setActiveFilter(e.target.value); setPage(0); }}
-          className="h-9 rounded-lg border border-gray-200 px-3 text-sm focus:border-green-500 focus:outline-none"
-        >
-          <option value="">Tất cả trạng thái</option>
-          <option value="true">Hiển thị</option>
-          <option value="false">Ẩn</option>
-        </select>
+        {/* Trạng thái — không áp dụng khi ở Thùng rác vì sản phẩm đã xóa luôn bị tắt isActive */}
+        {!isTrash && (
+          <select
+            value={activeFilter}
+            onChange={(e) => { setActiveFilter(e.target.value); setPage(0); }}
+            className="h-9 rounded-lg border border-gray-200 px-3 text-sm focus:border-green-500 focus:outline-none"
+          >
+            <option value="">Tất cả trạng thái</option>
+            <option value="true">Hiển thị</option>
+            <option value="false">Ẩn</option>
+          </select>
+        )}
 
         {/* Tồn kho */}
         <select
@@ -247,7 +297,9 @@ export default function AdminProductsPage() {
         ) : loading ? (
           <div className="flex h-48 items-center justify-center text-sm text-gray-400">Đang tải...</div>
         ) : products.length === 0 ? (
-          <div className="flex h-48 items-center justify-center text-sm text-gray-400">Không có sản phẩm nào.</div>
+          <div className="flex h-48 items-center justify-center text-sm text-gray-400">
+            {isTrash ? "Thùng rác trống." : "Không có sản phẩm nào."}
+          </div>
         ) : (
           <div className="overflow-x-auto">
             <table className="w-full text-sm">
@@ -258,7 +310,7 @@ export default function AdminProductsPage() {
                   <th className="px-4 py-3 text-right">Giá từ</th>
                   <th className="px-4 py-3 text-right">Tồn kho</th>
                   <th className="px-4 py-3 text-right">Biến thể</th>
-                  <th className="px-4 py-3">Trạng thái</th>
+                  {!isTrash && <th className="px-4 py-3">Trạng thái</th>}
                   {/* ← chỉ render cột actions nếu ADMIN */}
                   {canWrite && <th className="px-4 py-3"></th>}
                 </tr>
@@ -287,34 +339,49 @@ export default function AdminProductsPage() {
                       </span>
                     </td>
                     <td className="px-4 py-3 text-right text-gray-600">{p.variantCount}</td>
-                    <td className="px-4 py-3">
-                      {/* Badge chỉ clickable với ADMIN */}
-                      {canWrite ? (
-                        <button onClick={() => handleToggleActive(p.id)}>
+                    {!isTrash && (
+                      <td className="px-4 py-3">
+                        {/* Badge chỉ clickable với ADMIN */}
+                        {canWrite ? (
+                          <button onClick={() => handleToggleActive(p.id)}>
+                            <Badge active={p.isActive} />
+                          </button>
+                        ) : (
                           <Badge active={p.isActive} />
-                        </button>
-                      ) : (
-                        <Badge active={p.isActive} />
-                      )}
-                    </td>
-                    {/* ← nút Sửa/Xoá chỉ ADMIN thấy */}
+                        )}
+                      </td>
+                    )}
+                    {/* ← nút Sửa/Xoá (tab Đang bán) hoặc Khôi phục (tab Thùng rác), chỉ ADMIN thấy */}
                     {canWrite && (
                       <td className="px-4 py-3">
                         <div className="flex items-center justify-end gap-2">
-                          <button
-                            onClick={() => navigate(`/admin/products/${p.id}/edit`)}
-                            className="rounded-lg p-2 text-gray-500 hover:bg-gray-100 hover:text-gray-700"
-                            title="Chỉnh sửa"
-                          >
-                            <span className="h-4 w-4 block">{icons.edit}</span>
-                          </button>
-                          <button
-                            onClick={() => setConfirmDelete({ id: p.id, name: p.name })}
-                            className="rounded-lg p-2 text-gray-500 hover:bg-red-50 hover:text-red-600"
-                            title="Xoá"
-                          >
-                            <span className="h-4 w-4 block">{icons.trash}</span>
-                          </button>
+                          {isTrash ? (
+                            <button
+                              onClick={() => setConfirmRestore({ id: p.id, name: p.name })}
+                              className="flex items-center gap-1.5 rounded-lg border border-green-200 px-3 py-1.5 text-xs font-medium text-green-700 hover:bg-green-50"
+                              title="Khôi phục"
+                            >
+                              <span className="h-3.5 w-3.5 block">{icons.restore}</span>
+                              Khôi phục
+                            </button>
+                          ) : (
+                            <>
+                              <button
+                                onClick={() => navigate(`/admin/products/${p.id}/edit`)}
+                                className="rounded-lg p-2 text-gray-500 hover:bg-gray-100 hover:text-gray-700"
+                                title="Chỉnh sửa"
+                              >
+                                <span className="h-4 w-4 block">{icons.edit}</span>
+                              </button>
+                              <button
+                                onClick={() => setConfirmDelete({ id: p.id, name: p.name })}
+                                className="rounded-lg p-2 text-gray-500 hover:bg-red-50 hover:text-red-600"
+                                title="Xoá"
+                              >
+                                <span className="h-4 w-4 block">{icons.trash}</span>
+                              </button>
+                            </>
+                          )}
                         </div>
                       </td>
                     )}
@@ -348,9 +415,21 @@ export default function AdminProductsPage() {
 
       {confirmDelete && canWrite && ( // ← guard thêm canWrite
         <ConfirmModal
-          message={`Bạn có chắc muốn xoá sản phẩm "${confirmDelete.name}"? Hành động này không thể hoàn tác.`}
+          message={`Bạn có chắc muốn xoá sản phẩm "${confirmDelete.name}"? Sản phẩm sẽ được chuyển vào thùng rác và ẩn khỏi cửa hàng.`}
+          confirmLabel="Xoá"
+          confirmClassName="bg-red-600 hover:bg-red-700"
           onConfirm={handleDelete}
           onCancel={() => setConfirmDelete(null)}
+        />
+      )}
+
+      {confirmRestore && canWrite && (
+        <ConfirmModal
+          message={`Khôi phục sản phẩm "${confirmRestore.name}"? Sản phẩm sẽ trở lại danh sách "Đang bán" nhưng vẫn ở trạng thái Ẩn, bạn cần bật hiển thị lại thủ công.`}
+          confirmLabel="Khôi phục"
+          confirmClassName="bg-green-600 hover:bg-green-700"
+          onConfirm={handleRestore}
+          onCancel={() => setConfirmRestore(null)}
         />
       )}
     </div>

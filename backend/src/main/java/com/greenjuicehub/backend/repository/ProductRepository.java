@@ -14,8 +14,18 @@ import java.util.Optional;
 public interface ProductRepository extends JpaRepository<Product, Long>,
         JpaSpecificationExecutor<Product> {
 
-    Optional<Product> findBySlugAndIsActiveTrue(String slug);
+    // ── Public-side ──────────────────────────────────────────────────────────
+
+    Optional<Product> findBySlugAndIsActiveTrueAndIsDeletedFalse(String slug);
+
     Page<Product> findAllByIsActiveTrue(Pageable pageable);
+
+    Page<Product> findByCategoryIdAndIsActiveTrueAndIsDeletedFalseAndIdNot(
+            Long categoryId,
+            Long id,
+            Pageable pageable
+    );
+
     @Query(value = """
     SELECT p.* FROM products p
     JOIN (
@@ -25,6 +35,7 @@ public interface ProductRepository extends JpaRepository<Product, Long>,
         GROUP BY product_id
     ) v ON v.product_id = p.id
     WHERE p.is_active = true
+      AND p.is_deleted = false
     ORDER BY v.min_price ASC
     """,
             countQuery = """
@@ -33,6 +44,7 @@ public interface ProductRepository extends JpaRepository<Product, Long>,
         SELECT product_id FROM product_variants WHERE is_active = true GROUP BY product_id
     ) v ON v.product_id = p.id
     WHERE p.is_active = true
+      AND p.is_deleted = false
     """,
             nativeQuery = true)
     Page<Product> findAllOrderByMinPriceAsc(Pageable pageable);
@@ -46,6 +58,7 @@ public interface ProductRepository extends JpaRepository<Product, Long>,
         GROUP BY product_id
     ) v ON v.product_id = p.id
     WHERE p.is_active = true
+      AND p.is_deleted = false
     ORDER BY v.min_price DESC
     """,
             countQuery = """
@@ -54,14 +67,10 @@ public interface ProductRepository extends JpaRepository<Product, Long>,
         SELECT product_id FROM product_variants WHERE is_active = true GROUP BY product_id
     ) v ON v.product_id = p.id
     WHERE p.is_active = true
+      AND p.is_deleted = false
     """,
             nativeQuery = true)
     Page<Product> findAllOrderByMinPriceDesc(Pageable pageable);
-    List<Product> findByCategoryIdAndIsActiveTrueAndIdNot(
-            Long categoryId,
-            Long excludeId,
-            Pageable pageable
-    );
 
     @Query(value = """
     SELECT p.* FROM products p
@@ -72,6 +81,7 @@ public interface ProductRepository extends JpaRepository<Product, Long>,
         GROUP BY product_id
     ) v ON v.product_id = p.id
     WHERE p.is_active = true
+      AND p.is_deleted = false
       AND v.max_discount > 0
       AND (:categoryId IS NULL OR p.category_id = :categoryId)
     ORDER BY v.max_discount DESC
@@ -85,6 +95,7 @@ public interface ProductRepository extends JpaRepository<Product, Long>,
         GROUP BY product_id
     ) v ON v.product_id = p.id
     WHERE p.is_active = true
+      AND p.is_deleted = false
       AND v.max_discount > 0
       AND (:categoryId IS NULL OR p.category_id = :categoryId)
     """,
@@ -97,6 +108,7 @@ public interface ProductRepository extends JpaRepository<Product, Long>,
     JOIN products p ON p.category_id = c.id
     JOIN product_variants v ON v.product_id = p.id
     WHERE p.is_active = true
+      AND p.is_deleted = false
       AND c.is_active = true
       AND v.is_active = true
       AND v.discount_percent > 0
@@ -104,9 +116,10 @@ public interface ProductRepository extends JpaRepository<Product, Long>,
     """, nativeQuery = true)
     List<Object[]> findCategoriesWithActiveDeals();
 
-    // ── Admin-side (thêm mới) ──────────────────────────────────────────────────
+    // ── Admin-side ──────────────────────────────────────────────────────────
 
-    // Tìm tất cả sản phẩm (cả active lẫn inactive) theo keyword + category
+    // Tìm tất cả sản phẩm theo keyword + category + isActive + tag, tách riêng
+    // danh sách "đang hoạt động" (isDeleted = false) và "thùng rác" (isDeleted = true)
     @Query(
             value = """
         SELECT DISTINCT p FROM Product p
@@ -115,6 +128,7 @@ public interface ProductRepository extends JpaRepository<Product, Long>,
           AND (:categoryId IS NULL OR p.category.id = :categoryId)
           AND (:isActive IS NULL OR p.isActive = :isActive)
           AND (:tag IS NULL OR t.tag = :tag)
+          AND p.isDeleted = :isDeleted
         ORDER BY p.createdAt DESC
         """,
             countQuery = """
@@ -124,6 +138,7 @@ public interface ProductRepository extends JpaRepository<Product, Long>,
           AND (:categoryId IS NULL OR p.category.id = :categoryId)
           AND (:isActive IS NULL OR p.isActive = :isActive)
           AND (:tag IS NULL OR t.tag = :tag)
+          AND p.isDeleted = :isDeleted
         """
     )
     Page<Product> findAllForAdmin(
@@ -131,7 +146,9 @@ public interface ProductRepository extends JpaRepository<Product, Long>,
             @Param("categoryId") Long categoryId,
             @Param("isActive") Boolean isActive,
             @Param("tag") String tag,
+            @Param("isDeleted") Boolean isDeleted,
             Pageable pageable);
+
     // Kiểm tra slug trùng khi tạo/sửa (loại trừ chính nó khi update)
     boolean existsBySlugAndIdNot(String slug, Long id);
 

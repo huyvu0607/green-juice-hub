@@ -67,7 +67,8 @@ public class ProductServiceImpl implements IProductService {
     // ==================== GET PRODUCT DETAIL ====================
     @Override
     public ProductDetailResponse getProductBySlug(String slug) {
-        Product product = productRepository.findBySlugAndIsActiveTrue(slug)
+        // getProductBySlug: đổi query
+        Product product = productRepository.findBySlugAndIsActiveTrueAndIsDeletedFalse(slug)
                 .orElseThrow(() -> new AppException(HttpStatus.NOT_FOUND, "Sản phẩm không tồn tại"));
 
         List<ProductVariant> variants = variantRepository
@@ -81,8 +82,9 @@ public class ProductServiceImpl implements IProductService {
                 ? product.getTags().stream().map(ProductTag::getTag).toList()
                 : List.of();
 
+        // related products cũng cần loại trừ đã xóa
         List<ProductSummaryResponse> related = productRepository
-                .findByCategoryIdAndIsActiveTrueAndIdNot(
+                .findByCategoryIdAndIsActiveTrueAndIsDeletedFalseAndIdNot(
                         product.getCategory().getId(),
                         product.getId(),
                         PageRequest.of(0, 16))
@@ -138,6 +140,7 @@ public class ProductServiceImpl implements IProductService {
             var predicates = new java.util.ArrayList<jakarta.persistence.criteria.Predicate>();
 
             predicates.add(cb.isTrue(root.get("isActive")));
+            predicates.add(cb.isFalse(root.get("isDeleted")));
 
             if (req.getCategoryId() != null) {
                 predicates.add(cb.equal(root.get("category").get("id"), req.getCategoryId()));

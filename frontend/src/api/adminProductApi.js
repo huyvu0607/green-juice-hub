@@ -8,6 +8,7 @@ export const adminProductApi = {
     updateProduct: (id, data) => api.put(`/admin/products/${id}`, data),
     toggleActive: (id) => api.patch(`/admin/products/${id}/toggle-active`),
     deleteProduct: (id) => api.delete(`/admin/products/${id}`),
+    restoreProduct: (id) => api.post(`/admin/products/${id}/restore`),
 
     // ── Variants ──────────────────────────────────────────────────────────────
     createVariant: (productId, data) => api.post(`/admin/products/${productId}/variants`, data),

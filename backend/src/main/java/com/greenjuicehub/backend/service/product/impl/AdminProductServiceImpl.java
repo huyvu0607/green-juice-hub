@@ -43,13 +43,15 @@ public class AdminProductServiceImpl implements IAdminProductService {
 
     @Override
     public Page<AdminProductRowResponse> getProductsForAdmin(
-            String keyword, Long categoryId, Boolean isActive, String stock, String tag, int page, int size) {
+            String keyword, Long categoryId, Boolean isActive, String stock, String tag,
+            Boolean isDeleted, int page, int size) {
 
         Pageable pageable = PageRequest.of(page, size, Sort.by(Sort.Direction.DESC, "createdAt"));
         String kw = (keyword != null && !keyword.isBlank()) ? keyword.trim() : null;
         String tagParam = (tag != null && !tag.isBlank()) ? tag.trim().toLowerCase() : null;
+        boolean deletedFlag = Boolean.TRUE.equals(isDeleted);
 
-        Page<Product> productPage = productRepository.findAllForAdmin(kw, categoryId, isActive, tagParam, pageable);
+        Page<Product> productPage = productRepository.findAllForAdmin(kw, categoryId, isActive, tagParam, deletedFlag, pageable);
 
         if (stock == null || stock.isBlank()) {
             return productPage.map(this::toRow);
@@ -87,6 +89,7 @@ public class AdminProductServiceImpl implements IAdminProductService {
                 .avgRating(0f)
                 .reviewCount(0)
                 .isActive(true)
+                .isDeleted(false)
                 .build();
 
         product = productRepository.save(product);
@@ -100,6 +103,8 @@ public class AdminProductServiceImpl implements IAdminProductService {
     @Transactional
     public AdminProductDetailResponse updateProduct(Long id, SaveProductRequest request) {
         Product product = findProductOrThrow(id);
+        rejectIfDeleted(product);
+
         Category category = findCategoryOrThrow(request.getCategoryId());
 
         product.setName(request.getName());
@@ -127,6 +132,8 @@ public class AdminProductServiceImpl implements IAdminProductService {
     @Transactional
     public void toggleProductActive(Long id) {
         Product product = findProductOrThrow(id);
+        rejectIfDeleted(product);
+
         product.setIsActive(!product.getIsActive());
         productRepository.save(product);
     }
@@ -136,7 +143,20 @@ public class AdminProductServiceImpl implements IAdminProductService {
     public void deleteProduct(Long id) {
         // Soft delete — giữ lịch sử đơn hàng
         Product product = findProductOrThrow(id);
+        product.setIsDeleted(true);
         product.setIsActive(false);
+        productRepository.save(product);
+    }
+
+    @Override
+    @Transactional
+    public void restoreProduct(Long id) {
+        Product product = findProductOrThrow(id);
+        if (!Boolean.TRUE.equals(product.getIsDeleted())) {
+            throw new AppException(HttpStatus.BAD_REQUEST, "Sản phẩm này chưa bị xóa");
+        }
+        product.setIsDeleted(false);
+        // Không tự bật lại isActive — admin chủ động bật nếu muốn hiển thị lại cho khách
         productRepository.save(product);
     }
 
@@ -148,6 +168,7 @@ public class AdminProductServiceImpl implements IAdminProductService {
     @Transactional
     public AdminVariantResponse createVariant(Long productId, SaveVariantRequest request) {
         Product product = findProductOrThrow(productId);
+        rejectIfDeleted(product);
         return toAdminVariant(variantRepository.save(buildVariant(request, product)));
     }
 
@@ -156,6 +177,7 @@ public class AdminProductServiceImpl implements IAdminProductService {
     public AdminVariantResponse updateVariant(Long variantId, SaveVariantRequest request) {
         ProductVariant variant = variantRepository.findById(variantId)
                 .orElseThrow(() -> new AppException(HttpStatus.NOT_FOUND, "Biến thể không tồn tại"));
+        rejectIfDeleted(variant.getProduct());
 
         variant.setFlavor(request.getFlavorId() != null
                 ? flavorRepository.findById(request.getFlavorId())
@@ -319,6 +341,14 @@ public class AdminProductServiceImpl implements IAdminProductService {
     private Product findProductOrThrow(Long id) {
         return productRepository.findById(id)
                 .orElseThrow(() -> new AppException(HttpStatus.NOT_FOUND, "Sản phẩm không tồn tại"));
+    }
+
+    // Chặn thao tác sửa/toggle/thêm-variant trên sản phẩm đã bị xóa mềm
+    private void rejectIfDeleted(Product product) {
+        if (Boolean.TRUE.equals(product.getIsDeleted())) {
+            throw new AppException(HttpStatus.BAD_REQUEST,
+                    "Sản phẩm đã bị xóa, vui lòng khôi phục trước khi thực hiện thao tác này");
+        }
     }
 
     private Category findCategoryOrThrow(Long id) {

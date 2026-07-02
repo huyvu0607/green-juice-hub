@@ -386,3 +386,6 @@ ALTER TABLE orders
 ADD COLUMN cancelled_by VARCHAR(20) NULL
 COMMENT 'CUSTOMER hoặc SYSTEM - ai là người huỷ đơn'
 AFTER cancel_reason;
+
+ALTER TABLE products ADD COLUMN is_deleted BOOLEAN NOT NULL DEFAULT FALSE;
+CREATE INDEX idx_products_is_deleted ON products(is_deleted);
