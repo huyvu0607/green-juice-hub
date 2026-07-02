@@ -11,6 +11,7 @@ import com.greenjuicehub.backend.mapper.ProductMapper;
 import com.greenjuicehub.backend.repository.*;
 import com.greenjuicehub.backend.service.product.IAdminProductService;
 import lombok.RequiredArgsConstructor;
+import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.data.domain.*;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
@@ -334,6 +335,65 @@ public class AdminProductServiceImpl implements IAdminProductService {
         sizeRepository.save(size);
     }
 
+    @Override
+    @Transactional
+    public void deleteCategory(Long id) {
+        Category category = categoryRepository.findById(id)
+                .orElseThrow(() -> new AppException(HttpStatus.NOT_FOUND, "Danh mục không tồn tại"));
+
+        if (Boolean.TRUE.equals(category.getIsActive())) {
+            throw new AppException(HttpStatus.BAD_REQUEST, "Vui lòng tắt danh mục trước khi xóa");
+        }
+        if (productRepository.existsByCategoryId(id)) {
+            throw new AppException(HttpStatus.CONFLICT, "Danh mục đang được sản phẩm sử dụng, không thể xóa");
+        }
+
+        try {
+            categoryRepository.deleteById(id);
+        } catch (DataIntegrityViolationException ex) {
+            throw new AppException(HttpStatus.CONFLICT, "Danh mục đang được sử dụng, không thể xóa");
+        }
+    }
+
+    @Override
+    @Transactional
+    public void deleteFlavor(Long id) {
+        Flavor flavor = flavorRepository.findById(id)
+                .orElseThrow(() -> new AppException(HttpStatus.NOT_FOUND, "Flavor không tồn tại"));
+
+        if (Boolean.TRUE.equals(flavor.getIsActive())) {
+            throw new AppException(HttpStatus.BAD_REQUEST, "Vui lòng tắt flavor trước khi xóa");
+        }
+        if (variantRepository.existsByFlavorId(id)) {
+            throw new AppException(HttpStatus.CONFLICT, "Flavor đang được sử dụng, không thể xóa");
+        }
+
+        try {
+            flavorRepository.deleteById(id);
+        } catch (DataIntegrityViolationException ex) {
+            throw new AppException(HttpStatus.CONFLICT, "Flavor đang được sử dụng, không thể xóa");
+        }
+    }
+
+    @Override
+    @Transactional
+    public void deleteSize(Long id) {
+        Size size = sizeRepository.findById(id)
+                .orElseThrow(() -> new AppException(HttpStatus.NOT_FOUND, "Size không tồn tại"));
+
+        if (Boolean.TRUE.equals(size.getIsActive())) {
+            throw new AppException(HttpStatus.BAD_REQUEST, "Vui lòng tắt size trước khi xóa");
+        }
+        if (variantRepository.existsBySizeId(id)) {
+            throw new AppException(HttpStatus.CONFLICT, "Size đang được sử dụng, không thể xóa");
+        }
+
+        try {
+            sizeRepository.deleteById(id);
+        } catch (DataIntegrityViolationException ex) {
+            throw new AppException(HttpStatus.CONFLICT, "Size đang được sử dụng, không thể xóa");
+        }
+    }
     // ══════════════════════════════════════════════════════════════════════════
     // PRIVATE HELPERS
     // ══════════════════════════════════════════════════════════════════════════

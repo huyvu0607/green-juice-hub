@@ -9,4 +9,7 @@ public interface ProductVariantRepository extends JpaRepository<ProductVariant, 
 
     // ==================== DASHBOARD: Đếm variant sắp hết hàng (active, stock <= threshold) ====================
     long countByIsActiveTrueAndStockQtyLessThanEqual(Integer threshold);
+
+    boolean existsByFlavorId(Long flavorId);
+    boolean existsBySizeId(Long sizeId);
 }

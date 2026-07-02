@@ -20,18 +20,24 @@ export const adminProductApi = {
     createCategory: (data) => api.post("/admin/products/categories", data),
     updateCategory: (id, data) => api.put(`/admin/products/categories/${id}`, data),
     toggleCategoryActive: (id) => api.patch(`/admin/products/categories/${id}/toggle-active`),
+    deleteCategory: (id) => api.delete(`/admin/products/categories/${id}`),
+
 
     // ── Flavors ───────────────────────────────────────────────────────────────
     getFlavors: () => api.get("/admin/products/flavors"),
     createFlavor: (data) => api.post("/admin/products/flavors", data),
     updateFlavor: (id, data) => api.put(`/admin/products/flavors/${id}`, data),
     toggleFlavorActive: (id) => api.patch(`/admin/products/flavors/${id}/toggle-active`),
+    deleteFlavor: (id) => api.delete(`/admin/products/flavors/${id}`),
+
 
     // ── Sizes ─────────────────────────────────────────────────────────────────
     getSizes: () => api.get("/admin/products/sizes"),
     createSize: (data) => api.post("/admin/products/sizes", data),
     updateSize: (id, data) => api.put(`/admin/products/sizes/${id}`, data),
     toggleSizeActive: (id) => api.patch(`/admin/products/sizes/${id}/toggle-active`),
+    deleteSize: (id) => api.delete(`/admin/products/sizes/${id}`),
+
 
     // ── Tags ──────────────────────────────────────────────────────────────────
     getTags: () => api.get("/admin/tags"),

@@ -43,7 +43,7 @@ function FormField({ label, required, children, error }) {
   );
 }
 
-// ── Inline editable list (Flavor / Size) ──────────────────────────────────────
+// ── Inline editable list (Category / Flavor / Size) ───────────────────────────
 function InlineList({ title, items, onCreate, onUpdate, onToggle, onDelete }) {
   const [newName, setNewName] = useState("");
   const [editId, setEditId] = useState(null);
@@ -75,8 +75,9 @@ function InlineList({ title, items, onCreate, onUpdate, onToggle, onDelete }) {
     if (!window.confirm("Xoá mục này?")) return;
     setLoadingId(id);
     try { await onDelete(id); }
+    catch (err) { alert(err?.response?.data?.message || "Có lỗi xảy ra khi xóa."); }
     finally { setLoadingId(null); }
-  };
+};
 
   return (
     <div className="space-y-2">
@@ -336,6 +337,7 @@ export default function AdminProductFormPage() {
 
 
   // ── Load meta ──────────────────────────────────────────────────────────────
+  const reloadCategories = () => adminProductApi.getCategories().then((r) => setCategories(r.data));
   const reloadFlavors = () => adminProductApi.getFlavors().then((r) => setFlavors(r.data));
   const reloadSizes = () => adminProductApi.getSizes().then((r) => setSizes(r.data));
   const reloadTags = () => adminProductApi.getTags().then((r) => setAvailableTags(r.data));
@@ -416,19 +418,28 @@ export default function AdminProductFormPage() {
     return next.map((img, i) => ({ ...img, sortOrder: i }));
   });
 
-  // ── Flavor/Size CRUD ───────────────────────────────────────────────────────
+  // ── Category/Flavor/Size CRUD ─────────────────────────────────────────────
+  // Category dùng chung API create/update/toggle-active đã có sẵn ở BE
+  // (AdminProductController + adminProductApi.js) — không cần sửa gì thêm.
+  const categoryHandlers = {
+    onCreate: async (name) => { await adminProductApi.createCategory({ name, isActive: true }); await reloadCategories(); },
+    onUpdate: async (categoryId, name) => { await adminProductApi.updateCategory(categoryId, { name }); await reloadCategories(); },
+    onToggle: async (categoryId) => { await adminProductApi.toggleCategoryActive(categoryId); await reloadCategories(); },
+    onDelete: async (categoryId) => { await adminProductApi.deleteCategory(categoryId); await reloadCategories(); },
+  };
+
   const flavorHandlers = {
     onCreate: async (name) => { await adminProductApi.createFlavor({ name, isActive: true }); await reloadFlavors(); },
     onUpdate: async (flavorId, name) => { await adminProductApi.updateFlavor(flavorId, { name }); await reloadFlavors(); },
     onToggle: async (flavorId) => { await adminProductApi.toggleFlavorActive(flavorId); await reloadFlavors(); },
-    onDelete: async (flavorId) => { await adminProductApi.toggleFlavorActive(flavorId); await reloadFlavors(); },
+    onDelete: async (flavorId) => { await adminProductApi.deleteFlavor(flavorId); await reloadFlavors(); },
   };
 
   const sizeHandlers = {
     onCreate: async (name) => { await adminProductApi.createSize({ name, isActive: true }); await reloadSizes(); },
     onUpdate: async (sizeId, name) => { await adminProductApi.updateSize(sizeId, { name }); await reloadSizes(); },
     onToggle: async (sizeId) => { await adminProductApi.toggleSizeActive(sizeId); await reloadSizes(); },
-    onDelete: async (sizeId) => { await adminProductApi.toggleSizeActive(sizeId); await reloadSizes(); },
+    onDelete: async (sizeId) => { await adminProductApi.deleteSize(sizeId); await reloadSizes(); },
   };
 
   // ── Variant handlers ───────────────────────────────────────────────────────
@@ -527,8 +538,17 @@ export default function AdminProductFormPage() {
                   onChange={(e) => setForm((f) => ({ ...f, categoryId: e.target.value }))}
                   className={`${inputCls} ${errors.categoryId ? "border-red-400" : ""}`}>
                   <option value="">-- Chọn danh mục --</option>
-                  {categories.map((c) => <option key={c.id} value={c.id}>{c.name}</option>)}
+                  {categories
+                    .filter((c) => c.isActive || String(c.id) === String(form.categoryId))
+                    .map((c) => (
+                      <option key={c.id} value={c.id}>
+                        {c.name}{!c.isActive ? " (OFF - đang chọn)" : ""}
+                      </option>
+                    ))}
                 </select>
+                {categories.filter((c) => c.isActive).length === 0 && (
+                  <p className="text-xs text-gray-400">Chưa có danh mục nào đang bật — thêm hoặc bật ở khung "Danh mục" bên phải.</p>
+                )}
               </FormField>
 
               <FormField label="Mô tả sản phẩm">
@@ -657,6 +677,18 @@ export default function AdminProductFormPage() {
                 </button>
               </div>
             </div>
+          </SectionCard>
+
+          {/* Danh mục — quản lý inline, giống Flavor/Size, dùng chung InlineList */}
+          <SectionCard title="Danh mục (Categories)">
+            <InlineList
+              title="Danh mục"
+              items={categories}
+              onCreate={categoryHandlers.onCreate}
+              onUpdate={categoryHandlers.onUpdate}
+              onToggle={categoryHandlers.onToggle}
+              onDelete={categoryHandlers.onDelete}
+            />
           </SectionCard>
 
           {/* Flavors */}

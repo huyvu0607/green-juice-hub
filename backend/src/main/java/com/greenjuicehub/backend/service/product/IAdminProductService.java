@@ -48,6 +48,8 @@ public interface IAdminProductService {
     CategoryResponse updateCategory(Long id, SaveCategoryRequest request);
 
     void toggleCategoryActive(Long id);
+    void deleteCategory(Long id);
+
 
     // ── Flavors ───────────────────────────────────────────────────────────────
 
@@ -58,6 +60,8 @@ public interface IAdminProductService {
     FlavorResponse updateFlavor(Long id, SaveFlavorRequest request);
 
     void toggleFlavorActive(Long id);
+    void deleteFlavor(Long id);
+
 
     // ── Sizes ─────────────────────────────────────────────────────────────────
 
@@ -68,4 +72,6 @@ public interface IAdminProductService {
     SizeResponse updateSize(Long id, SaveSizeRequest request);
 
     void toggleSizeActive(Long id);
+    void deleteSize(Long id);
+
 }

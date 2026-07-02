@@ -20,6 +20,7 @@ public class ProductMapper {
                 .description(c.getDescription())
                 .imageUrl(c.getImageUrl())
                 .sortOrder(c.getSortOrder())
+                .isActive(c.getIsActive())
                 .build();
     }
 

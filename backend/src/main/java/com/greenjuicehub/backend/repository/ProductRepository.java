@@ -155,4 +155,6 @@ public interface ProductRepository extends JpaRepository<Product, Long>,
     boolean existsBySlug(String slug);
 
     Optional<Product> findById(Long id);
+
+    boolean existsByCategoryId(Long categoryId);
 }

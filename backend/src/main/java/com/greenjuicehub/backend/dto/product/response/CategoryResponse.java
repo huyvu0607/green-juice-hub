@@ -12,4 +12,5 @@ public class CategoryResponse {
     private String description;
     private String imageUrl;
     private Integer sortOrder;
+    private Boolean isActive;
 }

@@ -196,4 +196,25 @@ public class AdminProductController {
         adminProductService.toggleSizeActive(id);
         return ResponseEntity.noContent().build();
     }
+
+    @DeleteMapping("/categories/{id}")
+    @PreAuthorize("hasRole('ADMIN')")
+    public ResponseEntity<Void> deleteCategory(@PathVariable Long id) {
+        adminProductService.deleteCategory(id);
+        return ResponseEntity.noContent().build();
+    }
+
+    @DeleteMapping("/flavors/{id}")
+    @PreAuthorize("hasRole('ADMIN')")
+    public ResponseEntity<Void> deleteFlavor(@PathVariable Long id) {
+        adminProductService.deleteFlavor(id);
+        return ResponseEntity.noContent().build();
+    }
+
+    @DeleteMapping("/sizes/{id}")
+    @PreAuthorize("hasRole('ADMIN')")
+    public ResponseEntity<Void> deleteSize(@PathVariable Long id) {
+        adminProductService.deleteSize(id);
+        return ResponseEntity.noContent().build();
+    }
 }
