@@ -23,6 +23,20 @@ public class JwtAuthFilter extends OncePerRequestFilter {
     private final JwtUtil jwtUtil;
     private final TokenBlacklistService tokenBlacklistService;
 
+    // Các endpoint dùng refresh token (không phải access token) hoặc
+    // tự verify token thủ công trong service → filter này bỏ qua hoàn toàn,
+    // tránh bị chặn nhầm bởi FIX 4 (chỉ chấp nhận type="access")
+    private static final List<String> EXCLUDED_PATHS = List.of(
+            "/api/auth/refresh",
+            "/api/auth/logout"
+    );
+
+    @Override
+    protected boolean shouldNotFilter(HttpServletRequest request) {
+        String path = request.getServletPath();
+        return EXCLUDED_PATHS.contains(path);
+    }
+
     @Override
     protected void doFilterInternal(HttpServletRequest request,
                                     HttpServletResponse response,
