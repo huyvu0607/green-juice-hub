@@ -22,7 +22,7 @@ export default function LoginPasswordPage() {
   const [requiresCaptcha, setRequiresCaptcha] = useState(false)
   const captchaRef = useRef(null)
   const widgetIdRef = useRef(null)
-  
+
 
   useEffect(() => {
     if (!requiresCaptcha || !recaptchaSiteKey || widgetIdRef.current !== null) return
@@ -90,43 +90,43 @@ export default function LoginPasswordPage() {
   }
 
   const shouldShowCaptcha = (err) => {
-  return err.response?.status === 403
-}
+    return err.response?.status === 403
+  }
 
   const handleLogin = async () => {
-  if (!identifier) return setError('Vui lòng nhập số điện thoại hoặc email')
-  if (!password) return setError('Vui lòng nhập mật khẩu')
-  if (requiresCaptcha && !captchaToken) return setError('Vui lòng xác minh captcha')
+    if (!identifier) return setError('Vui lòng nhập số điện thoại hoặc email')
+    if (!password) return setError('Vui lòng nhập mật khẩu')
+    if (requiresCaptcha && !captchaToken) return setError('Vui lòng xác minh captcha')
 
-  setLoading(true)
-  setError('')
-  try {
-    const res = await authApi.login(identifier, password, captchaToken || undefined)
-    const { accessToken, refreshToken, role } = res.data
-    setAuth(accessToken, refreshToken, role)
-    navigate(role === 'CUSTOMER' ? '/' : '/admin')
-  } catch (err) {
-    const msg = err.response?.data?.message || 'Có lỗi xảy ra'
-    setError(msg)
-    if (shouldShowCaptcha(err)) {
-      setRequiresCaptcha(true)
+    setLoading(true)
+    setError('')
+    try {
+      const res = await authApi.login(identifier, password, captchaToken || undefined)
+      const { accessToken, refreshToken, role } = res.data
+      setAuth(accessToken, refreshToken, role)
+      navigate(role === 'CUSTOMER' ? '/' : '/admin')
+    } catch (err) {
+      const msg = err.response?.data?.message || 'Có lỗi xảy ra'
+      setError(msg)
+      if (shouldShowCaptcha(err)) {
+        setRequiresCaptcha(true)
+      }
+      resetCaptcha()
+    } finally {
+      setLoading(false)
     }
-    resetCaptcha()
-  } finally {
-    setLoading(false)
   }
-}
 
-const handleGoogleLogin = async (credentialResponse) => {
-  try {
-    const res = await authApi.loginWithGoogle(credentialResponse.credential)
-    const { accessToken, refreshToken, role } = res.data
-    setAuth(accessToken, refreshToken, role)
-    navigate(role === 'CUSTOMER' ? '/' : '/admin')
-  } catch (err) {
-    setError(err.response?.data?.message || 'Đăng nhập Google thất bại')
+  const handleGoogleLogin = async (credentialResponse) => {
+    try {
+      const res = await authApi.loginWithGoogle(credentialResponse.credential)
+      const { accessToken, refreshToken, role } = res.data
+      setAuth(accessToken, refreshToken, role)
+      navigate(role === 'CUSTOMER' ? '/' : '/admin')
+    } catch (err) {
+      setError(err.response?.data?.message || 'Đăng nhập Google thất bại')
+    }
   }
-}
 
   return (
     <main className="min-h-screen overflow-hidden bg-[#f6f8f7] text-slate-950">
@@ -172,7 +172,7 @@ const handleGoogleLogin = async (credentialResponse) => {
 
       <div className="mx-auto grid min-h-screen max-w-[1900px] grid-cols-1 lg:grid-cols-[1fr_1fr]">
         <section
-          className="auth-hero-shimmer relative isolate flex min-h-[400px] overflow-hidden px-7 py-9 text-white sm:px-10 lg:min-h-screen lg:px-14 lg:py-16"
+          className="auth-hero-shimmer relative isolate hidden overflow-hidden text-white lg:flex lg:min-h-screen lg:px-14 lg:py-16"
           style={{
             backgroundImage: `linear-gradient(0deg, rgba(9, 70, 35, .82), rgba(21, 92, 52, .78)), url(${heroImage})`,
             backgroundPosition: 'center',
@@ -315,37 +315,37 @@ const handleGoogleLogin = async (credentialResponse) => {
               </div>
 
               {requiresCaptcha && (
-  <div className="rounded-[14px] border border-amber-200 bg-amber-50 px-4 py-4">
-    <p className="mb-3 text-sm font-medium text-amber-800">
-      Bạn đã nhập sai nhiều lần. Vui lòng xác minh captcha để tiếp tục.
-    </p>
-    {recaptchaSiteKey ? (
-      <>
-        {captchaStatus === 'loading' && (
-          <p className="mb-3 rounded-xl bg-white px-4 py-3 text-sm font-medium text-amber-700">
-            Đang tải captcha...
-          </p>
-        )}
-        {captchaStatus === 'error' && (
-          <p className="mb-3 rounded-xl bg-white px-4 py-3 text-sm font-medium text-red-600">
-            Không tải được captcha. Hãy kiểm tra mạng hoặc reload trang.
-          </p>
-        )}
-        <div ref={captchaRef} className="min-h-[78px]" />
-      </>
-    ) : (
-      <p className="rounded-xl bg-white px-4 py-3 text-sm font-medium text-red-600">
-        Thiếu VITE_RECAPTCHA_SITE_KEY trong frontend/.env
-      </p>
-    )}
-  </div>
-)}
+                <div className="rounded-[14px] border border-amber-200 bg-amber-50 px-4 py-4">
+                  <p className="mb-3 text-sm font-medium text-amber-800">
+                    Bạn đã nhập sai nhiều lần. Vui lòng xác minh captcha để tiếp tục.
+                  </p>
+                  {recaptchaSiteKey ? (
+                    <>
+                      {captchaStatus === 'loading' && (
+                        <p className="mb-3 rounded-xl bg-white px-4 py-3 text-sm font-medium text-amber-700">
+                          Đang tải captcha...
+                        </p>
+                      )}
+                      {captchaStatus === 'error' && (
+                        <p className="mb-3 rounded-xl bg-white px-4 py-3 text-sm font-medium text-red-600">
+                          Không tải được captcha. Hãy kiểm tra mạng hoặc reload trang.
+                        </p>
+                      )}
+                      <div ref={captchaRef} className="min-h-[78px]" />
+                    </>
+                  ) : (
+                    <p className="rounded-xl bg-white px-4 py-3 text-sm font-medium text-red-600">
+                      Thiếu VITE_RECAPTCHA_SITE_KEY trong frontend/.env
+                    </p>
+                  )}
+                </div>
+              )}
 
-{!requiresCaptcha && error && (
-  <p className="rounded-xl bg-red-50 px-4 py-3 text-sm font-medium text-red-600">
-    {error}
-  </p>
-)}
+              {!requiresCaptcha && error && (
+                <p className="rounded-xl bg-red-50 px-4 py-3 text-sm font-medium text-red-600">
+                  {error}
+                </p>
+              )}
 
               <button
                 onClick={handleLogin}

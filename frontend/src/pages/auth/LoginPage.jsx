@@ -15,37 +15,37 @@ export default function LoginPage() {
   const { setAuth } = useAuthStore()
 
   const handleGoogleLogin = async (credentialResponse) => {
-  try {
-    const res = await authApi.loginWithGoogle(credentialResponse.credential)
-    const { accessToken, refreshToken, role } = res.data
-    setAuth(accessToken, refreshToken, role)
-    navigate(role === 'CUSTOMER' ? '/' : '/admin')
-  } catch (err) {
-    setError(err.response?.data?.message || 'Đăng nhập Google thất bại')
+    try {
+      const res = await authApi.loginWithGoogle(credentialResponse.credential)
+      const { accessToken, refreshToken, role } = res.data
+      setAuth(accessToken, refreshToken, role)
+      navigate(role === 'CUSTOMER' ? '/' : '/admin')
+    } catch (err) {
+      setError(err.response?.data?.message || 'Đăng nhập Google thất bại')
+    }
   }
-}
 
   const handleNext = async () => {
-  if (!phone) return setError('Vui lòng nhập số điện thoại')
-  setLoading(true)
-  setError('')
-  try {
-    const res = await authApi.checkAccount(phone)
-    const { isNewUser, hasPassword } = res.data
+    if (!phone) return setError('Vui lòng nhập số điện thoại')
+    setLoading(true)
+    setError('')
+    try {
+      const res = await authApi.checkAccount(phone)
+      const { isNewUser, hasPassword } = res.data
 
-    if (isNewUser || !hasPassword) {
-      await authApi.sendOtp(phone, 'LOGIN')
-      navigate('/verify-otp', { state: { phone, type: 'LOGIN' } })
-    } else {
-      // Có mật khẩu → cho chọn trước khi gửi OTP
-      navigate('/login-option', { state: { phone } })
+      if (isNewUser || !hasPassword) {
+        await authApi.sendOtp(phone, 'LOGIN')
+        navigate('/verify-otp', { state: { phone, type: 'LOGIN' } })
+      } else {
+        // Có mật khẩu → cho chọn trước khi gửi OTP
+        navigate('/login-option', { state: { phone } })
+      }
+    } catch (err) {
+      setError(err.response?.data?.message || 'Có lỗi xảy ra')
+    } finally {
+      setLoading(false)
     }
-  } catch (err) {
-    setError(err.response?.data?.message || 'Có lỗi xảy ra')
-  } finally {
-    setLoading(false)
   }
-}
 
   return (
     <main className="min-h-screen overflow-hidden bg-[#f6f8f7] text-slate-950">
@@ -91,7 +91,7 @@ export default function LoginPage() {
 
       <div className="mx-auto grid min-h-screen max-w-[1900px] grid-cols-1 lg:grid-cols-[1fr_1fr]">
         <section
-          className="auth-hero-shimmer relative isolate flex min-h-[400px] overflow-hidden px-7 py-9 text-white sm:px-10 lg:min-h-screen lg:px-14 lg:py-16"
+          className="auth-hero-shimmer relative isolate hidden overflow-hidden text-white lg:flex lg:min-h-screen lg:px-14 lg:py-16"
           style={{
             backgroundImage: `linear-gradient(0deg, rgba(9, 70, 35, .82), rgba(21, 92, 52, .78)), url(${heroImage})`,
             backgroundPosition: 'center',
@@ -155,10 +155,10 @@ export default function LoginPage() {
 
             <div className="mb-8">
               <h2 className="text-3xl font-bold tracking-normal text-slate-950 sm:text-[30px]">
-                Đăng nhập
+                Đăng nhập / Đăng ký
               </h2>
               <p className="mt-3 text-[15px] leading-7 text-slate-500">
-                Nhập số điện thoại để nhận mã xác thực.
+                Nhập số điện thoại để tiếp tục vào tài khoản hoặc tạo tài khoản mới.
               </p>
             </div>
 

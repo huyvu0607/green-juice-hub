@@ -43,7 +43,7 @@ export default function AuthShell({ title, subtitle, heroQuote, heroItems, child
 
       <div className="mx-auto grid min-h-screen max-w-[1900px] grid-cols-1 lg:grid-cols-[1fr_1fr]">
         <section
-          className="auth-hero-shimmer relative isolate flex min-h-[400px] overflow-hidden px-7 py-9 text-white sm:px-10 lg:min-h-screen lg:px-14 lg:py-16"
+          className="auth-hero-shimmer relative isolate hidden overflow-hidden text-white lg:flex lg:min-h-screen lg:px-14 lg:py-16"
           style={{
             backgroundImage: `linear-gradient(0deg, rgba(9, 70, 35, .82), rgba(21, 92, 52, .78)), url(${heroImage})`,
             backgroundPosition: 'center',
