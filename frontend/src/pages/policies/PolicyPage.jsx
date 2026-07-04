@@ -6,7 +6,7 @@ import RichText from "@/components/common/RichText";
 const POLICY_LABEL = {
     SHIPPING: "Vận chuyển",
     RETURN:   "Đổi trả",
-    WARRANTY: "Bảo hành",
+    WARRANTY: "Chất Lượng",
     TERMS:    "Điều khoản",
 };
 
