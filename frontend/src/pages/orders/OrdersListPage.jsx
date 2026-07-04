@@ -4,6 +4,7 @@ import useOrderStore from '@/store/useOrderStore'
 import { fmt, formatDate, StatusBadge, Icon } from './orderHelpers'
 import ReviewFormPopup from '@/components/product/ReviewFormPopup'
 import useCartStore from '@/store/useCartStore'
+import orderApi from '@/api/orderApi'
 
 const TABS = [
   { key: 'ALL', label: 'Tất cả' },
@@ -57,6 +58,9 @@ export default function OrdersListPage() {
   const [reviewItems, setReviewItems] = useState(null)
   const { addItem } = useCartStore()
 
+  // id đơn đang xử lý "Đã nhận hàng" (để disable nút + hiện loading đúng đơn đó)
+  const [confirmingId, setConfirmingId] = useState(null)
+
   useEffect(() => {
     fetchMyOrders(0)
     fetchStatusCounts()
@@ -100,6 +104,39 @@ export default function OrdersListPage() {
     : statusCounts[key] ?? 0
 
   const isSearching = searchQuery.trim().length > 0
+
+  // Xác nhận "Đã nhận hàng" ngay từ list, không cần vào trang chi tiết
+  const handleConfirmDelivered = async (order) => {
+    if (confirmingId) return
+    setConfirmingId(order.id)
+    try {
+      await orderApi.confirmDelivered(order.id)
+
+      // Refresh lại list + đếm số lượng theo tab hiện tại
+      await fetchMyOrders(currentPage, 10, activeTab === 'ALL' ? null : activeTab)
+      await fetchStatusCounts()
+
+      // Lấy lại đơn vừa cập nhật từ store để biết sản phẩm nào chưa review
+      const updatedOrder = useOrderStore.getState().orders.find(o => o.id === order.id)
+      const unreviewed = (updatedOrder?.items ?? order.items ?? [])
+        .filter(i => !i.hasReviewed)
+        .map(i => ({
+          productId: i.productId,
+          variantId: i.variantId,
+          orderId: order.id,
+          productName: i.productName,
+          variantName: i.variantName,
+          imageUrl: i.imageUrl,
+          quantity: i.quantity,
+        }))
+
+      if (unreviewed.length > 0) setReviewItems(unreviewed)
+    } catch (e) {
+      console.error(e?.response?.data?.message ?? 'Có lỗi xảy ra khi xác nhận đã nhận hàng')
+    } finally {
+      setConfirmingId(null)
+    }
+  }
 
   return (
     <div className="min-h-screen" style={{ background: 'var(--color-bg-surface)' }}>
@@ -298,6 +335,8 @@ export default function OrdersListPage() {
             const extraItems = (order.items?.length ?? 0) - 2
             const unreviewedItems = order.items?.filter(i => !i.hasReviewed) ?? []
             const unreviewedCount = unreviewedItems.length
+            const isShipping = order.status === 'SHIPPING'
+            const isConfirmingThis = confirmingId === order.id
 
             return (
               <div
@@ -469,14 +508,29 @@ export default function OrdersListPage() {
                       </button>
                     )}
 
-                    {/* Nút "Xem chi tiết" */}
+                    {/* Nút "Đã nhận hàng" — chỉ hiện khi đang SHIPPING */}
+                    {isShipping && (
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation()
+                          handleConfirmDelivered(order)
+                        }}
+                        disabled={isConfirmingThis}
+                        className="text-xs font-semibold px-2.5 sm:px-3 py-1.5 rounded-[var(--radius-md)] cursor-pointer transition-all whitespace-nowrap disabled:opacity-60"
+                        style={{ background: '#16a34a', color: '#fff' }}
+                      >
+                        {isConfirmingThis ? 'Đang xác nhận...' : '✓ Đã nhận hàng'}
+                      </button>
+                    )}
+
+                    {/* Nút "Xem chi tiết" — trên mobile ẩn khi đang SHIPPING để chỉ còn nút "Đã nhận hàng" */}
                     {!['DELIVERED', 'CANCELLED'].includes(order.status) && (
                       <button
                         onClick={(e) => {
                           e.stopPropagation()
                           navigate(`/orders/${order.id}`)
                         }}
-                        className="text-xs font-medium px-2.5 sm:px-3 py-1.5 rounded-[var(--radius-md)] cursor-pointer transition-all whitespace-nowrap"
+                        className={`text-xs font-medium px-2.5 sm:px-3 py-1.5 rounded-[var(--radius-md)] cursor-pointer transition-all whitespace-nowrap ${isShipping ? 'hidden sm:block' : ''}`}
                         style={{
                           background: 'var(--color-bg-muted)',
                           color: 'var(--color-text-secondary)',
@@ -532,8 +586,28 @@ export default function OrdersListPage() {
       {reviewItems && reviewItems.length > 0 && (
         <ReviewFormPopup
           items={reviewItems}
-          onClose={() => setReviewItems(null)}
-          onSuccess={() => fetchMyOrders(0, 10, activeTab === 'ALL' ? null : activeTab)}
+          onClose={() => {
+            setReviewItems(null)
+            // Đóng popup (kể cả khi chưa review hết) vẫn cần refresh để
+            // đồng bộ hasReviewed mới nhất, tránh phải F5 mới hết nút "Đánh giá"
+            fetchMyOrders(currentPage, 10, activeTab === 'ALL' ? null : activeTab)
+          }}
+          onSuccess={(justDoneItems) => {
+            // Refresh ngay để order.items[].hasReviewed cập nhật,
+            // nút "Đánh giá" trong list sẽ tự ẩn/giảm số lượng đúng
+            fetchMyOrders(currentPage, 10, activeTab === 'ALL' ? null : activeTab)
+
+            setReviewItems(prev => {
+              if (!prev) return null
+              const doneKeys = new Set(
+                (justDoneItems ?? []).map(i => `${i.productId}:${i.variantId ?? ''}`)
+              )
+              const remaining = prev.filter(
+                i => !doneKeys.has(`${i.productId}:${i.variantId ?? ''}`)
+              )
+              return remaining.length > 0 ? remaining : null
+            })
+          }}
         />
       )}
     </div>
