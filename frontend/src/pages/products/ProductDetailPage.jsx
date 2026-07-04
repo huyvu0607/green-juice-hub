@@ -4,7 +4,7 @@ import ProductCard from "@/components/product/ProductCard";
 import { sharedObserver } from "@/utils/sharedObserver";
 import useCartStore from '@/store/useCartStore'
 import RichText from '@/components/common/RichText';
-import CollapsibleDescription from '@/components/product/CollapsibleDescription';
+import CollapsibleDescription from '@/components/product/Collapsibledescription';
 import { useParams, Link, useNavigate, useLocation } from "react-router-dom";
 import useAuthStore from "@/store/authStore";
 import { usePageReady } from '@/hooks/usePageReady'
