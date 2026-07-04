@@ -13,8 +13,9 @@ import orderApi from '@/api/orderApi'
 import useProfileModalStore from '@/store/useProfileModalStore'
 import paymentApi from '@/api/paymentApi'
 import MomoTransferModal from '@/components/order/MomoTransferModal'
+import LocationSelect from '@/components/user/LocationSelect'
 
-
+const MAX_ADDRESSES = 5
 
 
 // ── Helpers ────────────────────────────────────────────────────────────────
@@ -96,6 +97,11 @@ const Icon = {
   Zap: () => (
     <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round">
       <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2" />
+    </svg>
+  ),
+  Plus: () => (
+    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round">
+      <line x1="12" y1="5" x2="12" y2="19" /><line x1="5" y1="12" x2="19" y2="12" />
     </svg>
   ),
 }
@@ -252,19 +258,152 @@ function ResponsiveOverlay({ visible, onRequestClose, headerContent, footerConte
   )
 }
 
+// ── QuickAddAddressForm ──────────────────────────────────────────────────────
+// Form điền nhanh địa chỉ mới, dùng ngay trong overlay chọn địa chỉ ở Checkout,
+// tránh phải mở ProfileModal riêng. Field/validate tương tự AddressTab trong
+// ProfileModal, nhưng style theo inline-style đang dùng ở CheckoutPage.
+const EMPTY_QUICK_ADDR = {
+  fullName: '', phone: '',
+  province: '', district: '', ward: '',
+  districtId: null, wardCode: null,
+  detail: '', isDefault: false,
+}
+
+function QuickField({ label, error, children }) {
+  return (
+    <div className="flex flex-col gap-1">
+      {label && (
+        <label className="text-xs font-medium" style={{ color: 'var(--color-text-secondary)' }}>
+          {label}
+        </label>
+      )}
+      {children}
+      {error && <p className="text-xs" style={{ color: '#ef4444' }}>{error}</p>}
+    </div>
+  )
+}
+
+function QuickInput(props) {
+  return (
+    <input
+      className="w-full px-3 py-2 rounded-[var(--radius-md)] text-sm outline-none transition-all"
+      style={{
+        background: 'var(--color-bg-muted)',
+        border: '1.5px solid var(--color-border-subtle)',
+        color: 'var(--color-text-primary)',
+      }}
+      onFocus={(e) => { e.target.style.borderColor = 'var(--color-primary)' }}
+      onBlur={(e) => { e.target.style.borderColor = 'var(--color-border-subtle)' }}
+      {...props}
+    />
+  )
+}
+
+function validateQuickAddr(data) {
+  const errs = {}
+  if (!data.fullName?.trim()) errs.fullName = 'Nhập họ tên'
+  if (!data.phone?.trim()) errs.phone = 'Nhập số điện thoại'
+  else if (!/^(0|\+84)[0-9]{8,10}$/.test(data.phone)) errs.phone = 'Số điện thoại không hợp lệ'
+  if (!data.province?.trim()) errs.province = 'Chọn tỉnh/thành phố'
+  if (!data.district?.trim()) errs.district = 'Chọn quận/huyện'
+  if (!data.ward?.trim()) errs.ward = 'Chọn phường/xã'
+  if (!data.detail?.trim()) errs.detail = 'Nhập địa chỉ chi tiết'
+  return errs
+}
+
+function QuickAddAddressForm({ data, onChange, errors, saving, onSave, onCancel }) {
+  const updateField = (field, value) => onChange({ ...data, [field]: value })
+
+  return (
+    <div className="flex flex-col gap-4 p-4">
+      <QuickField label="Họ và tên người nhận" error={errors.fullName}>
+        <QuickInput value={data.fullName} onChange={(e) => updateField('fullName', e.target.value)} placeholder="Nguyễn Văn A" />
+      </QuickField>
+
+      <QuickField label="Số điện thoại" error={errors.phone}>
+        <QuickInput value={data.phone} onChange={(e) => updateField('phone', e.target.value)} placeholder="0901234567" />
+      </QuickField>
+
+      <LocationSelect
+        value={{
+          province: data.province,
+          district: data.district,
+          ward: data.ward,
+          districtId: data.districtId,
+          wardCode: data.wardCode,
+        }}
+        onChange={({ province, district, ward, districtId, wardCode }) => {
+          onChange({ ...data, province, district, ward, districtId, wardCode })
+        }}
+        errors={{ province: errors.province, district: errors.district, ward: errors.ward }}
+      />
+
+      <QuickField label="Địa chỉ chi tiết" error={errors.detail}>
+        <QuickInput value={data.detail} onChange={(e) => updateField('detail', e.target.value)} placeholder="Số nhà, tên đường..." />
+      </QuickField>
+
+      <label className="flex items-center gap-2 cursor-pointer select-none">
+        <div
+          onClick={() => updateField('isDefault', !data.isDefault)}
+          className="w-4 h-4 rounded flex items-center justify-center flex-shrink-0 transition-all"
+          style={{
+            background: data.isDefault ? 'var(--color-primary)' : 'var(--color-bg-muted)',
+            border: `1.5px solid ${data.isDefault ? 'var(--color-primary)' : 'var(--color-border-default)'}`,
+          }}
+        >
+          {data.isDefault && <Icon.Check />}
+        </div>
+        <span className="text-sm" style={{ color: 'var(--color-text-secondary)' }}>
+          Đặt làm địa chỉ mặc định
+        </span>
+      </label>
+
+      {errors._global && (
+        <p className="text-xs px-3 py-2 rounded-[var(--radius-sm)]" style={{ background: '#ef444415', color: '#ef4444' }}>
+          {errors._global}
+        </p>
+      )}
+
+      <div className="flex gap-2 pt-1">
+        <button
+          onClick={onSave}
+          disabled={saving}
+          className="flex-1 py-2.5 rounded-[var(--radius-md)] text-sm font-semibold text-white cursor-pointer transition-colors disabled:opacity-60 disabled:cursor-not-allowed"
+          style={{ background: 'var(--color-primary)' }}
+        >
+          {saving ? 'Đang lưu...' : 'Lưu địa chỉ'}
+        </button>
+        <button
+          onClick={onCancel}
+          disabled={saving}
+          className="px-4 py-2.5 rounded-[var(--radius-md)] text-sm font-medium cursor-pointer transition-colors"
+          style={{ background: 'var(--color-bg-muted)', color: 'var(--color-text-secondary)', border: '1.5px solid var(--color-border-subtle)' }}
+        >
+          Huỷ
+        </button>
+      </div>
+    </div>
+  )
+}
+
 // ── Address selector ────────────────────────────────────────────────────────
 function AddressSelector({ selectedId, onSelect }) {
   const [addresses, setAddresses] = useState([])
   const [loading, setLoading] = useState(true)
   const [showPicker, setShowPicker] = useState(false)
   const [pickerVisible, setPickerVisible] = useState(false) // điều khiển fade in/out
+  // 'list' = danh sách địa chỉ để chọn | 'add' = form điền nhanh địa chỉ mới
+  const [pickerMode, setPickerMode] = useState('list')
+  const [quickAddData, setQuickAddData] = useState({ ...EMPTY_QUICK_ADDR })
+  const [quickAddErrors, setQuickAddErrors] = useState({})
+  const [quickAddSaving, setQuickAddSaving] = useState(false)
   const isProfileModalOpen = useProfileModalStore((s) => s.isOpen)
   const wasOpenRef = useRef(false)
   const CLOSE_DURATION = 200
 
   const fetchAddresses = () => {
     setLoading(true)
-    userApi.getAddresses()
+    return userApi.getAddresses()
       .then((res) => {
         const list = res.data
         setAddresses(list)
@@ -272,6 +411,7 @@ function AddressSelector({ selectedId, onSelect }) {
           const def = list.find((a) => a.isDefault) ?? list[0]
           if (def) onSelect(def.id)
         }
+        return list
       })
       .catch(() => { })
       .finally(() => setLoading(false))
@@ -288,6 +428,9 @@ function AddressSelector({ selectedId, onSelect }) {
 
   // Mở picker: mount trước rồi fade-in ngay sau đó (giống PromoFullPage)
   const openPicker = () => {
+    setPickerMode('list')
+    setQuickAddData({ ...EMPTY_QUICK_ADDR })
+    setQuickAddErrors({})
     setShowPicker(true)
     document.body.style.overflow = 'hidden'
     requestAnimationFrame(() => setPickerVisible(true))
@@ -297,7 +440,40 @@ function AddressSelector({ selectedId, onSelect }) {
   const closePicker = () => {
     setPickerVisible(false)
     document.body.style.overflow = ''
-    setTimeout(() => setShowPicker(false), CLOSE_DURATION)
+    setTimeout(() => {
+      setShowPicker(false)
+      setPickerMode('list')
+    }, CLOSE_DURATION)
+  }
+
+  // Bấm "Quay lại": nếu đang ở form thêm mới thì quay về danh sách,
+  // nếu đang ở danh sách thì đóng hẳn overlay.
+  const handleBack = () => {
+    if (pickerMode === 'add') {
+      setPickerMode('list')
+      setQuickAddErrors({})
+    } else {
+      closePicker()
+    }
+  }
+
+  const handleQuickAddSave = async () => {
+    const errs = validateQuickAddr(quickAddData)
+    if (Object.keys(errs).length > 0) { setQuickAddErrors(errs); return }
+    setQuickAddErrors({})
+    setQuickAddSaving(true)
+    try {
+      const res = await userApi.createAddress(quickAddData)
+      const created = res.data
+      await fetchAddresses()
+      onSelect(created.id)
+      closePicker()
+    } catch (err) {
+      const msg = err?.response?.data?.message || 'Lưu địa chỉ thất bại, thử lại sau'
+      setQuickAddErrors({ _global: msg })
+    } finally {
+      setQuickAddSaving(false)
+    }
   }
 
   useEffect(() => {
@@ -333,6 +509,9 @@ function AddressSelector({ selectedId, onSelect }) {
     )
   }
 
+  const isAddMode = pickerMode === 'add'
+  const canAddMore = addresses.length < MAX_ADDRESSES
+
   const header = (
     <div
       className="flex items-center gap-2 px-3"
@@ -342,8 +521,8 @@ function AddressSelector({ selectedId, onSelect }) {
       }}
     >
       <button
-        onClick={closePicker}
-        aria-label="Quay lại trang thanh toán"
+        onClick={handleBack}
+        aria-label={isAddMode ? 'Quay lại danh sách địa chỉ' : 'Quay lại trang thanh toán'}
         className="w-9 h-9 flex items-center justify-center rounded-full cursor-pointer flex-shrink-0 transition-colors sm:hidden"
         style={{ color: 'var(--color-text-secondary)' }}
         onMouseEnter={(e) => e.currentTarget.style.background = 'var(--color-bg-muted)'}
@@ -352,7 +531,7 @@ function AddressSelector({ selectedId, onSelect }) {
         <Icon.ArrowLeft />
       </button>
       <p className="font-semibold text-sm flex-1" style={{ color: 'var(--color-text-primary)' }}>
-        Chọn địa chỉ giao hàng
+        {isAddMode ? 'Thêm địa chỉ mới' : 'Chọn địa chỉ giao hàng'}
       </p>
       <button
         onClick={closePicker}
@@ -393,15 +572,15 @@ function AddressSelector({ selectedId, onSelect }) {
               {selected.detail}, {selected.ward}, {selected.district}, {selected.province}
             </p>
           </div>
-          {addresses.length > 1 && (
-            <button
-              onClick={openPicker}
-              className="text-xs font-medium flex-shrink-0 px-2.5 py-1.5 rounded-[var(--radius-sm)] cursor-pointer transition-colors"
-              style={{ color: 'var(--color-primary)', background: 'var(--color-bg-elevated)', border: '1px solid var(--color-primary)' }}
-            >
-              Đổi
-            </button>
-          )}
+          {/* Luôn hiện nút "Đổi" khi đã có ít nhất 1 địa chỉ, kể cả khi chỉ có 1 -
+              để người dùng vẫn có thể mở bảng và thêm địa chỉ mới từ đó. */}
+          <button
+            onClick={openPicker}
+            className="text-xs font-medium flex-shrink-0 px-2.5 py-1.5 rounded-[var(--radius-sm)] cursor-pointer transition-colors"
+            style={{ color: 'var(--color-primary)', background: 'var(--color-bg-elevated)', border: '1px solid var(--color-primary)' }}
+          >
+            Đổi
+          </button>
         </div>
       )}
 
@@ -411,43 +590,75 @@ function AddressSelector({ selectedId, onSelect }) {
           onRequestClose={closePicker}
           headerContent={header}
         >
-          <div className="flex flex-col gap-3 p-4">
-            {addresses.map((addr) => (
-              <label
-                key={addr.id}
-                className="flex items-start gap-3 cursor-pointer p-3 rounded-[var(--radius-md)] transition-all"
-                style={{
-                  border: selectedId === addr.id ? '1.5px solid var(--color-primary)' : '1.5px solid var(--color-border-subtle)',
-                  background: selectedId === addr.id ? 'var(--color-primary-subtle)' : 'var(--color-bg-muted)',
-                }}
-                onClick={() => { onSelect(addr.id); closePicker() }}
-              >
-                <div
-                  className="w-4 h-4 rounded-full border-2 flex items-center justify-center flex-shrink-0 mt-0.5"
-                  style={{ borderColor: selectedId === addr.id ? 'var(--color-primary)' : 'var(--color-border-default)' }}
+          {isAddMode ? (
+            <QuickAddAddressForm
+              data={quickAddData}
+              onChange={setQuickAddData}
+              errors={quickAddErrors}
+              saving={quickAddSaving}
+              onSave={handleQuickAddSave}
+              onCancel={() => { setPickerMode('list'); setQuickAddErrors({}) }}
+            />
+          ) : (
+            <div className="flex flex-col gap-3 p-4">
+              {canAddMore && (
+                <button
+                  onClick={() => { setPickerMode('add'); setQuickAddData({ ...EMPTY_QUICK_ADDR }); setQuickAddErrors({}) }}
+                  className="flex items-center gap-3 px-4 py-3 rounded-[var(--radius-md)] text-left cursor-pointer transition-all"
+                  style={{ border: '1.5px dashed var(--color-primary)', background: 'var(--color-primary-subtle)' }}
                 >
-                  {selectedId === addr.id && (
-                    <div className="w-2 h-2 rounded-full" style={{ background: 'var(--color-primary)' }} />
-                  )}
-                </div>
-                <div className="flex-1 min-w-0">
-                  <div className="flex items-center gap-2 flex-wrap">
-                    <span className="font-semibold text-sm" style={{ color: 'var(--color-text-primary)' }}>{addr.fullName}</span>
-                    <span className="text-xs" style={{ color: 'var(--color-text-muted)' }}>{addr.phone}</span>
-                    {addr.isDefault && (
-                      <span className="text-xs px-1.5 py-0.5 rounded-full font-medium"
-                        style={{ background: 'var(--color-primary-muted)', color: 'var(--color-primary)' }}>
-                        Mặc định
-                      </span>
+                  <span
+                    className="w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0"
+                    style={{ background: 'var(--color-bg-elevated)', color: 'var(--color-primary)', border: '1px solid var(--color-primary)' }}
+                  >
+                    <Icon.Plus />
+                  </span>
+                  <span className="text-sm font-medium flex-1" style={{ color: 'var(--color-text-primary)' }}>
+                    Thêm địa chỉ mới
+                  </span>
+                  <span className="text-xs flex-shrink-0" style={{ color: 'var(--color-text-muted)' }}>
+                    {addresses.length}/{MAX_ADDRESSES}
+                  </span>
+                </button>
+              )}
+
+              {addresses.map((addr) => (
+                <label
+                  key={addr.id}
+                  className="flex items-start gap-3 cursor-pointer p-3 rounded-[var(--radius-md)] transition-all"
+                  style={{
+                    border: selectedId === addr.id ? '1.5px solid var(--color-primary)' : '1.5px solid var(--color-border-subtle)',
+                    background: selectedId === addr.id ? 'var(--color-primary-subtle)' : 'var(--color-bg-muted)',
+                  }}
+                  onClick={() => { onSelect(addr.id); closePicker() }}
+                >
+                  <div
+                    className="w-4 h-4 rounded-full border-2 flex items-center justify-center flex-shrink-0 mt-0.5"
+                    style={{ borderColor: selectedId === addr.id ? 'var(--color-primary)' : 'var(--color-border-default)' }}
+                  >
+                    {selectedId === addr.id && (
+                      <div className="w-2 h-2 rounded-full" style={{ background: 'var(--color-primary)' }} />
                     )}
                   </div>
-                  <p className="text-xs mt-0.5 leading-relaxed" style={{ color: 'var(--color-text-secondary)' }}>
-                    {addr.detail}, {addr.ward}, {addr.district}, {addr.province}
-                  </p>
-                </div>
-              </label>
-            ))}
-          </div>
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center gap-2 flex-wrap">
+                      <span className="font-semibold text-sm" style={{ color: 'var(--color-text-primary)' }}>{addr.fullName}</span>
+                      <span className="text-xs" style={{ color: 'var(--color-text-muted)' }}>{addr.phone}</span>
+                      {addr.isDefault && (
+                        <span className="text-xs px-1.5 py-0.5 rounded-full font-medium"
+                          style={{ background: 'var(--color-primary-muted)', color: 'var(--color-primary)' }}>
+                          Mặc định
+                        </span>
+                      )}
+                    </div>
+                    <p className="text-xs mt-0.5 leading-relaxed" style={{ color: 'var(--color-text-secondary)' }}>
+                      {addr.detail}, {addr.ward}, {addr.district}, {addr.province}
+                    </p>
+                  </div>
+                </label>
+              ))}
+            </div>
+          )}
         </ResponsiveOverlay>
       )}
     </>
