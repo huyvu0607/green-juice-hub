@@ -118,7 +118,13 @@ function CategoryScroller({ categories, activeId, onSelect }) {
 
    LƯU Ý VỀ KÉO TAY (DRAG):
    Dùng Pointer Events (pointerdown/move/up) để gộp chung xử lý cho cả chuột và
-   cảm ứng. Khi kéo: tạm dừng auto-scroll, tính vị trí mới theo khoảng cách kéo,
+   cảm ứng. QUAN TRỌNG: chỉ thực sự coi là "đang kéo" (và chỉ setPointerCapture)
+   SAU KHI con trỏ đã di chuyển vượt ngưỡng (6px). Nếu setPointerCapture ngay từ
+   pointerdown, trình duyệt sẽ retarget mọi sự kiện pointerup/click tiếp theo về
+   track thay vì về phần tử con (nút "Thêm vào giỏ", link, ProductCard...), khiến
+   click chuột trên desktop (mousedown+mouseup không di chuyển) bị "nuốt" mất —
+   đây chính là lý do trước đây bấm được trên mobile nhưng không bấm được trên
+   desktop. Khi kéo: tạm dừng auto-scroll, tính vị trí mới theo khoảng cách kéo,
    và "gói" vị trí (modulo) trong khoảng [0, maxScroll) để khớp với cơ chế loop
    vô hạn (danh sách đã nhân đôi). Dùng touchAction: "pan-y" để trình duyệt vẫn
    cho phép cuộn dọc trang bình thường, chỉ có kéo ngang mới bị JS chặn lại. */
@@ -139,12 +145,14 @@ function AutoScrollRow({ products, loading }) {
     const rafRef = useRef(null);
     const posRef = useRef(0);
 
+    // dragCandidateRef: pointer đang được nhấn xuống, đang chờ xem có vượt
+    // ngưỡng để trở thành "kéo thật sự" hay không
+    const dragCandidateRef = useRef(false);
     const draggingRef = useRef(false);
     const dragStartXRef = useRef(0);
     const dragStartPosRef = useRef(0);
     const pointerIdRef = useRef(null);
     const movedRef = useRef(false);
-
 
     // Đo chiều rộng container thật (px), từ đó tự chọn visibleCount phù hợp
     // rồi suy ra width từng card
@@ -192,7 +200,7 @@ function AutoScrollRow({ products, loading }) {
     const pause = () => { pausedRef.current = true; };
     const resume = () => { pausedRef.current = false; };
 
-    //chặn click nếu đã kéo tay (drag) — tránh click nhầm khi kéo ngang
+    // Chặn click nếu đã kéo tay (drag) thực sự — tránh click nhầm khi kéo ngang
     const handleClickCapture = (e) => {
         if (movedRef.current) {
             e.preventDefault();
@@ -202,50 +210,63 @@ function AutoScrollRow({ products, loading }) {
             movedRef.current = false;
         }
     };
+
     const handlePointerDown = (e) => {
         const track = trackRef.current;
         if (!track) return;
 
-        draggingRef.current = true;
+        // Chỉ đánh dấu là "ứng viên kéo", CHƯA set pointer capture và CHƯA
+        // coi là đang kéo — để một cú click bình thường (không di chuyển)
+        // vẫn rơi đúng vào phần tử con (nút, link, ProductCard...) như bình
+        // thường trên desktop.
+        dragCandidateRef.current = true;
+        draggingRef.current = false;
         movedRef.current = false;
-
-        setIsDragging(true);
 
         dragStartXRef.current = e.clientX;
         dragStartPosRef.current = posRef.current;
-
         pointerIdRef.current = e.pointerId;
-
-        track.setPointerCapture?.(e.pointerId);
     };
 
     /* ── Kéo tay (drag/swipe) bằng Pointer Events ── */
     const handlePointerMove = (e) => {
-        if (!draggingRef.current) return;
+        if (!dragCandidateRef.current) return;
 
         const track = trackRef.current;
         if (!track) return;
 
+        const deltaX = e.clientX - dragStartXRef.current;
+
+        if (!draggingRef.current) {
+            // Chưa vượt ngưỡng 6px thì chưa coi là kéo -> không làm gì cả,
+            // để click vẫn hoạt động bình thường nếu người dùng nhả chuột ra
+            if (Math.abs(deltaX) <= 6) return;
+
+            // Vừa vượt ngưỡng -> bây giờ mới thực sự bắt đầu kéo
+            draggingRef.current = true;
+            movedRef.current = true;
+            setIsDragging(true);
+
+            // Chỉ setPointerCapture khi đã chắc chắn là kéo, tránh nuốt mất
+            // sự kiện click của một cú bấm chuột thông thường
+            if (pointerIdRef.current != null) {
+                track.setPointerCapture?.(pointerIdRef.current);
+            }
+        }
+
         const maxScroll = track.scrollWidth / 2;
         if (maxScroll <= 0) return;
 
-        const deltaX = e.clientX - dragStartXRef.current;
-
-        // nếu kéo quá 6px thì coi là drag
-        if (Math.abs(deltaX) > 6) {
-            movedRef.current = true;
-        }
-
         let next = dragStartPosRef.current - deltaX;
-
         next = ((next % maxScroll) + maxScroll) % maxScroll;
 
         posRef.current = next;
-
         track.style.transform = `translateX(-${next}px)`;
     };
 
     const endDrag = () => {
+        dragCandidateRef.current = false;
+
         if (!draggingRef.current) return;
         draggingRef.current = false;
         setIsDragging(false);
