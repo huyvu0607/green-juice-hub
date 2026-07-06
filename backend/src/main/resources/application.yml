@@ -102,3 +102,9 @@ vnpay:
   # IPN URL → BE Railway (VNPay gọi server-to-server để xác nhận)
   ipn-url: ${VNPAY_IPN_URL:https://green-juice-hub-production.up.railway.app/api/payment/vnpay/ipn}
 
+gemini:
+  api-key: ${GEMINI_API_KEY}
+  model: ${GEMINI_MODEL:gemini-2.5-flash}
+  base-url: ${GEMINI_BASE_URL:https://generativelanguage.googleapis.com/v1beta}
+  timeout-ms: ${GEMINI_TIMEOUT_MS:15000}
+  temperature: ${GEMINI_TEMPERATURE:0.4}
