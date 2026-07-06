@@ -52,6 +52,7 @@ public class SecurityConfig {
                                 "/api/shipping/**",
                                 "/api/banners",
                                 "/api/payment/vnpay/ipn",
+                                "/api/recommendation",
                                 "/api/payment/vnpay/return"
                         ).permitAll()
                         // Tất cả còn lại phải authenticated
