@@ -3,6 +3,7 @@ package com.greenjuicehub.backend.service.email;
 import com.greenjuicehub.backend.dto.contact.request.CreateContactRequest;
 import jakarta.mail.internet.MimeMessage;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.mail.javamail.JavaMailSender;
 import org.springframework.mail.javamail.MimeMessageHelper;
@@ -11,6 +12,7 @@ import org.springframework.stereotype.Service;
 import org.thymeleaf.TemplateEngine;
 import org.thymeleaf.context.Context;
 
+@Slf4j
 @Service
 @RequiredArgsConstructor
 public class EmailService {
@@ -31,8 +33,9 @@ public class EmailService {
             helper.setSubject(subject);
             helper.setText(htmlBody, true);
             mailSender.send(message);
+            log.info("✅ Gửi mail thành công tới: {}", to);
         } catch (Exception e) {
-            // không throw — lỗi mail không ảnh hưởng API
+            log.error("❌ Gửi mail thất bại - to: {}, subject: {}, error: {}", to, subject, e.getMessage(), e);
         }
     }
 
