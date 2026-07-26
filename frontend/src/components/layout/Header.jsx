@@ -15,9 +15,15 @@ function getBackTarget(pathname) {
   return null;
 }
 
+// Gradient dùng riêng cho tab "AI Tư vấn" — lấy cảm hứng từ bảng màu Gemini
+// (xanh dương → tím → hồng cam), để tách biệt hẳn khỏi màu thương hiệu xanh lá.
+const AI_GRADIENT = "linear-gradient(135deg, #4285F4 0%, #9B72CB 50%, #D96570 100%)";
+const AI_TAB_PATH = "/ai-tu-van";
+
 const NAV_LINKS = [
   { label: "Trang chủ", to: "/" },
   { label: "Sản phẩm", to: "/products" },
+  { label: "AI Tư vấn", to: AI_TAB_PATH },
   { label: "Chính sách", to: "/policies" },
   { label: "Liên hệ", to: "/contact" },
 ];
@@ -401,6 +407,34 @@ function SearchBox({ onClose, initialQuery = "" }) {
   );
 }
 
+// ── Icon sparkle gradient kiểu Gemini, dùng cho tab "AI Tư vấn" ──
+// isActive = true  → fill trắng (vì nền pill đã là gradient/màu đặc)
+// isActive = false → fill theo gradient để nổi bật giữa các icon outline khác
+function AiSparkleIcon({ isActive, size = 22, idSuffix = "" }) {
+  const gradId = `aiNavGradient${idSuffix}`;
+  return (
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="none">
+      {!isActive && (
+        <defs>
+          <linearGradient id={gradId} x1="0%" y1="0%" x2="100%" y2="100%">
+            <stop offset="0%" stopColor="#4285F4" />
+            <stop offset="50%" stopColor="#9B72CB" />
+            <stop offset="100%" stopColor="#D96570" />
+          </linearGradient>
+        </defs>
+      )}
+      <path
+        d="M12 2.5 L13.6 8.4 L19.5 10 L13.6 11.6 L12 17.5 L10.4 11.6 L4.5 10 L10.4 8.4 Z"
+        fill={isActive ? "#fff" : `url(#${gradId})`}
+      />
+      <path
+        d="M18.5 13.5 L19.05 15.55 L21.1 16.1 L19.05 16.65 L18.5 18.7 L17.95 16.65 L15.9 16.1 L17.95 15.55 Z"
+        fill={isActive ? "#fff" : `url(#${gradId})`}
+      />
+    </svg>
+  );
+}
+
 export default function Header() {
   const [phase, setPhase] = useState("open");
   const [navTop, setNavTop] = useState(64);
@@ -417,9 +451,6 @@ export default function Header() {
   const navigate = useNavigate();
   const { totalQuantity, toggleCart } = useCartStore();
 
-  // FIX: backTarget/handleBack thiếu ở đây trước đây, khiến Header
-  // ném ReferenceError khi render (biến này chỉ tồn tại trong SearchBox,
-  // không tự "leak" sang component khác được).
   const backTarget = getBackTarget(location.pathname);
   const handleBack = () => {
     if (backTarget === -1) navigate(-1);
@@ -489,6 +520,10 @@ export default function Header() {
   const isOpen = phase === "open" || phase === "opening";
   const arrowRotated = phase === "open";
   const { navRef, itemRefs, pill, blob } = useLiquidPill(isOpen);
+
+  // Tab AI có đang active không — dùng để: (1) ẩn liquid-pill xanh lá phía sau nó,
+  // (2) hiện riêng 1 khối nền gradient đúng vị trí đó thay thế.
+  const isAiActive = location.pathname.startsWith(AI_TAB_PATH);
 
   const BTN_SIZE = 24;
   const btnTop = isOpen
@@ -719,9 +754,12 @@ export default function Header() {
             boxShadow: "var(--shadow-md)",
           }}
         >
+          {/* Liquid pill xanh lá — ẩn khi tab đang active là AI, để không đè lên gradient */}
           <div aria-hidden="true" style={{
             position: "absolute", inset: 0, borderRadius: 9999,
-            overflow: "hidden", filter: "url(#goo)", pointerEvents: "none"
+            overflow: "hidden", filter: "url(#goo)", pointerEvents: "none",
+            opacity: isAiActive ? 0 : 1,
+            transition: "opacity 0.2s ease",
           }}>
             <div style={{
               position: "absolute", top: "50%", transform: "translateY(-50%)",
@@ -735,10 +773,27 @@ export default function Header() {
             }} />
           </div>
 
+          {/* Khối nền gradient riêng cho tab AI khi active — thay thế liquid pill ở trên */}
+          {isAiActive && (
+            <div
+              aria-hidden="true"
+              style={{
+                position: "absolute", top: "50%", transform: "translateY(-50%)",
+                left: pill.x, width: pill.width, height: 36, borderRadius: 9999,
+                background: AI_GRADIENT,
+                boxShadow: "0 4px 14px rgba(155,114,203,0.35)",
+                pointerEvents: "none",
+                transition: "left 0.3s cubic-bezier(0.34,1.1,0.64,1), width 0.3s cubic-bezier(0.34,1.1,0.64,1)",
+              }}
+            />
+          )}
+
           {NAV_LINKS.map(({ label, to }) => {
             const isActive = to === "/"
               ? location.pathname === "/"
               : location.pathname.startsWith(to);
+            const isAiTab = to === AI_TAB_PATH;
+
             return (
               <NavLink
                 key={to}
@@ -746,14 +801,27 @@ export default function Header() {
                 end={to === "/"}
                 ref={(el) => { if (el) itemRefs.current[to] = el; }}
                 className={
-                  `relative z-10 shrink-0 px-4 md:px-5 h-9 flex items-center rounded-[var(--radius-pill)]
+                  `relative z-10 shrink-0 px-4 md:px-5 h-9 flex items-center gap-1.5 rounded-[var(--radius-pill)]
                    text-[var(--text-sm)] font-medium transition-colors duration-[var(--duration-base)]
                    ${isActive
                     ? "text-white"
-                    : "text-[var(--color-text-secondary)] hover:text-[var(--color-text-primary)] hover:bg-[var(--color-bg-muted)]"
+                    : isAiTab
+                      ? "hover:opacity-75"
+                      : "text-[var(--color-text-secondary)] hover:text-[var(--color-text-primary)] hover:bg-[var(--color-bg-muted)]"
                   }`
                 }
+                style={
+                  isAiTab && !isActive
+                    ? {
+                      backgroundImage: AI_GRADIENT,
+                      WebkitBackgroundClip: "text",
+                      backgroundClip: "text",
+                      color: "transparent",
+                    }
+                    : undefined
+                }
               >
+                {isAiTab && <AiSparkleIcon isActive={isActive} size={15} idSuffix="Desktop" />}
                 {label}
               </NavLink>
             );
@@ -782,6 +850,7 @@ export default function Header() {
             ? location.pathname === "/"
             : location.pathname.startsWith(to);
           const navTo = to === "/policies" ? "/policies/shipping" : to;
+          const isAiTab = to === AI_TAB_PATH;
 
           return (
             <NavLink
@@ -794,7 +863,7 @@ export default function Header() {
                 alignItems: "center",
                 justifyContent: "center",
                 padding: "6px 4px",
-                color: isActive ? "#fff" : "var(--color-text-muted)",
+                color: isActive ? "#fff" : (isAiTab ? undefined : "var(--color-text-muted)"),
                 textDecoration: "none",
                 transition: "color 0.2s ease",
               }}
@@ -807,8 +876,14 @@ export default function Header() {
                 gap: isActive ? 7 : 3,
                 padding: isActive ? "9px 16px" : "2px 6px",
                 borderRadius: 9999,
-                background: isActive ? "var(--color-primary)" : "transparent",
-                boxShadow: isActive ? "0 4px 10px color-mix(in srgb, var(--color-primary) 40%, transparent)" : "none",
+                background: isActive
+                  ? (isAiTab ? AI_GRADIENT : "var(--color-primary)")
+                  : "transparent",
+                boxShadow: isActive
+                  ? (isAiTab
+                    ? "0 4px 10px rgba(155,114,203,0.4)"
+                    : "0 4px 10px color-mix(in srgb, var(--color-primary) 40%, transparent)")
+                  : "none",
                 transition: "background 0.2s ease, box-shadow 0.2s ease, padding 0.2s ease",
               }}>
                 <span style={{
@@ -818,14 +893,26 @@ export default function Header() {
                   width: 22,
                   height: 22,
                 }}>
-                  {NAV_ICONS[to]}
+                  {isAiTab
+                    ? <AiSparkleIcon isActive={isActive} size={22} idSuffix="Mobile" />
+                    : NAV_ICONS[to]}
                 </span>
                 <span style={{
                   fontSize: isActive ? 13 : 10,
                   fontWeight: isActive ? 600 : 400,
                   lineHeight: 1,
                   whiteSpace: "nowrap",
-                  color: isActive ? "#fff" : "currentColor",
+                  color: isActive
+                    ? "#fff"
+                    : (isAiTab ? undefined : "currentColor"),
+                  ...(isAiTab && !isActive
+                    ? {
+                      backgroundImage: AI_GRADIENT,
+                      WebkitBackgroundClip: "text",
+                      backgroundClip: "text",
+                      color: "transparent",
+                    }
+                    : {}),
                 }}>
                   {label}
                 </span>

@@ -39,6 +39,7 @@ import AdminPoliciesPage from '@/pages/admin/policy/Adminpoliciespage'
 import VnpayResultPage from '@/pages/payment/VnpayResultPage'
 import SettingsPage from '@/pages/settings/SettingsPage'
 import NotFoundPage from '@/pages/NotFoundPage'
+import AiConsultantPage from '@/pages/ai-consultant/AiConsultantPage'  // ← thêm
 
 
 
@@ -145,6 +146,7 @@ function AppRoutes() {
         <Route path="/contact" element={<MainLayout><ContactPage /></MainLayout>} />
         <Route path="/policies/:type" element={<MainLayout><PolicyPage /></MainLayout>} />
         <Route path="/payment/vnpay/result" element={<VnpayResultPage />} />
+        <Route path="/ai-tu-van" element={<MainLayout><AiConsultantPage /></MainLayout>} />
 
         {/* ── Customer only ── */}
 

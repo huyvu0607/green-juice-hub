@@ -33,6 +33,9 @@ public class RecommendationResponse {
     @AllArgsConstructor
     public static class SuggestedProduct {
         private Long productId;
+        private String name;
+        private String imageUrl;
+        private String slug;
         private String reason;
     }
 }

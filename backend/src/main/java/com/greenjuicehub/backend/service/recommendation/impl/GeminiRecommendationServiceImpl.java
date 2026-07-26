@@ -3,6 +3,8 @@ package com.greenjuicehub.backend.service.recommendation.impl;
 import java.util.List;
 import java.util.Map;
 
+import com.greenjuicehub.backend.entity.ProductImage;
+import jakarta.transaction.Transactional;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.http.HttpStatus;
@@ -47,11 +49,12 @@ public class GeminiRecommendationServiceImpl implements IRecommendationService {
     }
 
     @Override
+    @Transactional
     public RecommendationResponse recommend(RecommendationRequest request) {
         // 1. Lấy danh sách sản phẩm thật đang active (RAG context)
         //    LƯU Ý: điều chỉnh lại tên method này cho khớp với ProductRepository
         //    thật của bạn, ví dụ findByActiveTrue() hoặc findAllAvailable().
-        List<Product> availableProducts = productRepository.findAll();
+        List<Product> availableProducts = productRepository.findByIsDeletedFalseAndIsActiveTrue();
 
         // 2. Ghép prompt: rule + data sản phẩm + input người dùng
         String userPrompt = promptBuilder.buildPrompt(request, availableProducts);
@@ -111,10 +114,35 @@ public class GeminiRecommendationServiceImpl implements IRecommendationService {
 
     private RecommendationResponse parseResponse(String rawJson) {
         try {
-            return objectMapper.readValue(rawJson, RecommendationResponse.class);
+            RecommendationResponse response = objectMapper.readValue(rawJson, RecommendationResponse.class);
+            enrichSuggestedProducts(response);
+            return response;
         } catch (Exception e) {
             log.error("Không parse được JSON từ AI: {}", rawJson, e);
             throw new AppException(HttpStatus.BAD_GATEWAY, "Không thể xử lý gợi ý từ AI, vui lòng thử lại");
         }
+    }
+
+    private void enrichSuggestedProducts(RecommendationResponse response) {
+        if (response.getSuggestedProducts() == null) return;
+
+        for (RecommendationResponse.SuggestedProduct sp : response.getSuggestedProducts()) {
+            productRepository.findById(sp.getProductId()).ifPresent(product -> {
+                sp.setName(product.getName());
+                sp.setSlug(product.getSlug());
+                sp.setImageUrl(findPrimaryImageUrl(product));
+            });
+        }
+    }
+
+    private String findPrimaryImageUrl(Product product) {
+        if (product.getImages() == null || product.getImages().isEmpty()) {
+            return null;
+        }
+        return product.getImages().stream()
+                .filter(img -> Boolean.TRUE.equals(img.getIsPrimary()))
+                .findFirst()
+                .map(ProductImage::getImageUrl)
+                .orElse(product.getImages().get(0).getImageUrl());
     }
 }

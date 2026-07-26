@@ -157,4 +157,6 @@ public interface ProductRepository extends JpaRepository<Product, Long>,
     Optional<Product> findById(Long id);
 
     boolean existsByCategoryId(Long categoryId);
+
+    List<Product> findByIsDeletedFalseAndIsActiveTrue();
 }
