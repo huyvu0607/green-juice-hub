@@ -64,6 +64,7 @@ public class PolicyServiceImpl implements IPolicyService {
                 .content(p.getContent())
                 .sortOrder(p.getSortOrder())
                 .updatedAt(p.getUpdatedAt())
+                .isActive(p.getIsActive())
                 .build();
     }
 }
