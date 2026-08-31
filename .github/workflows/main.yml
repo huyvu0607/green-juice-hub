@@ -1,0 +1,101 @@
+name: CI - Build and Test
+
+on:
+  push:
+    branches: ['**']
+  pull_request:
+    branches: ['**']
+  workflow_dispatch:
+
+# Huỷ các lần chạy cũ trên cùng một nhánh/PR khi có commit mới
+concurrency:
+  group: ci-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+defaults:
+  run:
+    working-directory: backend
+
+jobs:
+  build-and-test:
+    name: Build & Test (JDK 21)
+    runs-on: ubuntu-latest
+
+    # Redis cho các test cần Spring context đầy đủ (@SpringBootTest).
+    # Database dùng H2 in-memory nên không cần container.
+    services:
+      redis:
+        image: redis:7-alpine
+        ports:
+          - 6379:6379
+        options: >-
+          --health-cmd "redis-cli ping"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
+    steps:
+      - name: Checkout source code
+        uses: actions/checkout@v4
+
+      - name: Set up JDK 21
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '21'
+          cache: maven
+          cache-dependency-path: backend/pom.xml
+
+      - name: Cache Maven wrapper distribution
+        uses: actions/cache@v4
+        with:
+          path: ~/.m2/wrapper
+          key: maven-wrapper-${{ hashFiles('backend/.mvn/wrapper/maven-wrapper.properties') }}
+
+      - name: Make mvnw executable
+        run: chmod +x ./mvnw
+
+      - name: Build and run all tests
+        run: ./mvnw -B -ntp clean verify
+
+      - name: Test summary
+        if: always()
+        continue-on-error: true
+        run: |
+          num() { case "$1" in *[!0-9]*|'') echo 0 ;; *) echo "$1" ;; esac; }
+          {
+            echo "## Kết quả test"
+            if ls target/surefire-reports/*.txt >/dev/null 2>&1; then
+              total=0; failures=0; errors=0; skipped=0
+              for f in target/surefire-reports/*.txt; do
+                line=$(grep -m1 -E 'Tests run:' "$f" || true)
+                [ -z "$line" ] && continue
+                t=$(num "$(echo "$line"  | sed -E 's/.*Tests run: ([0-9]+).*/\1/')")
+                fa=$(num "$(echo "$line" | sed -E 's/.*Failures: ([0-9]+).*/\1/')")
+                er=$(num "$(echo "$line" | sed -E 's/.*Errors: ([0-9]+).*/\1/')")
+                sk=$(num "$(echo "$line" | sed -E 's/.*Skipped: ([0-9]+).*/\1/')")
+                total=$((total + t)); failures=$((failures + fa))
+                errors=$((errors + er)); skipped=$((skipped + sk))
+              done
+              echo ""
+              echo "| Tests | Failures | Errors | Skipped |"
+              echo "|------:|---------:|-------:|--------:|"
+              echo "| $total | $failures | $errors | $skipped |"
+            else
+              echo "_Không tìm thấy surefire report (build có thể fail trước khi chạy test)._"
+            fi
+          } >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Upload test & coverage reports
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: test-reports
+          path: |
+            backend/target/surefire-reports/**
+            backend/target/site/jacoco/**
+          if-no-files-found: warn
+          retention-days: 7
